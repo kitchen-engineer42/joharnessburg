@@ -6,7 +6,16 @@ Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in th
 
 ## Status
 
-**v0.1.4 — M4 2app phase skills shipped.** Plugin loads with 8 core meta-skills (M1), 7 toolkit scripts and 4 slash commands (M2), 6 2skills phase skills (M3), and 3 2app phase skills (M4: app-design-thinking, plan-md-evolution, code-quality-guardrails — each with a `references/` subdirectory). Hooks, templates, and end-to-end testing still in progress (M5–M7).
+**v0.1.5 — M5 hooks + 2 example templates shipped.** Plugin loads with 8 core meta-skills (M1), 7 toolkit scripts and 4 slash commands (M2), 6 2skills phase skills (M3), 3 2app phase skills (M4), and now 3 hooks (SessionStart / PreCompact / PostToolUse) + 2 example templates (slides-from-textbook, doc-verification) with an authoring guide (M5). 46 unit tests green. End-to-end shakedown and handoff docs still ahead (M6–M7).
+
+## Templates
+
+Templates are sibling plugins that customize John for a specific domain (slide decks, doc verification, mystery games, etc.). John core stays unchanged; templates add/override/delete its skills at session-start time.
+
+- **Authoring guide**: [`templates/README.md`](templates/README.md) — directory anatomy, override mechanics, install location.
+- **Bundled examples**: [`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/) (lighter — 1 override + 1 add) and [`templates/examples/doc-verification/`](templates/examples/doc-verification/) (heavier, KC-style — 2 overrides + 2 adds).
+
+Both bundled examples are **functional demonstrators**, not production-ready. They prove the layered runtime override mechanism works; the team's production templates ship separately.
 
 ## Prerequisites
 

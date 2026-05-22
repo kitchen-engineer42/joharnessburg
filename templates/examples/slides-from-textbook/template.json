@@ -1,0 +1,7 @@
+{
+  "name": "slides-from-textbook",
+  "version": "0.1.0",
+  "description": "Turn a textbook chapter (or any structured prose) into an interactive slide deck. Overrides chunking to chunk by slide-candidate (per concept/section), adds a slide-rendering skill that maps entries to slide component types, and ships a plan_md_template tailored to the 6-phase slide-deck pipeline. Inspired by the team's lesson2slides subsite. Functional example, not production-ready.",
+  "requires_john": ">=0.1.4",
+  "author": "memect"
+}

@@ -1,0 +1,7 @@
+{
+  "name": "doc-verification",
+  "version": "0.1.0",
+  "description": "Build document verification apps in the KC_CLI style — rules-only schema, 7-phase pipeline from rule extraction through skill authoring and workflow distillation, per-rule packaging. Overrides schema-design (narrows to rules-only) and packaging (per-rule-skill emission); adds rule-extraction and rule-testing skills. Heavier example than slides-from-textbook; exercises multiple overrides + new skills. Inspired by kc_cli; functional example, not production-ready.",
+  "requires_john": ">=0.1.4",
+  "author": "memect"
+}

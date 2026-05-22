@@ -1,4 +1,39 @@
 {
-  "description": "joharnessburg hooks. No hooks wired in M0 — this stub validates that the plugin loads without hook errors. SessionStart, PreCompact, and PostToolUse handlers come in M5.",
-  "hooks": {}
+  "description": "John (joharnessburg) hooks. SessionStart injects endurance goal + PLAN.md state into new sessions; PreCompact snapshots workspace state before context compaction; PostToolUse offloads large file-tool results to .john/trace/ and replaces them with head+tail digests. All three no-op when no .john/ directory is present in the current working directory (i.e., John isn't active for this project).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/session_start_hook.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/precompact_hook.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/post_tool_use_hook.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
 }
