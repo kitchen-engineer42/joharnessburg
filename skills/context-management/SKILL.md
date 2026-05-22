@@ -20,15 +20,17 @@ You should use all five. They compound.
 
 ### 1. Endurance goal pinned in system prompt
 
-If the user has run `/endurance <goal>`, that goal is in `<project>/.john/workspace.json` and the SessionStart hook injects it into your system prompt at the top of every session (and every post-compaction state). It survives compaction because the system prompt isn't windowed.
+If the user has run `/endurance <goal>`, that goal is in `<project>/.john/workspace.json` and the SessionStart hook will inject it into your system prompt at the top of every session (and every post-compaction state). It survives compaction because the system prompt isn't windowed.
 
-What this gives you: even after compaction wipes most of conversation history, the marathon-race-distance direction is still in front of you. You know what you're working toward.
+*Note: `/endurance` and the SessionStart pin are M5 affordances; until M5 ships, the user can manually write the endurance goal at the top of `<project>/PLAN.md` and you read it from there as step 1 of every loop iteration.*
+
+What this gives you: even after compaction wipes most of conversation history, the endurance-race direction is still in front of you. You know what you're working toward.
 
 If no endurance goal is set, the project's intent from PLAN.md's top section serves the same role — read it as step 1 of every loop iteration.
 
 ### 2. Filesystem offload for large tool results
 
-When a tool returns a result over ~2KB (a parsed PDF, a large extraction output, a verbose error trace), don't keep it in conversation context. The PostToolUse hook (auto-wired in M5) offloads large results to `<project>/.john/trace/<id>.txt` and leaves a head+tail digest in your context with a pointer to the full file.
+When a tool returns a result that feels heavy (multi-KB parsed data, verbose error trace, raw PDF text), don't keep it in conversation context. Write it to `<project>/.john/trace/<id>.txt` and reference the path; leave a head+tail digest in your context. In M5 the PostToolUse hook will auto-wire this for results past a size threshold; until then, do it manually for results that feel large.
 
 When you need the full content again, Read the trace file. Until then, the digest is enough for most decision-making, and your context stays clean.
 
@@ -116,4 +118,4 @@ Some habits:
 - [[subagent-dispatch]] — the strongest context-saving lever
 - [[workspace-discipline]] — disk-is-truth means context loss is recoverable
 - [[event-log-and-reducer]] — checkpoint state lives on disk
-- [[plan-md-evolution]] — keeping PLAN.md fresh so re-reads are useful
+- [[plan-md-evolution]] — keeping PLAN.md fresh so re-reads are useful *(M4 forward-ref; for now, plan-md-authoring + the ralph-loop step 5 cover plan updates)*

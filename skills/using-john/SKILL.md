@@ -1,6 +1,6 @@
 ---
 name: using-john
-description: Top-level orientation for John (joharnessburg). Read this first whenever you are running in a Claude Code session where the John plugin is loaded — it tells you what John is, the shape of the user's working state, where to look, and what to do at each phase of work.
+description: Top-level orientation for John (joharnessburg). Read this skill at the start of every John session and re-read it after every context compaction. Use it whenever the user mentions John, joharnessburg, ralph-loop, 2skills, 2app, knowledge engineering, or asks you to do knowledge-dense app building. It tells you what John is, the shape of the user's working state, where to look, and what to do at each phase of work — without it, you'll likely under-trigger the other John skills.
 ---
 
 # using-john
@@ -44,7 +44,9 @@ Six rules. Internalize these — every other John skill builds on them.
 
 ## The endurance goal
 
-The user can set a long-running goal for the session via `/endurance <goal>`. That goal is pinned to the system prompt and survives context compaction. If an endurance goal is set, treat it as the marathon you're running toward — every phase advances the goal. If none is set, the project's intent (top of PLAN.md) plays that role.
+The user can set a long-running goal for the session via `/endurance <goal>`. That goal is pinned to the system prompt and survives context compaction. If an endurance goal is set, treat it as the endurance race you're running — every phase advances the finish line a little closer. If none is set, the project's intent (top of PLAN.md) plays that role.
+
+*Note: the `/endurance` slash command + SessionStart pin are M5 affordances. Until M5 ships, the user can manually write the endurance goal at the top of PLAN.md and you reference it from there.*
 
 ## What you should NOT do
 
@@ -58,7 +60,7 @@ The user can set a long-running goal for the session via `/endurance <goal>`. Th
 
 - [[ralph-loop]] — the iterative plan-advancement pattern this session runs on
 - [[plan-md-authoring]] — how to author a PLAN.md at project start
-- [[plan-md-evolution]] — how to keep PLAN.md current as work progresses
+- [[plan-md-evolution]] — how to keep PLAN.md current as work progresses *(M4 forward-ref; not yet authored)*
 - [[phase-design]] — how to decide what phases this project needs
 - [[subagent-dispatch]] — when and how to spawn subagents
 - [[event-log-and-reducer]] — the parallel-subagent coordination pattern

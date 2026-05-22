@@ -5,9 +5,14 @@ metadata:
   triggers:
     - advance the plan
     - next phase
+    - next iteration
     - continue the loop
     - ralph loop
     - resume work
+    - phase boundary
+    - mark phase done
+    - what's the next unit of work
+    - one unit of work
 ---
 
 # ralph-loop
@@ -24,6 +29,8 @@ Every iteration of substantive work in a John session takes the same shape:
 6. **Stop or loop.** Stop at phase boundaries (clean compaction points, low risk of midway corruption). Loop within a phase if there's clearly more work and you're below ~50% context utilization.
 
 That's it. The rest of this skill is failure modes and nuance.
+
+**Templates may override this pattern.** Per the user's spec §8.5 sign-off, the active template can define its own iteration model — substitute different phases, run a different loop shape, override what counts as "one unit." If a template ships its own loop instructions in `claude_addon.md` or a sibling skill, follow that instead. This skill is John's default; templates shape the variation. Always check PLAN.md and CLAUDE.md for template-specific overrides before assuming the default applies.
 
 ## Why this loop
 
@@ -92,7 +99,7 @@ If you find a behavior in another `ralph` reference that contradicts this skill,
 ## Cross-references
 
 - [[plan-md-authoring]] — write the plan before you can loop on it
-- [[plan-md-evolution]] — keep the plan current as you loop
+- [[plan-md-evolution]] — keep the plan current as you loop *(M4 forward-ref; for now, plan-update lives in step 5 of the loop above)*
 - [[phase-design]] — what makes a good phase boundary
 - [[subagent-dispatch]] — when and how to fan out within an iteration
 - [[event-log-and-reducer]] — coordinate subagent fan-out

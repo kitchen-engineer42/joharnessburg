@@ -1,6 +1,6 @@
 ---
 name: phase-design
-description: How to decide what phases this project actually needs. Phases are John's horizontal axis; getting them right makes ralph-loop work and getting them wrong makes every iteration a re-derivation.
+description: How to decide what phases this project actually needs, when you're sketching PLAN.md or revising it mid-flight. Use this skill whenever you need to design, evaluate, or revise phases for a John project — phases are John's horizontal axis, suggestions not enforcements, and getting them right is what makes ralph-loop work.
 metadata:
   triggers:
     - design phases
@@ -8,9 +8,17 @@ metadata:
     - decide phases
     - phase boundary
     - phase plan
+    - subdivide phase
+    - merge phases
+    - drop a phase
+    - insert a phase
 ---
 
 # phase-design
+
+You are layer-2 Claude designing phases for your user's project. The phases will live in their `<project>/PLAN.md` and drive every loop iteration via [[ralph-loop]].
+
+**Phases are suggestions, not enforcement.** Per spec §8.5, John's stance is "phases-as-skills with template override room" — the engine doesn't gate on phase boundaries; the floor is disk-verifiable artifacts (see [[workspace-discipline]]). You're designing scaffolding that helps work decompose cleanly, not laws that punish deviation. Templates may radically reshape the phase list; users may request changes mid-flight; corpora may surprise you. Stay wide.
 
 A phase is a unit of work with three properties:
 
@@ -43,6 +51,21 @@ These are starting points, not requirements. The user or the active template ove
 | 7 | package | Emit SKILL.md to `<project>/.claude/skills/`. | Knowledge goes somewhere else (e.g., a database). |
 
 When deciding 2skills phases for a specific project, walk this list and ask "does this project need this phase?" Drop or merge accordingly.
+
+## Long-docs vs short-file-sets: the onion decision
+
+The chunking step has two opposite operations depending on corpus shape:
+
+- **Onion-peeler** (default): one large document → tree of progressively-disclosed chunks. Break the doc down by header hierarchy + token budgets.
+- **Onion-wrapper**: many small files → assemble them into a tree by domain/topic/folder. Same progressive-disclosure shape, opposite operation.
+
+Quick rubric (decide in the **survey** phase, before chunking starts):
+
+- One large document (textbook, regulation, long article) → peeler.
+- Many small files (folder of 500 short memos, set of tweets, nested folder of snippets) → wrapper.
+- Mixed (some long, some short, often the case for messy real-world input) → hybrid: peel the long ones, wrap the short ones, merge at chunk-tree boundaries.
+
+This decision must be visible in PLAN.md's chunk phase (or whatever you name it). Don't defer it to the chunking skill — by the time chunking starts, the phase shape is already locked.
 
 ## Suggested 2app phases
 

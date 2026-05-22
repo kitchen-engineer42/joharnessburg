@@ -72,7 +72,9 @@ Why immutable:
 
 If you find yourself wanting to edit an event file, you're probably trying to hide a mistake. Don't. Emit a corrective event instead.
 
-## Rule 5: Observable done criteria
+## Rule 5: Verify observable done criteria
+
+Authoring good done criteria is [[phase-design]]'s job. Verifying that they're met is yours. The two roles are distinct — when you read PLAN.md and the Done criteria looks vague, push the user to tighten it via phase-design's methodology rather than guessing what "feels right."
 
 Every phase in PLAN.md has a "Done criteria" line. It must be observable on disk. Examples:
 
@@ -137,4 +139,4 @@ Never tell the user "yes, it's done" based on memory. Memory is wrong.
 - [[event-log-and-reducer]] — append-only, idempotent reducer
 - [[phase-design]] — done criteria are disk-verifiable by design
 - [[context-management]] — disk-is-truth is why context loss is recoverable
-- [[plan-md-evolution]] — PLAN.md updates require disk-state confirmation
+- [[plan-md-evolution]] — PLAN.md updates require disk-state confirmation *(M4 forward-ref)*

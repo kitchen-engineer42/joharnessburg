@@ -1,6 +1,6 @@
 ---
 name: plan-md-authoring
-description: How to write the initial PLAN.md at the start of a John project. The plan is the durable contract that spans 2skills knowledge engineering and 2app app building in one session; it has to be honest about what's known and what's still a judgment call.
+description: How to write the initial PLAN.md at the start of a John project. Use this skill whenever the user has just run /joharnessburg-init, when there is no PLAN.md yet, or when the user says "let's start a new project" / "design the plan" / "what should we build." PLAN.md is the durable contract that spans 2skills knowledge engineering and 2app app building in ONE session — get it right at the top or every phase pays for it.
 metadata:
   triggers:
     - write PLAN.md
@@ -8,6 +8,10 @@ metadata:
     - design the plan
     - initialize plan
     - start of project
+    - start a new project
+    - no plan yet
+    - what should we build
+    - design the four structures
 ---
 
 # plan-md-authoring
@@ -74,7 +78,14 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 
 **Knowledge inventory.** Initially just a pointer + one-line profile of the corpus: "10 PDFs, ~2000 pages total, financial regulations in Chinese." Don't speculate about what'll come out yet. After 2skills half ships, this becomes a pointer to the produced skills.
 
-**Four structures.** This is where the user's project taste matters most. The format-of-knowledge decision shapes everything downstream — see [[schema-design]] for the methodology. Write a STARTER sketch and explicitly mark it "may evolve." Wide tunnel.
+**Four structures.** Per spec §4, format / schema / runtime / production-pipeline are a **cascade** — each one constrains the next:
+
+- *Format of knowledge* (rules? stories? facts? wiki? mixed?) determines what shape the SKU schema should take.
+- *Schema of knowledge* (fields per entry, MECE coverage, header+body progressive disclosure) determines what the runtime can consume.
+- *Runtime structure* (how the produced app actually works for end-users — chat? game? slide deck? verifier? graph?) determines what the production pipeline must build.
+- *Production pipeline* (phases that turn input into the runtime) is the rest of PLAN.md.
+
+This is where the user's project taste matters most. Write a STARTER sketch and explicitly mark each "may evolve." Wide tunnel — see [[schema-design]] *(M3 forward-ref)* and [[app-design-thinking]] *(M4 forward-ref)* for the methodology.
 
 **Phases.** This is the production pipeline. For 2skills, John suggests a starter (parse → survey → schema-design → chunk → extract → rewrite → package, see [[phase-design]]) but the user or active template can override. For 2app, phases come from your conversation about the runtime structure. Don't try to nail every phase at start — leave the last few as "TBD: decide after phase N" if you genuinely don't know yet.
 
@@ -98,9 +109,23 @@ If your initial PLAN.md is under 100 lines, you probably haven't asked enough qu
 - **Copying KC's 7 phases or pdf2skills's 5 stages verbatim into PLAN.md.** They were designed for specific app types. John is general. Take the pattern (a small number of named phases with clear done-criteria), drop the specifics.
 - **Omitting "Done criteria."** Without observable conditions, you can't tell when a phase is done. Disk-verifiable artifacts are the gold standard ([[workspace-discipline]]).
 
-## What if the active template provides a `plan_md_template.md`
+## The conversation with the user
 
-Use it as the skeleton. Templates have already done the four-structures thinking for their domain (doc-verification, slides-from-textbook, etc.). Fill in the project-specific blanks; don't rebuild from scratch.
+PLAN.md is co-authored. Do NOT fill in everything unilaterally. The taste calls — what the project actually is, what shape the runtime takes, what schema makes sense — belong to the user. You're sketching options, not deciding for them.
+
+A workable conversation flow (adapt freely):
+
+1. **Confirm project intent.** Echo back what you understood from `/joharnessburg-init` and the user's framing. If anything's ambiguous, ask before sketching.
+2. **Ask about templates.** "Is there an active template (`/joharnessburg-template <name>`), or are we sketching from scratch?" If a template is active, read its `plan_md_template.md` — that's your skeleton. Fill in the project-specific blanks rather than rebuilding.
+3. **Drive the four-structures conversation.** For 2app especially: ask about the runtime shape (what's the produced app, who uses it, how do they interact?) — that drives schema and format decisions backward, and pipeline decisions forward.
+4. **Sketch phases.** For 2skills the suggested pipeline ([[phase-design]] documents it) is a decent default; for 2app, phases emerge from the runtime decision.
+5. **Show the draft, ask for taste corrections.** Don't commit to disk until the user has read and approved the four-structures section and the first 2-3 phases.
+
+After the first PLAN.md write, [[plan-md-evolution]] *(M4 forward-ref)* takes over — keep PLAN.md current as work proceeds.
+
+## The 2skills → 2app boundary within one PLAN.md
+
+PLAN.md spans both halves of John in one document. Phases 1-N typically handle knowledge engineering (producing artifacts in `<project>/.claude/skills/`); phases N+1 to M typically handle app building (producing the deliverable app). The boundary is natural — it's where the *Knowledge inventory* section transitions from "pointer to .john/input/" to "pointer to .claude/skills/". Keep the Knowledge inventory live: update it when the 2skills half ships, so 2app phases inherit the produced skills as their starting context.
 
 ## After this skill ends
 

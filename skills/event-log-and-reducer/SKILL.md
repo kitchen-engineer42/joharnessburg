@@ -41,33 +41,40 @@ Conventions:
 - Sequence is an integer or timestamp, in case one subagent emits multiple events.
 - Event files are JSON; canonical state is JSON. Markdown if the canonical state is human-facing.
 
-## Event shape (suggested)
+## Event shape — one valid approach
+
+The only hard requirements (everything else is taste):
+
+1. One event = one self-contained record. No references that require another event to interpret.
+2. JSON-parseable.
+3. Enough metadata for the reducer to order and deduplicate (timestamp + a sender id is the usual minimum).
+
+A **minimal** schema that satisfies the rules:
+
+```json
+{ "timestamp": "ISO 8601", "subagent_id": "string", "payload": {} }
+```
+
+A **richer** schema (used in many knowledge-extraction templates) — useful when you need to query the event log by type:
 
 ```json
 {
-  "event_type": "<type-from-phase-spec>",
-  "work_unit_id": "<unique id for the work unit>",
-  "timestamp": "<ISO 8601>",
-  "subagent_id": "<who emitted this>",
-  "payload": {
-    "<phase-defined>": "<phase-defined>"
-  }
+  "event_type": "entry_extracted",
+  "work_unit_id": "chunk_042",
+  "timestamp": "2026-05-21T10:42:33Z",
+  "subagent_id": "sub-xx7f3a",
+  "payload": { "entry_ids": ["e_001", "e_002"], "notes": "..." }
 }
 ```
 
-The `payload` shape is per-phase. The wrapping fields are universal.
-
-Templates and phase-specific skills can override the schema as long as they:
-- Keep one event = one self-contained record (no cross-references that require another event to interpret).
-- Stay JSON-parseable.
-- Carry enough metadata for the reducer to order/deduplicate them.
+Templates and phase-specific skills define their own schemas freely, as long as the three requirements above hold. Neither shape above is canonical — wide tunnel.
 
 ## How to write the reducer
 
 The reducer is a script (Python, shipped via `scripts/reduce_events.py` in M2) that:
 
 1. **Reads all event files** under `<project>/.john/events/<phase>/`.
-2. **Sorts them deterministically** (by timestamp + subagent_id is a safe choice).
+2. **Sorts them deterministically** (timestamp + subagent_id is a safe primary key). At thousands-of-events scale, clock skew or identical timestamps happen — `reduce_events.py` (M2 forward-ref) will document its tiebreaker. If your fold function depends on strict ordering, review the tiebreaker before trusting the result.
 3. **Folds them into canonical state** using a per-phase fold function. The fold function's exact shape depends on what the phase is producing — for extraction, it concatenates entry lists and indexes by ID; for review, it tallies pass/fail; etc.
 4. **Writes canonical state** to `<project>/.john/checkpoints/<phase>/state.json`.
 5. **Returns idempotently**: running it twice with the same event set produces the same output, bit-for-bit.
@@ -91,6 +98,8 @@ The file-lock approach (one shared catalog file, subagents lock-modify-unlock) h
 2. **Starvation.** Some subagents repeatedly fail to acquire the lock and never make progress.
 
 Both are structural to the lock pattern, not bugs. Event log + reducer removes both: every subagent has its own file, no contention, no waiting.
+
+The deeper reason event-log+reducer is John's default isn't throughput — typical runs are 50-300 entries (cost-bounded). The reason is **architectural ceiling**: even at 50 entries, locks are fragile under any unusual load (a slow tool call, a retry); event-log isn't. Choosing this pattern from the start gives auditability, recoverability, and freedom to scale to thousands without re-architecting.
 
 It also adds:
 - **Replay.** Replay the reducer on a subset of events to see what canonical state would look like.

@@ -20,14 +20,14 @@ Three triggers, in order of clarity:
 
 1. **Per-entry work that fits one context window per entry but doesn't fit yours in aggregate.** Classic case: 200 chunks to extract knowledge from. Each chunk is small; 200 of them through your context is not.
 2. **Work where you want a context firewall.** Some tasks produce large intermediate state (a 50KB raw extraction) that you don't need in your context — you only need the digest. The subagent handles the raw; you see the summary.
-3. **Work that benefits from a tighter persona or model tier.** A subagent can be given a narrow role ("you are a knowledge extractor; here is the schema; here is one chunk; emit entries to the event log and return a one-line digest") that focuses its output. Use a cheaper model (Haiku, Sonnet) where the task allows.
+3. **Work that benefits from a tighter persona or cheaper model.** A subagent can be given a narrow role ("you are a knowledge extractor; here is the schema; here is one chunk; emit entries to the event log and return a one-line digest") that focuses its output. Per the user's spec §8.3, John core delegates model selection to Claude — Sonnet/Haiku are routinely used for subagents per task requirement, and you should request the cheapest viable model when dispatching. Templates that need workerLLMs (SiliconFlow, DeepSeek, etc. via cheap LLM clients) wire that themselves; John core uses Claude's tier defaults.
 
 ## When NOT to spawn a subagent
 
 - **Tasks that fit your context easily.** Spawning has overhead. Don't dispatch for tiny work.
 - **Tightly coupled work.** If unit A's output is unit B's input, they're not parallel — they're serial. Do them yourself or in a chain.
 - **Work where the result depends on conversation context.** Subagents have their own context; if your conversation with the user is load-bearing for the decision, do it inline.
-- **One-off judgment calls.** "Should we use schema X or schema Y?" — that's not a subagent task, it's an Open Decision for the user (see [[plan-md-evolution]]).
+- **One-off judgment calls.** "Should we use schema X or schema Y?" — that's not a subagent task, it's an Open Decision the user owns. Write it to PLAN.md's Open Decisions section and stop. See [[plan-md-authoring]].
 
 ## Briefing a subagent
 
@@ -74,15 +74,17 @@ The subagents never talk to each other directly. They only emit events. The redu
 
 ## Scaling concerns
 
+**Why thousands actually scale** (per spec §8.6 user reply): the produced app has a *structure* where knowledge entries fit like *content* in a uniform way. Work units are homogeneous — "extract from chunk 042" is the same task shape as "extract from chunk 419"; the reducer folds them with identical logic. As long as the entry structure is uniform, the orchestration cost doesn't grow non-linearly with entry count. That's the architectural reason event-log+reducer beats file-locks at scale — see [[event-log-and-reducer]].
+
 **Tens of work units** (1-50): fan out in waves of ~10 concurrent. Wait for each wave, then dispatch the next. Manageable through Claude Code's Task tool.
 
 **Hundreds** (50-500): batch into smaller work-unit chunks per subagent (e.g., "process chunks 100-110" rather than one subagent per chunk). Keeps total subagent count manageable while still parallel.
 
-**Thousands** (500+): rethink. Are all work units actually distinct, or can they be deduplicated/clustered upstream? If still genuinely thousands, partition the event log into sub-directories per work-unit-type and let the reducer handle each partition incrementally.
+**Thousands** (500+): rethink whether all work units are genuinely distinct (often they can be deduplicated or clustered upstream). If still genuinely thousands, partition the event log into sub-directories per work-unit-type and let the reducer handle each partition incrementally. Cost considerations usually limit production runs to 50-300, but the architecture handles thousands without re-engineering.
 
 ## Returning condensed digests
 
-The subagent firewall is real: large tool outputs in a subagent stay in that subagent's context. Your main context only sees what the subagent's final message contains. That's the firewall.
+**The firewall is the point.** A subagent's large intermediate work (raw extraction, error traces, verbose reasoning, parsed PDFs, big embeddings) stays entirely in the subagent's context. Your main context only ever sees the subagent's final message — the digest. This is your strongest single lever for context budget. Design subagent tasks to *deliberately produce* large intermediate state you don't need; the firewall keeps it out of your way.
 
 So have subagents return:
 - Counts, IDs, paths (citations)
