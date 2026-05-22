@@ -6,7 +6,7 @@ Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in th
 
 ## Status
 
-**v0.1.5 — M5 hooks + 2 example templates shipped.** Plugin loads with 8 core meta-skills (M1), 7 toolkit scripts and 4 slash commands (M2), 6 2skills phase skills (M3), 3 2app phase skills (M4), and now 3 hooks (SessionStart / PreCompact / PostToolUse) + 2 example templates (slides-from-textbook, doc-verification) with an authoring guide (M5). 46 unit tests green. End-to-end shakedown and handoff docs still ahead (M6–M7).
+**v0.1.6 — M6 Phase A.1 gap-closure shipped.** Plugin now loads with 8 core meta-skills (M1), 7 toolkit scripts and 4 slash commands (M2), 6 2skills phase skills (M3), 3 2app phase skills (M4), 3 hooks + 2 example templates (M5), and 12 new files from M6 Phase A.1: `/endurance` slash command + helper script, 3 example subagent role definitions (`knowledge-extractor`, `schema-designer`, `code-quality-reviewer`), 9 platform-integration skill stubs (`platform-auth`, `platform-credits`, `platform-llm-proxy`, `platform-telemetry`, `platform-parser`, `platform-deploy`, `platform-model-config`, `subsite-builder`, `spec-template-manager`) teaching the team's existing patterns from `to-skills-backend` / `skills2app` / live subsites. **53 unit tests green.** End-to-end shakedown runs (M6 Phase B) and handoff docs (M7) still ahead.
 
 ## Templates
 

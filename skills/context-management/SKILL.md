@@ -22,7 +22,7 @@ You should use all five. They compound.
 
 If the user has run `/endurance <goal>`, that goal is in `<project>/.john/workspace.json` and the SessionStart hook will inject it into your system prompt at the top of every session (and every post-compaction state). It survives compaction because the system prompt isn't windowed.
 
-*Note: `/endurance` and the SessionStart pin are M5 affordances; until M5 ships, the user can manually write the endurance goal at the top of `<project>/PLAN.md` and you read it from there as step 1 of every loop iteration.*
+Set the goal with `/endurance <goal>`. Inspect or clear with `/endurance` (no arg) or `/endurance --clear`.
 
 What this gives you: even after compaction wipes most of conversation history, the endurance-race direction is still in front of you. You know what you're working toward.
 

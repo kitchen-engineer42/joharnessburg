@@ -14,10 +14,8 @@ When this command fires:
    ```
 
 3. The script returns JSON with `action: "list" | "set" | "clear"`. Show the user:
-   - For `list`: the list of installed templates (and their location). If the list is empty, note that no templates are installed yet and point at the workspace docs for template-authoring (M5 deliverable).
-   - For `set`: confirmation that the template is now active, plus a note that the change takes effect on next John session start (SessionStart hook reads workspace.json — M5 affordance; for now, you should mentally apply the template's conventions when reading PLAN.md and skills).
+   - For `list`: the list of installed templates (and their location). If the list is empty, note that no templates are installed yet and point at `templates/README.md` in the plugin source for template-authoring.
+   - For `set`: confirmation that the template is now active. The SessionStart hook surfaces the active template name in every new session's additionalContext, and you should manually read the template's content from `~/.claude/plugins/joharnessburg-templates/<name>/` — specifically `claude_addon.md`, `plan_md_template.md`, `skills/_override/*/SKILL.md`, `skills/*/SKILL.md`, and `skills/_delete` if present — and apply them mentally for this session. Auto-merge of template content into the loaded skill set is NOT implemented in v0.1.6; the active_template field is the pointer, not the merger.
    - For `clear`: confirmation that no template is now active.
 
 4. On `success: false` with "Template '<name>' is not installed", tell the user the list of installed templates and where templates live on disk (`~/.claude/plugins/joharnessburg-templates/`).
-
-Note: until M5 ships, the active_template field is informational — there's no hook yet that auto-applies template overrides. Active template still gets tracked in workspace.json for forward compatibility and so layer-2 Claude can read it from `/joharnessburg-status`.

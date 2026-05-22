@@ -58,19 +58,23 @@ Required fields:
 
 ## Override mechanics (precise)
 
-When the SessionStart hook merges template content over John core for a session:
+The override system in v0.1.6 is **convention-driven, not auto-merged**. The SessionStart hook surfaces the active template name in additionalContext; layer-2 Claude then manually reads from `~/.claude/plugins/joharnessburg-templates/<name>/` and applies the contents mentally to its loaded skill set for the session.
 
-| Template file | Effect |
+When layer-2 Claude reads a template's contents:
+
+| Template file | Intended effect |
 |---|---|
-| `skills/<new-name>/SKILL.md` (a skill name NOT in core) | Additive — adds the new skill to the active set. |
-| `skills/_override/<core-name>/SKILL.md` | Replaces the same-named core skill entirely for this session. |
-| `skills/_delete` (newline-delimited core skill names) | Hides those core skills from the active set for this session. |
-| `scripts/<name>.py` | Additive — adds the script. Conflict policy: NOT-OVERRIDE; if the same filename exists in core, that's an authoring error; rename in your template. |
-| `commands/<name>.md` | Additive — adds the slash command. Same NOT-OVERRIDE rule. |
-| `claude_addon.md` | Appended to the project's CLAUDE.md (in-memory only for the session; not written to disk). |
+| `skills/<new-name>/SKILL.md` (a skill name NOT in core) | Additive — treat as available alongside core skills. |
+| `skills/_override/<core-name>/SKILL.md` | Use this body in place of the core skill of the same name for this session. |
+| `skills/_delete` (newline-delimited core skill names) | Treat those core skills as unavailable for this session. |
+| `scripts/<name>.py` | Available alongside core scripts; same NOT-OVERRIDE rule (don't shadow a core script name). |
+| `commands/<name>.md` | Available alongside core slash commands; same NOT-OVERRIDE rule. |
+| `claude_addon.md` | Read and apply as additional project-CLAUDE.md guidance (not written to disk; mental append). |
 | `plan_md_template.md` | Used by `/joharnessburg-init` as the PLAN.md skeleton instead of John's generic one. |
 
-Override semantics: full replacement, not merge. If you ship `skills/_override/chunking/SKILL.md`, the core `chunking/SKILL.md` is completely replaced — your file must stand on its own (frontmatter + body + references/ subdir as needed). Don't ship a partial override expecting it to merge with the original.
+Override semantics: full replacement, not merge. If a template ships `skills/_override/chunking/SKILL.md`, layer-2 Claude reads THAT body in place of the core `chunking/SKILL.md` — the override file must stand on its own (frontmatter + body + references/ subdir as needed). Don't ship a partial override expecting it to merge with the original.
+
+**Why convention, not auto-merge?** Auto-merging template content into the SessionStart hook's additionalContext would inflate every session start by potentially hundreds of lines (one per override + one per addition). Convention-driven reading lets layer-2 Claude pull only the template content actually relevant to the current phase. A future revision (post-v0.1.6) may add selective auto-injection for the most-trigger-critical template content if the convention turns out to be unreliable in practice.
 
 ## Install location
 
