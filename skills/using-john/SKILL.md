@@ -1,18 +1,68 @@
 ---
 name: using-john
-description: Top-level orientation for John (joharnessburg) — read this first when working in a Claude Code session where the John plugin is loaded and the user wants you to do knowledge-dense app building. M0 stub; full body lands in M1.
+description: Top-level orientation for John (joharnessburg). Read this first whenever you are running in a Claude Code session where the John plugin is loaded — it tells you what John is, the shape of the user's working state, where to look, and what to do at each phase of work.
 ---
 
 # using-john
 
-You are working inside a Claude Code session where the **joharnessburg** plugin is loaded — the John harness for taking unstructured input through knowledge engineering and app building in one long-running session.
+You are running in a Claude Code session where the **joharnessburg** plugin is loaded. The user has installed John because they want you to do **knowledge-dense app building** — take unstructured input (a book, a regulation, a doc set, mixed media) and produce a working app whose every feature traces back to extracted knowledge. John is a harness; you are the agent it harnesses.
 
-This is an **M0 stub**. The real orientation skill — covering the workspace shape `<user-project>/.john/`, the 2skills + 2app halves, ralph-loop, endurance mode, subagent dispatch, the event-log + reducer pattern, and what to expect at each phase — lands in M1.
+This skill is your orientation. Read it once at the start of any John session, and re-read after each context compaction.
 
-For now, the only operational guidance:
+## What John actually is
 
-- If the user's project doesn't yet have a `PLAN.md` at the project root or a `.john/` directory, John hasn't been initialized for this project yet. Suggest they run `/joharnessburg-init` (also still a stub at M0).
-- If `PLAN.md` and `.john/` already exist in this project, that's the durable plan and working state — read those first to understand what's been done and what's next.
-- All other skills John ships (ralph-loop, plan-md-authoring, phase-design, etc.) are stubs at M0. They'll load but won't have substantive bodies until M1 or later.
+A thin layer of skills, hooks, and a small toolkit on top of Claude Code. It does not replace your reasoning; it shapes how you organize the work so a knowledge-heavy project doesn't fall apart.
 
-Tell the user M0 is in place but no substantive workflow is wired up yet, and ask which milestone they want to pick up.
+The shape John imposes is a **two-axis matrix**:
+
+- **Horizontal axis** (phases): the work moves left-to-right through a small number of phases, one at a time. Knowledge engineering (2skills) on the left half; app building (2app) on the right. You advance one phase before starting the next.
+- **Vertical axis** (parallel knowledge entries): within most phases there are many similar units of work — hundreds of chunks to extract, dozens of skills to author, etc. You fan these out to subagents in parallel, not handle them serially in your own context.
+
+The two halves are nicknamed **2skills** and **2app**. Same session, same memory, one PLAN.md spanning both.
+
+## The user's working state — where to look
+
+Everything John writes lives in the **user's project directory** (the current working directory when this session was started). You write here, not into John's plugin install location.
+
+- `<project>/PLAN.md` — the durable plan. Read this first. Has phases, subagent assignments, the four-structures section, open decisions, an append-only log. It is the source of truth across context compactions.
+- `<project>/CLAUDE.md` — project memory. If absent, John's `/joharnessburg-init` creates a starter; if present, read it for project-specific conventions.
+- `<project>/.john/` — working state. Hidden, ephemeral-ish. Contains `workspace.json` (active template + current phase), `input/` (user materials), `parsed/`, `chunks/`, `knowledge/`, `events/` (append-only logs), `checkpoints/`, `trace/` (offloaded large tool results).
+- `<project>/.claude/skills/` — the *deliverable* skills produced by the 2skills half (Claude Code's project-scoped auto-discovery path). The 2app half consumes these.
+
+If none of this exists yet, John hasn't been initialized for this project. Suggest the user run `/joharnessburg-init <path-to-input>` to scaffold.
+
+## How to behave in a John session
+
+Six rules. Internalize these — every other John skill builds on them.
+
+1. **Read PLAN.md first, every iteration.** Cheap, keeps you honest. The plan is the contract.
+2. **Advance one phase at a time.** Don't try to finish multiple phases in one pass; the matrix is sequential horizontally.
+3. **Spawn subagents for vertical-axis parallel work.** Per-chunk extraction, per-entry rewrite, per-skill authoring — these are subagent jobs, not main-agent jobs. See [[subagent-dispatch]].
+4. **Disk is truth.** Never trust your in-memory belief about what's done. Check disk. See [[workspace-discipline]].
+5. **When stuck or hitting a judgment call, write it to PLAN.md's Log section and stop.** Ask the user. Don't barrel through ambiguity.
+6. **After a phase, update PLAN.md.** Mark done, log decisions, surface blockers, then loop. See [[ralph-loop]] and [[plan-md-evolution]].
+
+## The endurance goal
+
+The user can set a long-running goal for the session via `/endurance <goal>`. That goal is pinned to the system prompt and survives context compaction. If an endurance goal is set, treat it as the marathon you're running toward — every phase advances the goal. If none is set, the project's intent (top of PLAN.md) plays that role.
+
+## What you should NOT do
+
+- Don't reinvent phases the user already approved in PLAN.md. The plan is the plan.
+- Don't put hundreds of knowledge entries into your own context. Fan out.
+- Don't write canonical state from a subagent directly — use the event log. See [[event-log-and-reducer]].
+- Don't assume the user wants you to advance autonomously without checkpoints. Pause at phase boundaries unless they've said "run to completion."
+- Don't reference any files outside `<project>/` and the plugin's `${CLAUDE_PLUGIN_ROOT}/` — those are the only two places that exist for you.
+
+## Cross-references
+
+- [[ralph-loop]] — the iterative plan-advancement pattern this session runs on
+- [[plan-md-authoring]] — how to author a PLAN.md at project start
+- [[plan-md-evolution]] — how to keep PLAN.md current as work progresses
+- [[phase-design]] — how to decide what phases this project needs
+- [[subagent-dispatch]] — when and how to spawn subagents
+- [[event-log-and-reducer]] — the parallel-subagent coordination pattern
+- [[context-management]] — surviving multi-day sessions
+- [[workspace-discipline]] — disk-is-truth, idempotent operations, checkpoint hygiene
+
+If a skill name in this list doesn't ring a bell, read its SKILL.md. They're all here in this plugin under `${CLAUDE_PLUGIN_ROOT}/skills/`.
