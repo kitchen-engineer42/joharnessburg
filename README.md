@@ -6,7 +6,15 @@ Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in th
 
 ## Status
 
-**v0.1.0 — M0 scaffold.** The plugin installs but is mostly skeleton. Skill bodies, scripts, hooks, and templates ship over M1–M7.
+**v0.1.2 — M2 toolkit shipped.** Plugin loads with 8 core meta-skills (M1), 7 toolkit scripts and 4 slash commands (M2). Hooks, templates, and end-to-end testing still in progress (M3–M7).
+
+## Prerequisites
+
+- **Python 3.10+** (the toolkit scripts use stdlib only; system Python is fine).
+- For non-PDF document parsing (`markitdown_parse.py`): `pip install markitdown`.
+- For PDF parsing (`ppx_parse.py`): `pip install -e /path/to/jyppx/ppx` (the memect-ppx Python package; ask the project owner for the source path).
+
+Both parser dependencies are optional. The plugin installs and `using-john` loads regardless; the parser scripts fail loud with install instructions when invoked without their deps.
 
 ## Install
 
