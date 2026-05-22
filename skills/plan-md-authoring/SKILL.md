@@ -78,14 +78,9 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 
 **Knowledge inventory.** Initially just a pointer + one-line profile of the corpus: "10 PDFs, ~2000 pages total, financial regulations in Chinese." Don't speculate about what'll come out yet. After 2skills half ships, this becomes a pointer to the produced skills.
 
-**Four structures.** Per spec §4, format / schema / runtime / production-pipeline are a **cascade** — each one constrains the next:
+**Four structures.** Per spec §4, format / schema / runtime / production-pipeline are a **cascade** — each constrains the next. [[schema-design]] teaches the cascade methodology in depth (and the corpus-survey step that grounds it); your job in this section is to *apply* the cascade, not re-explain it. Sketch each structure for *this* project with the user, and explicitly mark each "may evolve."
 
-- *Format of knowledge* (rules? stories? facts? wiki? mixed?) determines what shape the SKU schema should take.
-- *Schema of knowledge* (fields per entry, MECE coverage, header+body progressive disclosure) determines what the runtime can consume.
-- *Runtime structure* (how the produced app actually works for end-users — chat? game? slide deck? verifier? graph?) determines what the production pipeline must build.
-- *Production pipeline* (phases that turn input into the runtime) is the rest of PLAN.md.
-
-This is where the user's project taste matters most. Write a STARTER sketch and explicitly mark each "may evolve." Wide tunnel — see [[schema-design]] *(M3 forward-ref)* and [[app-design-thinking]] *(M4 forward-ref)* for the methodology.
+This section is the user's project taste applied. Wide tunnel — sketch loose, iterate as the corpus reveals itself. The cascade's order matters: settle format first, derive schema, derive runtime, derive pipeline. Reversing the order over-fits.
 
 **Phases.** This is the production pipeline. For 2skills, John suggests a starter (parse → survey → schema-design → chunk → extract → rewrite → package, see [[phase-design]]) but the user or active template can override. For 2app, phases come from your conversation about the runtime structure. Don't try to nail every phase at start — leave the last few as "TBD: decide after phase N" if you genuinely don't know yet.
 

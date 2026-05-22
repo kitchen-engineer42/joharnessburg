@@ -6,7 +6,7 @@ Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in th
 
 ## Status
 
-**v0.1.2 — M2 toolkit shipped.** Plugin loads with 8 core meta-skills (M1), 7 toolkit scripts and 4 slash commands (M2). Hooks, templates, and end-to-end testing still in progress (M3–M7).
+**v0.1.3 — M3 phase skills shipped.** Plugin loads with 8 core meta-skills (M1), 7 toolkit scripts and 4 slash commands (M2), and 6 2skills phase skills (M3: parsing, chunking, schema-design, knowledge-extraction, knowledge-rewrite, packaging — each with a `references/` subdirectory). 2app phase skills, hooks, templates, and end-to-end testing still in progress (M4–M7).
 
 ## Prerequisites
 
