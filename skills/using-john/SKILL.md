@@ -60,7 +60,7 @@ The user can set a long-running goal for the session via `/endurance <goal>`. Th
 
 - [[ralph-loop]] — the iterative plan-advancement pattern this session runs on
 - [[plan-md-authoring]] — how to author a PLAN.md at project start
-- [[plan-md-evolution]] — how to keep PLAN.md current as work progresses *(M4 forward-ref; not yet authored)*
+- [[plan-md-evolution]] — how to keep PLAN.md current as work progresses
 - [[phase-design]] — how to decide what phases this project needs
 - [[subagent-dispatch]] — when and how to spawn subagents
 - [[event-log-and-reducer]] — the parallel-subagent coordination pattern

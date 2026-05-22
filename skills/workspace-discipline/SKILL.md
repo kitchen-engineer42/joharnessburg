@@ -139,4 +139,4 @@ Never tell the user "yes, it's done" based on memory. Memory is wrong.
 - [[event-log-and-reducer]] — append-only, idempotent reducer
 - [[phase-design]] — done criteria are disk-verifiable by design
 - [[context-management]] — disk-is-truth is why context loss is recoverable
-- [[plan-md-evolution]] — PLAN.md updates require disk-state confirmation *(M4 forward-ref)*
+- [[plan-md-evolution]] — PLAN.md updates require disk-state confirmation

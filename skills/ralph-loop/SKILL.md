@@ -99,7 +99,7 @@ If you find a behavior in another `ralph` reference that contradicts this skill,
 ## Cross-references
 
 - [[plan-md-authoring]] — write the plan before you can loop on it
-- [[plan-md-evolution]] — keep the plan current as you loop *(M4 forward-ref; for now, plan-update lives in step 5 of the loop above)*
+- [[plan-md-evolution]] — keep the plan current as you loop; fires at step 5 of every iteration
 - [[phase-design]] — what makes a good phase boundary
 - [[subagent-dispatch]] — when and how to fan out within an iteration
 - [[event-log-and-reducer]] — coordinate subagent fan-out

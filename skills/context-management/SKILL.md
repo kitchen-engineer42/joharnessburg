@@ -118,4 +118,4 @@ Some habits:
 - [[subagent-dispatch]] — the strongest context-saving lever
 - [[workspace-discipline]] — disk-is-truth means context loss is recoverable
 - [[event-log-and-reducer]] — checkpoint state lives on disk
-- [[plan-md-evolution]] — keeping PLAN.md fresh so re-reads are useful *(M4 forward-ref; for now, plan-md-authoring + the ralph-loop step 5 cover plan updates)*
+- [[plan-md-evolution]] — keeping PLAN.md fresh so re-reads are useful (fires at ralph-loop step 5)

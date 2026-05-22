@@ -111,5 +111,5 @@ The 2app half (M4 phase skills, not yet shipped) reads from `.claude/skills/` as
 - [[schema-design]] — what determines the per-entry-to-skill mapping
 - [[plan-md-authoring]] — the Knowledge inventory section that gets updated
 - [[ralph-loop]] — advances out of packaging into 2app
-- [[app-design-thinking]] *(M4 forward-ref)* — the next phase reads what packaging emits
+- [[app-design-thinking]] — the next phase reads what packaging emits; settles the runtime + production-pipeline links of the four-structures cascade
 - See `references/` for: Claude Code's skill format, skill-creator's description-pushiness advice, KC's rule-skill shape

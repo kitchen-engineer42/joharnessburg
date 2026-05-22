@@ -116,7 +116,7 @@ A workable conversation flow (adapt freely):
 4. **Sketch phases.** For 2skills the suggested pipeline ([[phase-design]] documents it) is a decent default; for 2app, phases emerge from the runtime decision.
 5. **Show the draft, ask for taste corrections.** Don't commit to disk until the user has read and approved the four-structures section and the first 2-3 phases.
 
-After the first PLAN.md write, [[plan-md-evolution]] *(M4 forward-ref)* takes over — keep PLAN.md current as work proceeds.
+After the first PLAN.md write, [[plan-md-evolution]] takes over — keep PLAN.md current as work proceeds.
 
 ## The 2skills → 2app boundary within one PLAN.md
 

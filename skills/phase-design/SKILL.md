@@ -95,7 +95,9 @@ Each of those has 4-7 phases. The user and active template shape them.
 
 ## Iteration on phases
 
-PLAN.md's phase list is not frozen. You can:
+PLAN.md's phase list is not frozen. The mechanics (how to subdivide/merge/drop/insert in PLAN.md, what to log, how to renumber) belong to [[plan-md-evolution]]; this section covers the *design judgment* about when iteration is the right move.
+
+You can:
 
 - **Subdivide** a phase mid-flight if it's bigger than expected (write the subdivision to Log + update PLAN.md).
 - **Merge** two phases if their done criteria turn out to be linked.

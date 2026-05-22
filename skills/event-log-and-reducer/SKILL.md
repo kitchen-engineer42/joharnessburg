@@ -74,7 +74,7 @@ Templates and phase-specific skills define their own schemas freely, as long as 
 The reducer is a script (Python, shipped via `scripts/reduce_events.py` in M2) that:
 
 1. **Reads all event files** under `<project>/.john/events/<phase>/`.
-2. **Sorts them deterministically** (timestamp + subagent_id is a safe primary key). At thousands-of-events scale, clock skew or identical timestamps happen — `reduce_events.py` (M2 forward-ref) will document its tiebreaker. If your fold function depends on strict ordering, review the tiebreaker before trusting the result.
+2. **Sorts them deterministically** (timestamp + subagent_id is a safe primary key). At thousands-of-events scale, clock skew or identical timestamps happen — `${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py` (shipped in M2) handles the tiebreaker. If your fold function depends on strict ordering, review the tiebreaker before trusting the result.
 3. **Folds them into canonical state** using a per-phase fold function. The fold function's exact shape depends on what the phase is producing — for extraction, it concatenates entry lists and indexes by ID; for review, it tallies pass/fail; etc.
 4. **Writes canonical state** to `<project>/.john/checkpoints/<phase>/state.json`.
 5. **Returns idempotently**: running it twice with the same event set produces the same output, bit-for-bit.
