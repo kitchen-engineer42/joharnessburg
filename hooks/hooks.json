@@ -1,0 +1,4 @@
+{
+  "description": "joharnessburg hooks. No hooks wired in M0 — this stub validates that the plugin loads without hook errors. SessionStart, PreCompact, and PostToolUse handlers come in M5.",
+  "hooks": {}
+}
