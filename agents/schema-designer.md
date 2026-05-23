@@ -30,9 +30,13 @@ A schema proposal in the format the project's `schema-design` skill expects. Typ
 
 You may use up to 3 internal turns to refine — read sample chunks, draft, mentally apply the draft to other chunks, revise. After 3 turns, return what you have plus the open questions. Don't loop forever; the user is the tiebreaker.
 
-## JSON discipline
+## JSON discipline + field naming
 
-When emitting structured output (the schema proposal often gets written as JSON or YAML for downstream consumption), apply the same discipline as other agents: prefer full-width `「...」` for inner quotes in Chinese content, prefer `json.dumps()`-style escaping for ASCII content. Don't hand-format JSON with unescaped inner `"` — it makes the file unparseable and forces downstream cleanup.
+When emitting structured output (the schema proposal often gets written as JSON or YAML for downstream consumption):
+
+- **JSON safety**: prefer full-width `「...」` for inner quotes in Chinese content, prefer `json.dumps()`-style escaping for ASCII content. Don't hand-format JSON with unescaped inner `"` — it makes the file unparseable.
+- **Field naming**: name fields literally as you mean them. Downstream `[[knowledge-extractor]]` agents must match field names EXACTLY (per the v0.1.9 contract). If you call something `description`, every extractor will use `description` — don't expect them to interpret `title` or `rule_text` as synonyms. Pick the name once, document it clearly, and stick to it.
+- **Enum values**: when a field has a closed set of values (severity, confidence, status), declare the exact strings in the schema spec. v0.1.9 mandates extractor `extractor_confidence` ∈ {high, medium, low}; if you add severity, mandate `{low, medium, high}` (not `critical`).
 
 ## What you do NOT do
 

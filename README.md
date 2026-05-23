@@ -18,7 +18,7 @@ Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in th
 - **ppx ↔ jyppx terminology** sweep: 23 mentions across 13 files reconciled. `ppx_parse.py` now writes `"parser": "ppx"` (was `"jyppx"` — soft schema break in v0.1.7).
 - **Bug fixes**: TOCTOU race in PreCompact hook, silent-fallback in markitdown_parse.py, hardcoded path in set_template.py, --force docstring in init_workspace.py, is_dir guard in workspace_status.py.
 
-**64 unit tests green** (53 v0.1.6 + 6 apply_template + 5 reset_john tests). Plugin loads with 8 core meta-skills + 6 2skills phase skills + 3 2app phase skills + 9 platform-integration skill stubs + new `workerllm-runtime` skill (27 total) + 7 toolkit scripts + 2 new template-system scripts (apply_template, reset_john) + 5 slash commands + 3 hooks + 3 agents + 2 example templates with one-click `apply.sh`. M7 (handoff docs) still ahead.
+**65 unit tests green at v0.1.7 release** (53 v0.1.6 + 6 apply_template + 5 reset_john + 1 quarantine test). Plugin loads with 8 core meta-skills + 6 2skills phase skills + 3 2app phase skills + 9 platform-integration skill stubs + new `workerllm-runtime` skill (27 total) + 7 toolkit scripts + 2 new template-system scripts (apply_template, reset_john) + 5 slash commands + 3 hooks + 3 agents + 2 example templates with one-click `apply.sh`. M7 (handoff docs) still ahead.
 
 ## Templates (v0.1.7+ diff-script architecture)
 

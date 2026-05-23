@@ -121,6 +121,154 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertEqual((tdp / "PLAN.md").read_text(), "user's existing plan")
             self.assertFalse(out["plan_md_written"])
 
+    # v0.1.9 — Codex #6: hidden files skipped recursively
+    def test_init_skips_hidden_files_in_nested_dirs(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            src = tdp / "src"
+            src.mkdir()
+            (src / "visible.md").write_text("top-level visible")
+            # Nested dir with hidden content
+            nested = src / "subdir"
+            nested.mkdir()
+            (nested / "ok.md").write_text("nested visible")
+            (nested / ".DS_Store").write_bytes(b"mac junk")
+            git_dir = nested / ".git"
+            git_dir.mkdir()
+            (git_dir / "config").write_text("gitconfig data")
+
+            project = tdp / "project"
+            project.mkdir()
+            rc, out, err = run_script(
+                "init_workspace.py", str(src), cwd=project
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            input_dir = project / ".john" / "input"
+            # Visible files copied
+            self.assertTrue((input_dir / "visible.md").is_file())
+            self.assertTrue((input_dir / "subdir" / "ok.md").is_file())
+            # Hidden files NOT copied (including nested ones)
+            self.assertFalse((input_dir / "subdir" / ".DS_Store").exists(),
+                             ".DS_Store inside nested dir should be skipped")
+            self.assertFalse((input_dir / "subdir" / ".git").exists(),
+                             ".git inside nested dir should be skipped")
+
+    # v0.1.9 — Codex #1: init consumes templates-active/ from merged plugin
+    def test_init_uses_template_plan_md_when_templates_active_present(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            templates_active = tdp / "templates-active"
+            templates_active.mkdir()
+            (templates_active / "plan_md_template.md").write_text(
+                "# CUSTOM TEMPLATE PLAN — {project_name}\n\n"
+                "*Date: {date}*\n\nThis is the template-provided PLAN skeleton.\n"
+            )
+
+            project = tdp / "project"
+            project.mkdir()
+            rc, out, err = run_script(
+                "init_workspace.py",
+                "--project-name", "my-test-project",
+                cwd=project,
+                env_override={"JOHN_TEMPLATES_ACTIVE": str(templates_active)},
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertEqual(out["plan_md_source"], "template")
+            self.assertTrue(out["templates_active_used"])
+            plan_body = (project / "PLAN.md").read_text()
+            self.assertIn("CUSTOM TEMPLATE PLAN — my-test-project", plan_body)
+            self.assertNotIn("Created by `/joharnessburg-init`", plan_body)
+
+    def test_init_falls_back_to_default_plan_md_when_no_templates_active(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            # No templates-active dir — fallback should use the hardcoded skeleton
+            rc, out, err = run_script(
+                "init_workspace.py",
+                cwd=tdp,
+                env_override={"JOHN_TEMPLATES_ACTIVE": str(tdp / "does-not-exist")},
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertEqual(out["plan_md_source"], "default")
+            self.assertFalse(out["templates_active_used"])
+            plan_body = (tdp / "PLAN.md").read_text()
+            self.assertIn("Created by `/joharnessburg-init`", plan_body)
+
+    def test_init_template_plan_md_falls_back_when_format_args_dont_match(self):
+        # Template authors may use literal `{...}` strings; init should not crash
+        # if format() raises KeyError — fall back to raw template content.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            templates_active = tdp / "templates-active"
+            templates_active.mkdir()
+            (templates_active / "plan_md_template.md").write_text(
+                "# Template with literal braces\n\n"
+                "Some {unrecognized_placeholder} that doesn't match format args.\n"
+            )
+
+            project = tdp / "project"
+            project.mkdir()
+            rc, out, _ = run_script(
+                "init_workspace.py",
+                cwd=project,
+                env_override={"JOHN_TEMPLATES_ACTIVE": str(templates_active)},
+            )
+            self.assertEqual(rc, 0)
+            self.assertEqual(out["plan_md_source"], "template")
+            plan_body = (project / "PLAN.md").read_text()
+            # Raw content preserved (since format() failed silently)
+            self.assertIn("{unrecognized_placeholder}", plan_body)
+
+    def test_init_appends_template_claude_addon_to_claude_md(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            templates_active = tdp / "templates-active"
+            templates_active.mkdir()
+            (templates_active / "claude_addon.md").write_text(
+                "## Project-specific conventions\n\n"
+                "This is the template's claude_addon content.\n"
+            )
+
+            project = tdp / "project"
+            project.mkdir()
+            rc, out, err = run_script(
+                "init_workspace.py",
+                cwd=project,
+                env_override={"JOHN_TEMPLATES_ACTIVE": str(templates_active)},
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertTrue(out["claude_md_written"])
+            self.assertTrue(out["claude_addon_appended"])
+            claude_body = (project / "CLAUDE.md").read_text()
+            self.assertIn("## From active template", claude_body)
+            self.assertIn("This is the template's claude_addon content.", claude_body)
+
+    def test_init_does_not_append_claude_addon_when_claude_md_already_exists(self):
+        # Per existing contract: never overwrite existing CLAUDE.md.
+        # The addon should only be appended when CLAUDE.md is being CREATED.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            templates_active = tdp / "templates-active"
+            templates_active.mkdir()
+            (templates_active / "claude_addon.md").write_text("template addon content")
+
+            project = tdp / "project"
+            project.mkdir()
+            (project / "CLAUDE.md").write_text("user's pre-existing CLAUDE.md")
+
+            rc, out, _ = run_script(
+                "init_workspace.py",
+                cwd=project,
+                env_override={"JOHN_TEMPLATES_ACTIVE": str(templates_active)},
+            )
+            self.assertEqual(rc, 0)
+            self.assertFalse(out["claude_md_written"])
+            self.assertFalse(out["claude_addon_appended"])
+            self.assertEqual(
+                (project / "CLAUDE.md").read_text(),
+                "user's pre-existing CLAUDE.md",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

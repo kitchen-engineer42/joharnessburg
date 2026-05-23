@@ -19,6 +19,7 @@ Exit codes:
 
 import argparse
 import json
+import os
 import shutil
 import sys
 import traceback
@@ -131,12 +132,19 @@ def err(msg, exit_code=1):
 
 
 def copy_input(src: Path, dest_dir: Path, copied: list, project_root: Path):
-    """Copy a file or the contents of a directory into dest_dir. Skip hidden entries."""
+    """Copy a file or the contents of a directory into dest_dir. Skip hidden entries recursively.
+
+    v0.1.9 — Codex #6: previously only filtered top-level hidden entries; nested
+    dirs were copied via raw shutil.copytree which preserved hidden files
+    (.git/, .DS_Store, etc.). Now the filter applies recursively via the
+    `ignore=` parameter to copytree.
+    """
     if src.is_file():
         dest = dest_dir / src.name
         shutil.copy2(src, dest)
         copied.append(str(dest.relative_to(project_root)))
     elif src.is_dir():
+        ignore_hidden = shutil.ignore_patterns(".*")
         for item in sorted(src.iterdir()):
             if item.name.startswith("."):
                 continue
@@ -145,7 +153,7 @@ def copy_input(src: Path, dest_dir: Path, copied: list, project_root: Path):
                 shutil.copy2(item, target)
                 copied.append(str(target.relative_to(project_root)))
             elif item.is_dir():
-                shutil.copytree(item, target)
+                shutil.copytree(item, target, ignore=ignore_hidden)
                 copied.append(str(target.relative_to(project_root)) + "/")
 
 
@@ -209,22 +217,76 @@ def main():
         json.dumps(workspace_state, indent=2) + "\n"
     )
 
+    # If running inside a merged template plugin, the plugin install ships a
+    # templates-active/ dir with plan_md_template.md + claude_addon.md.
+    # apply_template.py writes these in v0.1.7+. Prefer them over the hardcoded
+    # defaults so projects scaffolded via /joharnessburg-init pick up the
+    # active template's intended skeleton automatically.
+    templates_active = _resolve_templates_active()
+    template_plan_md = None
+    template_claude_addon = None
+    if templates_active is not None:
+        candidate_plan = templates_active / "plan_md_template.md"
+        if candidate_plan.is_file():
+            try:
+                content = candidate_plan.read_text()
+                if content.strip():
+                    template_plan_md = content
+            except OSError as exc:
+                sys.stderr.write(
+                    f"WARN: could not read {candidate_plan}: {exc}\n"
+                )
+        candidate_addon = templates_active / "claude_addon.md"
+        if candidate_addon.is_file():
+            try:
+                content = candidate_addon.read_text()
+                if content.strip():
+                    template_claude_addon = content
+            except OSError as exc:
+                sys.stderr.write(
+                    f"WARN: could not read {candidate_addon}: {exc}\n"
+                )
+
     # PLAN.md — write if missing, overwrite if --force
     plan_path = cwd / "PLAN.md"
     project_name = args.project_name or cwd.name
     date = now[:10]
     plan_written = False
+    plan_source = "default"
     if not plan_path.exists() or args.force:
-        plan_path.write_text(
-            PLAN_TEMPLATE.format(project_name=project_name, date=date)
-        )
+        if template_plan_md is not None:
+            try:
+                body = template_plan_md.format(project_name=project_name, date=date)
+            except (KeyError, IndexError):
+                # Template authors may use literal `{...}` strings without
+                # intending format substitution. Fall back to raw content.
+                body = template_plan_md
+            plan_path.write_text(body)
+            plan_source = "template"
+        else:
+            plan_path.write_text(
+                PLAN_TEMPLATE.format(project_name=project_name, date=date)
+            )
         plan_written = True
 
-    # CLAUDE.md — only write if missing; never overwrite (user may have content)
+    # CLAUDE.md — only write if missing; never overwrite (user may have content).
+    # If a template's claude_addon.md is available, append it under a clearly
+    # labeled section so layer-2 Claude can incorporate the addon as project memory.
     claude_path = cwd / "CLAUDE.md"
     claude_written = False
+    claude_addon_appended = False
     if not claude_path.exists():
-        claude_path.write_text(CLAUDE_TEMPLATE.format(date=date))
+        body = CLAUDE_TEMPLATE.format(date=date)
+        if template_claude_addon is not None:
+            body += (
+                "\n\n## From active template\n\n"
+                "*Appended by `/joharnessburg-init` from the merged template's "
+                "`templates-active/claude_addon.md`. Treat as project memory.*\n\n"
+                + template_claude_addon.rstrip()
+                + "\n"
+            )
+            claude_addon_appended = True
+        claude_path.write_text(body)
         claude_written = True
 
     # Copy input materials (if provided)
@@ -242,14 +304,55 @@ def main():
             "john_dir": str(john_dir.relative_to(cwd)),
             "plan_md": "PLAN.md" if plan_path.exists() else None,
             "plan_md_written": plan_written,
+            "plan_md_source": plan_source,
             "claude_md": "CLAUDE.md" if claude_path.exists() else None,
             "claude_md_written": claude_written,
+            "claude_addon_appended": claude_addon_appended,
+            "templates_active_used": templates_active is not None and (
+                template_plan_md is not None or template_claude_addon is not None
+            ),
             "copied_input": copied,
             "active_template": None,
             "current_phase": "bootstrap",
             "initialized_at": now,
         }
     )
+
+
+def _resolve_templates_active() -> Path | None:
+    """Locate the active template's overlay dir inside the merged plugin install.
+
+    `apply_template.py` writes the template's claude_addon.md + plan_md_template.md
+    into `<merged-plugin>/templates-active/`. When init_workspace.py runs from
+    within a Claude Code session launched with `--plugin-dir <merged-plugin>`,
+    `${CLAUDE_PLUGIN_ROOT}` resolves to that merged plugin dir.
+
+    Returns the templates-active path if it exists, else None. Resolution order:
+    - $CLAUDE_PLUGIN_ROOT/templates-active/ (the canonical Claude Code env var)
+    - $JOHN_TEMPLATES_ACTIVE/ (explicit override; useful for tests)
+    - Walk up from this script's location (this script lives at
+      <merged-plugin>/scripts/init_workspace.py, so parent.parent/templates-active/
+      is the sibling dir).
+    """
+    override = os.environ.get("JOHN_TEMPLATES_ACTIVE")
+    if override:
+        p = Path(override).expanduser().resolve()
+        return p if p.is_dir() else None
+
+    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    if plugin_root:
+        p = Path(plugin_root).expanduser().resolve() / "templates-active"
+        if p.is_dir():
+            return p
+
+    # Walk up from this script. init_workspace.py lives at
+    # <plugin>/scripts/init_workspace.py.
+    self_parent_parent = Path(__file__).resolve().parent.parent
+    p = self_parent_parent / "templates-active"
+    if p.is_dir():
+        return p
+
+    return None
 
 
 if __name__ == "__main__":

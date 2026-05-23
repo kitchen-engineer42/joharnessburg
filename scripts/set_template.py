@@ -149,24 +149,60 @@ def main():
             return
         new_template = args.name
 
-    state["active_template"] = new_template
-    state.setdefault("session_metadata", {})
-    state["session_metadata"]["template_set_at"] = datetime.now(timezone.utc).isoformat()
-
-    workspace_json.write_text(json.dumps(state, indent=2) + "\n")
-
-    # On --clear: also run reset_john.py to delete any merged dirs.
-    # On --set (default): run the template's apply.sh to build the merged plugin + print launch line.
+    # v0.1.9 — Codex #2: make set + apply atomic from the workspace's perspective.
+    # Run apply/reset FIRST; only update workspace.json after success.
+    # On failure: leave `active_template` untouched and record forensic fields
+    # `active_template_pending` + `active_template_error` for diagnosis.
     apply_result = None
-    if args.clear:
-        if not args.no_apply:
+    apply_failed = False
+    apply_error = None
+
+    if not args.no_apply:
+        if args.clear:
             apply_result = _run_reset(plugin_root=_resolve_plugin_root())
-    else:
-        if not args.no_apply:
+        else:
             apply_result = _run_apply(
                 template_root=templates_root / new_template,
                 reset_all=args.reset_all,
             )
+        if apply_result is not None and "error" in apply_result:
+            apply_failed = True
+            apply_error = apply_result.get("error")
+        elif apply_result is not None and apply_result.get("success") is False:
+            apply_failed = True
+            apply_error = apply_result.get("error", "apply subprocess reported success=false")
+
+    state.setdefault("session_metadata", {})
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if apply_failed:
+        # Don't commit the new template; record forensics for the user/Claude to debug.
+        state["session_metadata"]["active_template_pending"] = new_template
+        state["session_metadata"]["active_template_error"] = apply_error
+        state["session_metadata"]["active_template_attempted_at"] = now_iso
+        workspace_json.write_text(json.dumps(state, indent=2) + "\n")
+        emit(
+            {
+                "action": "clear" if args.clear else "set",
+                "previous_template": previous,
+                "active_template": previous,  # unchanged
+                "active_template_pending": new_template,
+                "active_template_error": apply_error,
+                "installed": installed,
+                "apply_result": apply_result,
+            },
+            success=False,
+            exit_code=1,
+        )
+        return
+
+    # Success path: commit the new template and clear any stale pending forensics.
+    state["active_template"] = new_template
+    state["session_metadata"]["template_set_at"] = now_iso
+    state["session_metadata"].pop("active_template_pending", None)
+    state["session_metadata"].pop("active_template_error", None)
+    state["session_metadata"].pop("active_template_attempted_at", None)
+    workspace_json.write_text(json.dumps(state, indent=2) + "\n")
 
     emit(
         {

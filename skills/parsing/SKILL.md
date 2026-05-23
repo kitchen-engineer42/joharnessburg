@@ -29,6 +29,7 @@ Top strategy (per the user's directive, v0.1.7):
 
 - **PDFs + images** → `ppx_parse.py` (calls the local ppx-client server). ppx has a built-in probe + mode selector for non-scanned PDFs and is fast on them; for scans it routes to OCR. Use ppx for all PDFs by default.
 - **DOCX, PPTX, XLSX, HTML, Markdown** → `markitdown_parse.py`. Fast pure-Python; right for office formats and clean HTML.
+- **Chinese government regulation HTML** (`*.gov.cn` pages, or anything with `<div id="UCAP-CONTENT">` / `<div class="pages_content">` / `<div class="TRS_Editor">`) → `parse_govcn_html.py`. markitdown can't parse the nested container layout; this is a narrow fallback. See `references/gov-cn-html.md`.
 - **Plain text, .md** → no parsing needed; copy as-is into `parsed/` with a metadata.json for consistency, OR skip parsing entirely and reference the file directly in the chunking step.
 
 **Fallback when markitdown gives clearly-off results**: if a 50 MB DOCX (full of images) produces tiny markdown output (a few KB), markitdown stripped too much. Convert the document to PDF (e.g., LibreOffice headless, `pdfgen`, the OS print-to-PDF), then route to ppx. ppx will handle the images + layout properly.

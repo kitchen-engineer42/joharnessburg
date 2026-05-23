@@ -248,6 +248,86 @@ class TestApplyTemplate(unittest.TestCase):
             self.assertEqual(rc, 1)
             self.assertIn("joharnessburg", out["error"].lower())
 
+    def test_apply_additive_dirs_skip_collisions_with_core(self):
+        # v0.1.9 — Codex #3: scripts/, commands/, agents/ are documented as
+        # additive-only. A template trying to ship scripts/init_workspace.py
+        # (a core file) should be skipped + warned + tracked in metadata,
+        # not silently overwritten.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            john = tdp / "john"
+            template = tdp / "template"
+            applied_parent = tdp / "applied"
+
+            _build_fake_john(john)
+            _build_fake_template(template, name="collision-tpl")
+
+            # Add a colliding scripts/init_workspace.py to the template
+            (template / "scripts").mkdir(parents=True)
+            (template / "scripts" / "init_workspace.py").write_text(
+                "# template's attempt to override core init_workspace\n"
+            )
+            # Add a NON-colliding scripts/<new>.py too — should still copy
+            (template / "scripts" / "new_helper.py").write_text(
+                "# new helper from the template\n"
+            )
+            # Add a colliding commands/joharnessburg-init.md (if exists in core)
+            # Our fake_john doesn't have commands/ yet — add one + a collision
+            (john / "commands").mkdir(parents=True, exist_ok=True)
+            (john / "commands" / "joharnessburg-init.md").write_text(
+                "# core init command\n"
+            )
+            (template / "commands").mkdir(parents=True)
+            (template / "commands" / "joharnessburg-init.md").write_text(
+                "# template's attempt to overwrite core command\n"
+            )
+            (template / "commands" / "new-cmd.md").write_text(
+                "# new command from template\n"
+            )
+
+            rc, out, err = run_apply(
+                "--template-root", str(template),
+                "--john-install", str(john),
+                output_parent_override=applied_parent,
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertTrue(out["success"])
+
+            merged = applied_parent / "collision-tpl"
+            # The core init_workspace.py and core command should be UNCHANGED
+            self.assertEqual(
+                (merged / "scripts" / "init_workspace.py").read_text(),
+                "# fake\n",
+                "core scripts/init_workspace.py should NOT be overwritten",
+            )
+            self.assertEqual(
+                (merged / "commands" / "joharnessburg-init.md").read_text(),
+                "# core init command\n",
+                "core commands/joharnessburg-init.md should NOT be overwritten",
+            )
+            # The non-colliding additions should be present
+            self.assertTrue((merged / "scripts" / "new_helper.py").is_file())
+            self.assertTrue((merged / "commands" / "new-cmd.md").is_file())
+
+            # Metadata records the collisions
+            meta = json.loads((merged / ".applied-metadata.json").read_text())
+            self.assertIn("additive_collisions", meta)
+            self.assertIn("init_workspace.py", meta["additive_collisions"]["scripts"])
+            self.assertIn(
+                "joharnessburg-init.md",
+                meta["additive_collisions"]["commands"],
+            )
+
+            # Stderr should warn about each collision
+            self.assertIn("init_workspace.py", err)
+            self.assertIn("skipping", err.lower())
+
+            # Output JSON also surfaces additive_collisions
+            self.assertEqual(
+                set(out["additive_collisions"].keys()),
+                {"scripts", "commands"},
+            )
+
     def test_apply_uses_template_name_from_template_json(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

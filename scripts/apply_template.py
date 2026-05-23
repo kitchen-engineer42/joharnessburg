@@ -66,7 +66,18 @@ def err(msg, exit_code=1):
 
 
 def resolve_john_install() -> Path | None:
-    """Find the active joharnessburg install via Claude Code's installed_plugins.json."""
+    """Find the active joharnessburg install via Claude Code's installed_plugins.json.
+
+    Resolution order:
+    1. $JOHN_PLUGIN_INSTALL env var (used by tests; useful for power users with
+       non-standard install layouts).
+    2. ~/.claude/plugins/installed_plugins.json (Claude Code's registry).
+    """
+    env = os.environ.get("JOHN_PLUGIN_INSTALL")
+    if env:
+        p = Path(env).expanduser().resolve()
+        return p if p.is_dir() else None
+
     registry = Path.home() / ".claude" / "plugins" / "installed_plugins.json"
     if not registry.exists():
         return None
@@ -106,21 +117,43 @@ def load_template_json(template_root: Path) -> dict:
         return {}
 
 
-def copy_tree_overlay(src: Path, dst: Path) -> list[str]:
-    """Copy src/* over dst/*. Returns list of relative paths that were copied (for the manifest)."""
+def copy_tree_overlay(src: Path, dst: Path, mode: str = "replace") -> tuple[list[str], list[str]]:
+    """Copy src/* over dst/*.
+
+    Modes:
+    - "replace" (default): overwrite same-path files. Used for `skills/_override/`
+      subtrees where collision IS the point.
+    - "additive_only": refuse to overwrite. On collision, skip the source file
+      and record the relpath in the returned `collisions` list. Used for
+      `scripts/`, `commands/`, `agents/` where the documented policy (per
+      templates/README.md) is NOT-OVERRIDE — additive only.
+
+    Returns (copied_relpaths, collisions). `collisions` is empty for mode="replace".
+    """
     copied: list[str] = []
+    collisions: list[str] = []
     if not src.is_dir():
-        return copied
+        return copied, collisions
     for root, _dirs, files in os.walk(src):
         root_p = Path(root)
         rel_dir = root_p.relative_to(src)
         for name in files:
             src_file = root_p / name
             dst_file = dst / rel_dir / name
+            relpath_str = str((rel_dir / name))
+            if mode == "additive_only" and dst_file.exists():
+                collisions.append(relpath_str)
+                sys.stderr.write(
+                    f"WARN: template '{src.parent.name if src.parent else src.name}' "
+                    f"would overlay {relpath_str} over a core file; skipping. "
+                    f"Use skills/_override/ for explicit overrides, or rename "
+                    f"your file in the template.\n"
+                )
+                continue
             dst_file.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src_file, dst_file)
-            copied.append(str((rel_dir / name)))
-    return copied
+            copied.append(relpath_str)
+    return copied, collisions
 
 
 def apply_overrides(output_root: Path, template_root: Path) -> list[str]:
@@ -301,12 +334,19 @@ def main(argv: list[str] | None = None):
     overridden = apply_overrides(output_root, template_root)
     added = apply_additive_skills(output_root, template_root)
 
-    # Also copy template's scripts/, commands/, agents/ (additive, NO override semantics here)
-    additive_dirs_copied = {}
+    # Also copy template's scripts/, commands/, agents/ (additive-only — NOT
+    # an override surface; collisions with core files are skipped + warned).
+    additive_dirs_copied: dict = {}
+    additive_collisions: dict = {}
     for sub in ("scripts", "commands", "agents"):
         src = template_root / sub
         if src.is_dir():
-            additive_dirs_copied[sub] = copy_tree_overlay(src, output_root / sub)
+            copied_paths, collisions = copy_tree_overlay(
+                src, output_root / sub, mode="additive_only"
+            )
+            additive_dirs_copied[sub] = copied_paths
+            if collisions:
+                additive_collisions[sub] = collisions
 
     template_metadata = apply_template_metadata(output_root, template_root)
 
@@ -321,6 +361,7 @@ def main(argv: list[str] | None = None):
         "skills_deleted": deleted,
         "skills_added": added,
         "additive_dirs_copied": additive_dirs_copied,
+        "additive_collisions": additive_collisions,
         "template_files_copied": template_metadata,
     }
     (output_root / ".applied-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
@@ -333,6 +374,7 @@ def main(argv: list[str] | None = None):
             "overrides_applied": overridden,
             "skills_deleted": deleted,
             "skills_added": added,
+            "additive_collisions": additive_collisions,
             "launch_command": f"claude --plugin-dir {output_root}",
         }
     )

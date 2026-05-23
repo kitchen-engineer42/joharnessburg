@@ -134,6 +134,42 @@ class TestReduceEvents(unittest.TestCase):
             self.assertEqual(out2["events_folded"], 1)
             self.assertEqual(out2["events_quarantined"], 0)
 
+    def test_reduce_dry_run_leaves_malformed_events_in_place(self):
+        # v0.1.9 — Codex #5: --dry-run must be read-only.
+        # Malformed events should be detected + counted but NOT moved.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            phase_dir = tdp / ".john" / "events" / "extract"
+            phase_dir.mkdir()
+            (phase_dir / "good.json").write_text(json.dumps({
+                "timestamp": "2026-05-22T00:00:00Z", "payload": {"ok": True},
+            }))
+            (phase_dir / "bad.json").write_text("not valid json {{")
+
+            rc, out, err = run_script(
+                "reduce_events.py", "extract", "--dry-run", cwd=tdp
+            )
+            self.assertEqual(rc, 0)
+            self.assertTrue(out["dry_run"])
+            # Detected — quarantine count still surfaces
+            self.assertEqual(out["events_quarantined"], 1)
+            # But NOT moved — bad.json must still be at its original location
+            self.assertTrue(
+                (phase_dir / "bad.json").is_file(),
+                "dry-run must not move malformed events",
+            )
+            # And no _quarantine/ dir should be created
+            self.assertFalse(
+                (phase_dir / "_quarantine").exists(),
+                "dry-run must not create _quarantine/ dir",
+            )
+            # No checkpoint file written either (existing dry-run contract)
+            self.assertFalse(
+                (tdp / ".john" / "checkpoints" / "extract" / "state.json").exists(),
+            )
+
     def test_reduce_dry_run_does_not_write_checkpoint(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
@@ -153,6 +189,71 @@ class TestReduceEvents(unittest.TestCase):
             self.assertTrue(out["dry_run"])
             state_file = tdp / ".john" / "checkpoints" / "extract" / "state.json"
             self.assertFalse(state_file.exists())
+
+
+    # v0.1.9 — Block 2.5: chunk_echo / chunk_complete completeness check
+    def test_reduce_flags_chunk_with_missing_echo(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            phase_dir = tdp / ".john" / "events" / "extract"
+            phase_dir.mkdir()
+            # chunk-001: has both echo + complete (healthy)
+            (phase_dir / "c1-echo.json").write_text(json.dumps({
+                "event_type": "chunk_echo", "chunk_id": "chunk-001",
+                "timestamp": "2026-05-22T00:00:00Z",
+            }))
+            (phase_dir / "c1-complete.json").write_text(json.dumps({
+                "event_type": "chunk_complete", "chunk_id": "chunk-001",
+                "timestamp": "2026-05-22T00:00:01Z",
+                "entries_count": 3, "issues": [],
+            }))
+            # chunk-002: complete but no echo (the bug we're flagging)
+            (phase_dir / "c2-complete.json").write_text(json.dumps({
+                "event_type": "chunk_complete", "chunk_id": "chunk-002",
+                "timestamp": "2026-05-22T00:00:02Z",
+                "entries_count": 2, "issues": [],
+            }))
+            # chunk-003: echo only, no complete (also incomplete)
+            (phase_dir / "c3-echo.json").write_text(json.dumps({
+                "event_type": "chunk_echo", "chunk_id": "chunk-003",
+                "timestamp": "2026-05-22T00:00:03Z",
+            }))
+
+            rc, out, err = run_script("reduce_events.py", "extract", cwd=tdp)
+            self.assertEqual(rc, 0)
+            incomplete = out["incomplete_chunks"]
+            self.assertEqual(len(incomplete), 2)
+            by_id = {item["chunk_id"]: item["missing"] for item in incomplete}
+            self.assertEqual(by_id["chunk-002"], ["chunk_echo"])
+            self.assertEqual(by_id["chunk-003"], ["chunk_complete"])
+            self.assertIn("missing chunk_echo", err)
+
+            state = json.loads(
+                (tdp / ".john" / "checkpoints" / "extract" / "state.json").read_text()
+            )
+            self.assertEqual(len(state["incomplete_chunks"]), 2)
+            self.assertEqual(state["chunks_with_echo"], 2)
+            self.assertEqual(state["chunks_with_complete"], 2)
+
+    def test_reduce_completeness_no_op_when_pattern_unused(self):
+        # Phases that don't use chunk_echo/chunk_complete (e.g., simple parse)
+        # should report empty incomplete_chunks.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            phase_dir = tdp / ".john" / "events" / "parse"
+            phase_dir.mkdir()
+            (phase_dir / "p1.json").write_text(json.dumps({
+                "event_type": "file_parsed", "source": "a.md",
+                "timestamp": "2026-05-22T00:00:00Z",
+            }))
+
+            rc, out, _ = run_script("reduce_events.py", "parse", cwd=tdp)
+            self.assertEqual(rc, 0)
+            self.assertEqual(out["incomplete_chunks"], [])
 
 
 if __name__ == "__main__":

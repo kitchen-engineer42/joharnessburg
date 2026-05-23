@@ -112,22 +112,29 @@ def main():
     try:
         with urllib.request.urlopen(req, timeout=600) as resp:
             body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        # HTTPError MUST be caught before URLError — it's a subclass of
+        # URLError, so the order matters. A server-side 422/500 with a JSON
+        # body should surface as a parse error, not as "could not reach server".
+        try:
+            detail = json.loads(exc.read().decode("utf-8"))
+            detail_msg = detail.get("error") or detail.get("detail") or detail
+        except Exception:
+            detail = {"status": exc.code, "reason": exc.reason}
+            detail_msg = f"{exc.code} {exc.reason}"
+        err(
+            f"ppx-client returned HTTP {exc.code}: {detail_msg}",
+            exit_code=1,
+        )
+        return
     except urllib.error.URLError as exc:
+        # Transport-level failure (connection refused, DNS, etc.) — server
+        # unreachable, not a server-side error.
         err(
             f"Could not reach ppx-client server at {url}: {exc.reason}. "
             f"Is `john-ppx-server` running? Start it with "
             f"`/Users/mac/Desktop/john/local_clients/ppx/scripts/start.sh` "
             f"(or set JOHN_PPX_CLIENT_URL to a different server).",
-            exit_code=1,
-        )
-        return
-    except urllib.error.HTTPError as exc:
-        try:
-            detail = json.loads(exc.read().decode("utf-8"))
-        except Exception:
-            detail = {"status": exc.code, "reason": exc.reason}
-        err(
-            f"ppx-client returned HTTP {exc.code}: {detail}",
             exit_code=1,
         )
         return

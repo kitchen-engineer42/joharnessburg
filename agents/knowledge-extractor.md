@@ -17,25 +17,102 @@ You are a focused worker dispatched by John's 2skills extraction phase. Your job
 - **The format of knowledge** for this project: facts / rules / slide-concepts / wiki entries / something else.
 - **Any project-specific reminders** (Chinese terms, glossary refs, falsifiability requirements per template).
 
-## What you produce
+## What you produce — exact field schemas (match LITERALLY)
 
-For each distinct entry you find in the chunk, write one JSON event file:
+v0.1.9 lesson: M6 + v0.1.8 runs across 10 subagents showed five field-naming
+variations (e.g., `description` vs `title` vs `rule_text`, `source_ref` vs
+`source_article` vs `source`, severity `"critical"` vs `"high"`). Different
+field names downstream → reducer normalization layer pays a cost it shouldn't.
+**Match these field sets exactly; do NOT invent or rename fields.**
 
-```
+### Event 1 — One `entry_extracted` event per knowledge entry
+
+Filename convention: `<entry-id>.json` (e.g., `R001.json`, `slide-003-foo.json`).
+
+```json
 {
   "event_type": "entry_extracted",
-  "chunk_id": "<id>",
-  "entry_id": "<sequential or content-hashed>",
-  "schema_fields": { ... per-project schema ... },
-  "source_excerpt": "<exact quote from the chunk supporting this entry>",
-  "extractor_confidence": "high|medium|low",
-  "extractor_notes": "<optional one-liner if you noticed something the rewriter should check>"
+  "chunk_id": "<chunk-id-string>",
+  "entry_id": "<unique-id-string>",
+  "schema_fields": {
+    "// fill in per the project schema": "see PLAN.md four-structures"
+  },
+  "source_excerpt": "<exact quote from the chunk>",
+  "extractor_confidence": "high",
+  "extractor_notes": "<optional, omit if nothing to flag>"
 }
 ```
 
-Plus one summary event at the end, written to a file named `chunk_complete.json` (or `<chunk-id>-complete.json` if there's any chance of name collision with another agent writing to the same dir):
+Required keys at the EVENT level: `event_type`, `chunk_id`, `entry_id`,
+`schema_fields`, `source_excerpt`, `extractor_confidence`.
+
+`extractor_confidence` MUST be one of: `"high"`, `"medium"`, `"low"`.
+Do NOT use `"critical"`, `"certain"`, `"unsure"`, or any other value.
+
+If your project schema uses a `severity` field, it MUST be one of:
+`"low"`, `"medium"`, `"high"`. Do NOT use `"critical"`, `"info"`, or any other value.
+
+If the project schema names a field, use that EXACT name. Do not synonym-rename:
+
+| Schema says | DO NOT write |
+|---|---|
+| `description` | `title`, `rule_text`, `summary` |
+| `source_ref` | `source_article`, `source`, `citation` |
+| `falsifiability_statement` | `falsifiable_when`, `failure_condition` |
+| `applicable_domains` | `domains`, `scope`, `categories` |
+
+If you're unsure what the project schema names a field, emit it under
+`schema_fields` using the name from the project's PLAN.md four-structures
+section literally. The schema is the source of truth.
+
+### Event 2 — One `chunk_complete` summary per chunk
+
+Filename: `chunk_complete.json` (or `<chunk-id>-complete.json` if collision
+risk in the phase dir).
+
+```json
+{
+  "event_type": "chunk_complete",
+  "chunk_id": "<chunk-id-string>",
+  "entries_count": 5,
+  "issues": []
+}
 ```
-{"event_type": "chunk_complete", "chunk_id": "<id>", "entries_count": <N>, "issues": [...]}
+
+Required keys: `event_type`, `chunk_id`, `entries_count`, `issues`.
+
+`issues` is an array of short strings describing anything the rewriter should
+look at (e.g., `["entry R004 may overlap with R006"]`); empty array if nothing.
+
+### Event 3 (optional) — `glossary_term` events
+
+Filename: `<term-slug>.json`.
+
+```json
+{
+  "event_type": "glossary_term",
+  "chunk_id": "<chunk-id-string>",
+  "term": "<the-term-as-it-appears>",
+  "definition": "<short definition>",
+  "scope": ["<applicable-domain-or-area>"],
+  "source_excerpt": "<exact quote>"
+}
+```
+
+Required keys: `event_type`, `chunk_id`, `term`, `definition`, `source_excerpt`.
+
+### Event 4 — Failure escape hatch
+
+If you can't process the chunk (schema mismatch, content too ambiguous, chunk
+unreadable), emit exactly one event and stop:
+
+```json
+{
+  "event_type": "extractor_failed",
+  "chunk_id": "<chunk-id-string>",
+  "error": "<one-line description>",
+  "needs_human": true
+}
 ```
 
 ## JSON discipline
