@@ -8,6 +8,8 @@
 
 ## 当前状态
 
+**v0.1.8 —— 多模板按会话隔离补丁 + v0.1.7 架构。** v0.1.8 放宽了 `apply_template.py` 的跨模板拒绝逻辑：现在多个已应用的模板目录（`~/.claude/plugins/joharnessburg-applied/` 下）可以自由共存，并行的 Claude Code 会话可以分别使用不同的模板、互不干扰。`--reset-all` 仍可用于显式清盘场景。**65 个单元测试全绿。**
+
 **v0.1.7 —— 本地客户端架构 + 模板 diff-script + 审计驱动的清理。** v0.1.6 之上的一次重大架构重构：
 
 - **外部本地客户端服务器**（位于 workspace 一级、插件外部）：`/Users/mac/Desktop/john/local_clients/{llm,ppx}/` 下的 FastAPI HTTP 服务器，分别封装 SiliconFlow + DeepSeek（OpenAI 兼容接口）和 `memect-ppx`。John 通过环境变量（`$JOHN_LLM_CLIENT_URL`、`$JOHN_PPX_CLIENT_URL`）调用它们。等技术团队部署生产服务器时，换 URL 即可——John 内部一行代码都不用改。

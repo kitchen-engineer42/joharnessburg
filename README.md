@@ -6,6 +6,8 @@ Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in th
 
 ## Status
 
+**v0.1.8 — Multi-template per-session isolation patch + v0.1.7 architecture.** v0.1.8 relaxes `apply_template.py`'s cross-template refusal: applied template dirs (under `~/.claude/plugins/joharnessburg-applied/`) now coexist freely, so parallel Claude Code sessions can run with different templates side-by-side without cross-session leakage. `--reset-all` is still available for explicit clean-slate scenarios. **65 unit tests green.**
+
 **v0.1.7 — Local-client architecture + template diff-scripts + audit-driven cleanup.** Major architecture refactor on top of v0.1.6:
 
 - **External local-client servers** (workspace-level, outside the plugin): FastAPI HTTP servers at `/Users/mac/Desktop/john/local_clients/{llm,ppx}/` wrap SiliconFlow + DeepSeek (OpenAI-compatible) and `memect-ppx`. John talks to them via env vars (`$JOHN_LLM_CLIENT_URL`, `$JOHN_PPX_CLIENT_URL`). When the tech team deploys production servers, swap the URLs — no code changes in John.

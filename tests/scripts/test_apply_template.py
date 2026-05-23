@@ -124,7 +124,10 @@ class TestApplyTemplate(unittest.TestCase):
             self.assertIn("slide-rendering", meta["skills_added"])
             self.assertIn("to-be-deleted", meta["skills_deleted"])
 
-    def test_apply_refuses_when_other_template_already_applied(self):
+    def test_apply_allows_multiple_templates_coexisting(self):
+        # v0.1.8 design: each applied template dir is independent. Per-session
+        # isolation means parallel Claude Code sessions with different templates
+        # can run side-by-side; applying template B should NOT clobber A.
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
             john = tdp / "john"
@@ -143,25 +146,45 @@ class TestApplyTemplate(unittest.TestCase):
             )
             self.assertEqual(rc1, 0)
 
-            # Try to apply template2 without --reset-all
+            # Apply template2 without --reset-all: should succeed; template1 stays
             rc2, out2, _ = run_apply(
                 "--template-root", str(t2),
                 "--john-install", str(john),
                 output_parent_override=applied_parent,
             )
-            self.assertEqual(rc2, 1)
-            self.assertFalse(out2["success"])
-            self.assertIn("template1", out2["error"])
+            self.assertEqual(rc2, 0, f"out: {out2}")
+            self.assertTrue(out2["success"])
+            self.assertTrue((applied_parent / "template1").is_dir())
+            self.assertTrue((applied_parent / "template2").is_dir())
 
-            # --reset-all clears template1 first, succeeds
-            rc3, out3, _ = run_apply(
+    def test_apply_reset_all_wipes_other_templates(self):
+        # --reset-all is still useful for explicit "clean slate" scenarios.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            john = tdp / "john"
+            t1 = tdp / "template1"
+            t2 = tdp / "template2"
+            applied_parent = tdp / "applied"
+
+            _build_fake_john(john)
+            _build_fake_template(t1, name="template1")
+            _build_fake_template(t2, name="template2")
+
+            rc1, _, _ = run_apply(
+                "--template-root", str(t1),
+                "--john-install", str(john),
+                output_parent_override=applied_parent,
+            )
+            self.assertEqual(rc1, 0)
+
+            rc2, out2, _ = run_apply(
                 "--template-root", str(t2),
                 "--john-install", str(john),
                 "--reset-all",
                 output_parent_override=applied_parent,
             )
-            self.assertEqual(rc3, 0, f"out: {out3}")
-            self.assertTrue(out3["success"])
+            self.assertEqual(rc2, 0, f"out: {out2}")
+            self.assertTrue(out2["success"])
             self.assertFalse((applied_parent / "template1").exists())
             self.assertTrue((applied_parent / "template2").exists())
 

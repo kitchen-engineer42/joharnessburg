@@ -259,17 +259,15 @@ def main(argv: list[str] | None = None):
         else output_parent / template_name
     )
 
-    # Switch enforcement: refuse if a DIFFERENT applied template is present, unless --reset-all
-    existing = list_applied_templates(output_parent)
-    other_existing = [d for d in existing if d != output_root]
-    if other_existing and not args.reset_all:
-        names = ", ".join(d.name for d in other_existing)
-        err(
-            f"Cannot apply '{template_name}': other templates already applied ({names}). "
-            f"Run with --reset-all to wipe them first, or delete them manually with reset_john.py.",
-        )
-        return
+    # Multi-applied policy (v0.1.7.1+):
+    # Each applied template dir is an independent merged plugin; parallel Claude Code
+    # sessions can point `--plugin-dir` at different applied dirs and run side-by-side
+    # without interference (per-session isolation, no shared mutable runtime state).
+    # So we DON'T refuse when other templates are already applied — we just allow.
+    # `--reset-all` is still available for users who DO want a clean slate.
     if args.reset_all:
+        existing = list_applied_templates(output_parent)
+        other_existing = [d for d in existing if d != output_root]
         for d in other_existing:
             shutil.rmtree(d)
 

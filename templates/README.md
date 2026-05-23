@@ -13,8 +13,9 @@ This guide is for anyone authoring a template — internal team members, externa
    - Writes `.applied-metadata.json` with provenance.
    - Prints the launch command for the user.
 3. **Running John with the template**: `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<template-name>/`. The merged dir IS John for that session — all skills load equally, no special template layer.
-4. **Reset** = delete the merged dir. `/joharnessburg-template --clear` does this. Or run `reset_john.py` directly.
-5. **Switching templates**: reset → apply new. `/joharnessburg-template <new> --reset-all` is the one-shot. (Templates are diffs to **original John**, not to each other. Stacking them isn't supported by design.)
+4. **Reset** = delete merged dirs. `/joharnessburg-template --clear` does this for the whole applied-parent. Or run `reset_john.py` directly for a more selective wipe.
+5. **Switching templates (single workspace)**: `/joharnessburg-template <new>` applies the new template; relaunch the session with the new `--plugin-dir`. The new applied dir coexists with the old one (v0.1.8+), so per-workspace switching is non-destructive to other parallel sessions. `--reset-all` wipes everything if you want a clean slate.
+6. **Parallel sessions, different templates** (v0.1.8+): each Claude Code session is independent. Apply slides-from-textbook and doc-verification both; their applied dirs at `~/.claude/plugins/joharnessburg-applied/{slides-from-textbook,doc-verification}/` coexist. Each parallel `claude --plugin-dir <one-of-them>` session sees only that template's content; no cross-session leakage.
 
 ## Why this design
 
@@ -115,7 +116,7 @@ If you find yourself writing "I/my workspace" in a template skill, you've slippe
 ## Anti-patterns
 
 - **Overriding a core skill with a near-identical copy**. If your override is 90% the same as the core, you don't need to override — add the small differences as a sibling skill the user/template consults when relevant.
-- **Trying to stack templates**. Templates are diffs to original John, not to each other. Switching = reset → apply, never apply-on-top-of-apply.
+- **Trying to stack templates**. Templates are diffs to original John, not to each other. You can have multiple applied dirs coexist for parallel sessions, but each session only ever uses ONE template (the one its `--plugin-dir` points at). Stacking template A's diff on top of template B's merged plugin isn't supported.
 - **Patching the joharnessburg cache directly**. apply_template.py builds a separate merged dir under `joharnessburg-applied/`. Never edit the cache at `joharnessburg/joharnessburg/<version>/` — `claude plugin update` will clobber your changes.
 - **Bundling a closed checklist** unnecessarily. Templates can and should narrow the open methodology of John core when the domain genuinely calls for it (doc-verification locks the rule schema; that's appropriate). But don't lock things that should stay project-specific.
 - **Shipping a `plan_md_template.md` with hardcoded project intent**. The template provides a skeleton; the user fills in their project's specific intent during `/joharnessburg-init`.
