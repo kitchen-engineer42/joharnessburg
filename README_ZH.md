@@ -8,6 +8,8 @@
 
 ## 当前状态
 
+**v0.1.10 —— Codex CLI 适配层（workspace 根目录的增量打包层）。** Codex（GPT-5.5）完成了并行开发的 Codex-CLI-适配版 John。适配层是 **workspace 根目录的增量打包层**：清单位于 `.codex-plugin/plugin.json`，slash command 在 `commands/`，Python 薄包装在 `scripts/john_codex.py`，以及一份 Codex `hooks.json`。**它不修改 Claude 插件**（`joharnessburg/`）；skills 通过 Codex 清单中的 `"skills": "./joharnessburg/skills/"` 共享。`john_codex.py` 把每个命令都委托给 Claude 同样调用的 `joharnessburg/scripts/*.py`，所以行为保留在共享脚本 + 磁盘状态中，而不是在运行时专属的 prompt 文档里。目前的对接面：skills 共享、commands 增量、scripts 委托、PostToolUse 钩子已接入；SessionStart + PreCompact 钩子待 Codex 事件契约确认后再接入；agent prompt 暂留为 Claude 专属。**85 个插件测试 + 14 个 FastAPI 服务器测试 = 99 个测试全绿。** 设计说明：[`docs/codex_wrap_notes.md`](../docs/codex_wrap_notes.md)。
+
 **v0.1.9 —— Codex 代码评审修复 + 审计驱动加固。** 基于 Codex（GPT-5.5）对 v0.1.8 的代码评审（`docs/codebase_review_codex_2026-05-23.md`，13 项发现全部为真）以及 v0.1.8 端到端测试（017-test-001）的审计子代理综合结果，本次共修复 19 项问题，分 5 个实施块完成（约 9-12 小时）：
 
 - **Tier 1 正确性 bug**：`init_workspace.py` 现在消费 `templates-active/plan_md_template.md` 和 `claude_addon.md`（v0.1.7 写入但被忽略的契约违规已修复）；`set_template.py` 原子化（先 apply 后写 workspace.json；失败时记录 `active_template_pending` + `active_template_error` 取证字段）；模板 `scripts/`/`commands/`/`agents/` 现强制为 additive-only（与核心文件冲突时跳过 + 警告 + 在 `.applied-metadata.json` 中记录）；`ppx_parse.py` 修复 `HTTPError` 被 `URLError` 屏蔽的 bug（现在 422 响应能正确暴露而不是被报告为"无法连接服务器"）；`reduce_events.py --dry-run` 现为只读（不再悄悄移动格式错误的事件）。
