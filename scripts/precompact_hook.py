@@ -41,19 +41,23 @@ def gather_recent_events(events_dir: Path, limit_per_phase: int):
     for phase_dir in sorted(events_dir.iterdir()):
         if not phase_dir.is_dir():
             continue
-        # Find all .json files under the phase, sorted by mtime (newest first)
-        event_files = sorted(
-            phase_dir.rglob("*.json"),
-            key=lambda p: p.stat().st_mtime if p.exists() else 0,
-            reverse=True,
-        )[:limit_per_phase]
+        # Pre-collect (path, stat) pairs so a file rotated mid-snapshot doesn't
+        # raise FileNotFoundError inside sorted()'s key callback (uncatchable
+        # from the surrounding try). Drop entries whose stat fails.
+        paired = []
+        for p in phase_dir.rglob("*.json"):
+            try:
+                paired.append((p, p.stat()))
+            except (FileNotFoundError, OSError):
+                continue
+        paired.sort(key=lambda ps: ps[1].st_mtime, reverse=True)
         summary[phase_dir.name] = [
             {
                 "path": str(p.relative_to(events_dir.parent.parent)),
-                "size_bytes": p.stat().st_size,
-                "mtime": datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat(),
+                "size_bytes": st.st_size,
+                "mtime": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
             }
-            for p in event_files
+            for p, st in paired[:limit_per_phase]
         ]
     return summary
 

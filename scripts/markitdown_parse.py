@@ -90,7 +90,19 @@ def main():
 
     converter = MarkItDown()
     result = converter.convert_local(str(src))
-    text = getattr(result, "text_content", None) or getattr(result, "markdown", None) or ""
+    text = getattr(result, "text_content", None)
+    if text is None:
+        text = getattr(result, "markdown", None)
+    if text is None:
+        err(
+            f"MarkItDown returned a result object with neither `text_content` "
+            f"nor `markdown` attribute (got fields: "
+            f"{sorted(a for a in dir(result) if not a.startswith('_'))}). "
+            f"Markitdown's API may have changed; check the installed version "
+            f"(`pip show markitdown`) against the script's expectations.",
+            exit_code=1,
+        )
+        return
 
     doc_md_path.write_text(text)
 

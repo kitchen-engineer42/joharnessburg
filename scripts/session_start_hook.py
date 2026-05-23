@@ -59,7 +59,8 @@ def main():
         state.get("session_metadata", {}).get("endurance_goal")
         or "(no endurance goal set; ask the user with /endurance <goal> if running a long project)"
     )
-    active_template = state.get("active_template") or "(none)"
+    active_template = state.get("active_template")
+    active_template_label = active_template or "(none — vanilla John)"
     current_phase = state.get("current_phase") or "(unset)"
     initialized_at = state.get("initialized_at", "?")
 
@@ -91,8 +92,17 @@ def main():
         f"You are in a Claude Code session where the John plugin is active and this project's "
         f"workspace has been initialized.\n\n"
         f"**Endurance goal**: {endurance_goal}\n\n"
-        f"**Active template**: {active_template}\n\n"
-        f"**Current phase**: {current_phase}\n\n"
+        f"**Active template applied**: {active_template_label}\n"
+        + (
+            ""
+            if not active_template
+            else (
+                f"  (the template's diff was merged into the running plugin via "
+                f"`apply_template.py`; treat all loaded skills as core — there is no "
+                f"second-class \"template skill\" layer at runtime)\n"
+            )
+        )
+        + f"\n**Current phase**: {current_phase}\n\n"
         f"**Workspace initialized at**: {initialized_at}\n\n"
         f"**Read PLAN.md first** before doing any substantive work. Re-read it after every context "
         f"compaction. The `using-john` skill is your top-level orientation; consult it if anything "

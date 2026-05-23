@@ -20,17 +20,20 @@ The first useful thing John does on any project: read the user's raw input mater
 
 - **Inputs**: `<project>/.john/input/` (populated by `/joharnessburg-init`)
 - **Outputs**: `<project>/.john/parsed/<source-id>/` — one subdirectory per input file, containing `doc.md`, `doc.json` (when applicable), `metadata.json` (provenance: source path, parser, timestamp).
-- **Tools**: `${CLAUDE_PLUGIN_ROOT}/scripts/ppx_parse.py` and `${CLAUDE_PLUGIN_ROOT}/scripts/markitdown_parse.py`
+- **Tools**: `${CLAUDE_PLUGIN_ROOT}/scripts/ppx_parse.py` (v0.1.7+: thin HTTP client to local ppx-client server) and `${CLAUDE_PLUGIN_ROOT}/scripts/markitdown_parse.py` (in-process).
+- **Server URLs** (read from environment): `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`). The server is launched separately from `/Users/mac/Desktop/john/local_clients/ppx/scripts/start.sh`.
 
 ## Routing — which parser for which input
 
-The rule is simple and rarely needs fine-tuning:
+Top strategy (per the user's directive, v0.1.7):
 
-- **PDFs** → `ppx_parse.py`. Layout-aware, preserves page structure, emits both `doc.md` and `doc.json` with bounding boxes. Default backend is offline (RapidOCR); paddle/deepseek/glm are VLM escalations for hard cases.
-- **DOCX, PPTX, XLSX, HTML, Markdown, images with text** → `markitdown_parse.py`. Microsoft's MarkItDown handles structured office formats well. Emits `doc.md` + `metadata.json` only.
+- **PDFs + images** → `ppx_parse.py` (calls the local ppx-client server). ppx has a built-in probe + mode selector for non-scanned PDFs and is fast on them; for scans it routes to OCR. Use ppx for all PDFs by default.
+- **DOCX, PPTX, XLSX, HTML, Markdown** → `markitdown_parse.py`. Fast pure-Python; right for office formats and clean HTML.
 - **Plain text, .md** → no parsing needed; copy as-is into `parsed/` with a metadata.json for consistency, OR skip parsing entirely and reference the file directly in the chunking step.
 
-When the input is mixed (most real corpora), parse each file with the right tool. Don't batch by parser — batch by file, route per file.
+**Fallback when markitdown gives clearly-off results**: if a 50 MB DOCX (full of images) produces tiny markdown output (a few KB), markitdown stripped too much. Convert the document to PDF (e.g., LibreOffice headless, `pdfgen`, the OS print-to-PDF), then route to ppx. ppx will handle the images + layout properly.
+
+When the input is mixed (most real corpora), parse each file with the right tool. Don't batch by parser — batch by file, route per file. Claude is good at making this call per file; trust it.
 
 ## Subagent fan-out for parsing
 
@@ -63,7 +66,7 @@ Every parsed output gets a `metadata.json` with:
   "source_path": "<absolute path of original>",
   "source_name": "<basename>",
   "source_size_bytes": <int>,
-  "parser": "jyppx" | "markitdown",
+  "parser": "ppx" | "markitdown",
   "parsed_at": "<ISO 8601>",
   "backend": "<for ppx only>",
   ...
@@ -76,7 +79,7 @@ The original file *path* is metadata; the original *folder hierarchy* is NOT pre
 
 The scripts fail loud — JSON error to stdout, traceback to stderr. Typical failures:
 
-1. **Dependency not installed.** `ppx_parse.py` needs `pip install -e /path/to/jyppx/ppx`; `markitdown_parse.py` needs `pip install markitdown`. The script's error message says the install command. Tell the user.
+1. **Server not running or dependency not installed.** In v0.1.7+, `ppx_parse.py` is a thin HTTP client to a local ppx-client server. If the server isn't running, the script says so + points at `local_clients/ppx/scripts/start.sh`. If the ppx engine (`memect-ppx`) isn't installed in the server's env, the server returns 503 with install guidance. `markitdown_parse.py` still runs in-process and needs `pip install markitdown`. Tell the user the exact install/launch command from the error message.
 2. **Bad input path.** Script reports it; check `.john/input/` is populated.
 3. **Parse exception** (OOM on huge PDF, malformed file, etc.). Capture in the parse phase Log section. For the OOM case, escalate to a smaller-batch approach (parse a subset of pages with `--pages` if ppx supports it).
 

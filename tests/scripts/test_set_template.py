@@ -34,13 +34,16 @@ class TestSetTemplate(unittest.TestCase):
             rc, _, _ = run_script("init_workspace.py", cwd=tdp)
             self.assertEqual(rc, 0)
             rc, out, _ = run_script(
-                "set_template.py", "nonexistent-template-xyz", cwd=tdp
+                "set_template.py", "nonexistent-template-xyz", "--no-apply", cwd=tdp
             )
             self.assertEqual(rc, 1)
             self.assertFalse(out["success"])
             self.assertIn("not installed", out["error"])
 
     def test_clear_unsets_active_template(self):
+        # Use --no-apply to skip reset_john.py subprocess (which would touch
+        # the real ~/.claude/plugins/joharnessburg-applied/). Tests of clear's
+        # workspace.json write behavior should be isolated from apply/reset.
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
             rc, _, _ = run_script("init_workspace.py", cwd=tdp)
@@ -51,7 +54,7 @@ class TestSetTemplate(unittest.TestCase):
             state["active_template"] = "doc-verification"
             ws_path.write_text(json.dumps(state, indent=2))
 
-            rc, out, _ = run_script("set_template.py", "--clear", cwd=tdp)
+            rc, out, _ = run_script("set_template.py", "--clear", "--no-apply", cwd=tdp)
             self.assertEqual(rc, 0)
             self.assertTrue(out["success"])
             self.assertEqual(out["action"], "clear")
@@ -67,7 +70,7 @@ class TestSetTemplate(unittest.TestCase):
             rc, _, _ = run_script("init_workspace.py", cwd=tdp)
             self.assertEqual(rc, 0)
             rc, out, _ = run_script(
-                "set_template.py", "anything", "--clear", cwd=tdp
+                "set_template.py", "anything", "--clear", "--no-apply", cwd=tdp
             )
             self.assertEqual(rc, 1)
             self.assertFalse(out["success"])

@@ -2,13 +2,17 @@
 
 Layer-2 Claude doesn't need to think about this often, but it's worth knowing it exists.
 
-## Today (v0.1.x, local dev)
+## Today (v0.1.7+, local dev)
 
-`ppx_parse.py` runs jyppx in-process. The Python interpreter that runs the script imports `memect.pdf.parser` and parses the PDF locally. Works fine on a developer laptop with `pip install -e /path/to/jyppx/ppx`.
+`ppx_parse.py` is a thin HTTP client that POSTs to a local **ppx-client server** (FastAPI). The server wraps `memect-ppx` (the `ppx` parser engine) and runs at `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`).
+
+The server lives outside the plugin at `/Users/mac/Desktop/john/local_clients/ppx/` (workspace tooling, not shipped with John). Install + launch with `local_clients/ppx/scripts/start.sh`. Engine install: `uv pip install -e /path/to/ppx` (see `github.com/kitchen-engineer42/ppx`).
+
+> *Terminology note*: `ppx` is the parser engine; `jyppx` is a separate builder project (at `github.com/memect/jyppx`) that uses ppx as a library to produce tailored parsers per corpus. John's `ppx_parse.py` talks to ppx (via the local client), not to jyppx.
 
 ## Tomorrow (production migration)
 
-Per spec §8.7, the tech team will replace `ppx_parse.py`'s implementation with an RPC client to the internal `PDF_PARSE_SERVER` — a hosted service that runs ppx (or a successor) at scale, with proper queuing, retries, and cache. Same script name, same CLI surface, different backend.
+Per spec §8.7, the tech team will swap the URL `JOHN_PPX_CLIENT_URL` to point at an internal `PDF_PARSE_SERVER` — a hosted service with proper queuing, retries, and cache. Same script name, same CLI surface, same HTTP contract, different backend. The local-client server already mimics the production server's HTTP shape, so the swap is just an env-var change.
 
 ## Implications for layer-2 Claude
 

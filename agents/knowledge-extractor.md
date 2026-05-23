@@ -33,10 +33,20 @@ For each distinct entry you find in the chunk, write one JSON event file:
 }
 ```
 
-Plus one summary event at the end:
+Plus one summary event at the end, written to a file named `chunk_complete.json` (or `<chunk-id>-complete.json` if there's any chance of name collision with another agent writing to the same dir):
 ```
 {"event_type": "chunk_complete", "chunk_id": "<id>", "entries_count": <N>, "issues": [...]}
 ```
+
+## JSON discipline
+
+Every event file you write must be valid JSON. The reducer (`reduce_events.py`) quarantines unparseable files — they don't fold into canonical state. M6 runs hit a ~10% defect rate from this; don't add to the count:
+
+- **Preferred for Chinese-language content**: use full-width quotation marks `「...」` or `『...』` for inner quotes. They don't need escaping and are typographically idiomatic in Chinese (`合称「电磁感应的普遍规律」`).
+- **Preferred for ASCII / mixed content**: build the dict in your head, then mentally walk through `json.dumps(d)` and write the result. The encoder escapes inner `"` as `\"`.
+- **Avoid**: hand-formatting JSON with inner ASCII `"` unescaped. Five M6 runs each needed a manual `repair_events.py` pass for this; v0.1.7's reducer now quarantines instead of silently skipping.
+
+Before writing each event file, mentally re-parse it. If you can't be sure it's valid, prefer the safer escape route (full-width or json.dumps).
 
 ## What you do NOT do
 

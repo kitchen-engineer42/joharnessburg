@@ -1,34 +1,41 @@
 #!/usr/bin/env python3
-"""Parse a PDF into structured markdown + JSON using jyppx (memect-ppx).
+"""Parse a PDF via John's local ppx-client server.
 
-Wraps the `memect-ppx` Python package (install: `pip install -e <path-to-jyppx>/ppx`).
-Default backend is local (`RapidOCR + RapidLayout + pymupdf`) — offline,
-no API keys required. VLM backends (paddle, deepseek, glm) available via
-`--backend` for harder layouts.
+v0.1.7+: thin HTTP client. POSTs to `$JOHN_PPX_CLIENT_URL` (default
+`http://localhost:8501`) `/parse` endpoint. The server (at
+`/Users/mac/Desktop/john/local_clients/ppx/`) wraps `memect-ppx` directly.
 
-Writes (in the output directory):
-  doc.md           — assembled markdown
-  doc.json         — structured: pages -> objects with bbox + type + text
-  pages/*.png      — per-page renders
-  state.json       — parse timing per stage
-  metadata.json    — provenance: original path, backend, timestamp (we add this)
+Same CLI surface as v0.1.6, same JSON output envelope. Behind the scenes:
+- v0.1.6: in-process import of `memect.pdf.parser.Parser`.
+- v0.1.7+: HTTP POST to a local FastAPI server that does the import.
 
-This script runs in **layer-2 sessions** inside the user's project. The
-output directory is created if missing.
+When the tech team ships the production PDF_PARSE_SERVER, swap
+`JOHN_PPX_CLIENT_URL` to point at it; this script keeps working.
+
+Terminology: `ppx` (memect-ppx) is the parser engine; `jyppx` is a separate
+builder project. This script talks to ppx via the local client, not to jyppx.
+
+This script runs in **layer-2 sessions** inside the user's project.
 
 Exit codes:
   0  success
-  1  expected failure (jyppx not installed, bad input, parse error)
+  1  expected failure (bad input path, server unreachable, parse error)
   2  unexpected exception
 """
 
+from __future__ import annotations
+
 import argparse
 import json
+import os
 import sys
-import time
 import traceback
-from datetime import datetime, timezone
+import urllib.error
+import urllib.request
 from pathlib import Path
+
+
+DEFAULT_CLIENT_URL = "http://localhost:8501"
 
 
 def emit(payload, success=True, exit_code=0):
@@ -45,7 +52,7 @@ def err(msg, exit_code=1):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Parse a PDF using jyppx (memect-ppx).",
+        description="Parse a PDF via John's local ppx-client server.",
     )
     parser.add_argument("input_path", help="Path to the input PDF.")
     parser.add_argument(
@@ -59,42 +66,22 @@ def main():
         help="Parser backend. 'default' is local RapidOCR (free, offline).",
     )
     parser.add_argument(
-        "--ocr",
-        default="auto",
-        choices=["auto", "yes", "no"],
+        "--ocr", default="auto", choices=["auto", "yes", "no"],
         help="OCR mode. 'auto' = per-region heuristic.",
     )
     parser.add_argument(
-        "--table",
-        default="auto",
-        choices=["auto", "ybk", "wbk", "llm", "no"],
+        "--table", default="auto", choices=["auto", "ybk", "wbk", "llm", "no"],
         help="Table parsing mode.",
     )
     parser.add_argument(
-        "--no-formula",
-        action="store_true",
-        help="Skip formula recognition (faster).",
+        "--no-formula", action="store_true", help="Skip formula recognition (faster).",
+    )
+    parser.add_argument(
+        "--client-url",
+        default=os.environ.get("JOHN_PPX_CLIENT_URL", DEFAULT_CLIENT_URL),
+        help=f"ppx-client server URL (default: $JOHN_PPX_CLIENT_URL or {DEFAULT_CLIENT_URL})",
     )
     args = parser.parse_args()
-
-    # Lazy import so we can give a clean error if jyppx isn't installed.
-    try:
-        from memect.pdf.base import (
-            Backend,
-            KDocumentFactory,
-            OCRMode,
-            ParseParams,
-            TableMode,
-        )
-        from memect.pdf.parser import Parser
-    except ImportError:
-        err(
-            "memect-ppx (jyppx) is not installed. Install with: "
-            "pip install -e /path/to/jyppx/ppx  "
-            "(see https://github.com/memect/memect-ppx)",
-            exit_code=1,
-        )
-        return
 
     src = Path(args.input_path).expanduser().resolve()
     if not src.exists():
@@ -103,88 +90,62 @@ def main():
     if not src.is_file():
         err(f"Input is not a file: {src}", exit_code=1)
         return
-    if src.suffix.lower() != ".pdf":
-        sys.stderr.write(
-            f"WARN: input does not have .pdf extension ({src.suffix}). "
-            f"ppx will attempt to parse anyway.\n"
-        )
 
     out_dir = Path(args.output_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Map CLI flags to ppx enums
-    backend_map = {
-        "default": Backend.DEFAULT,
-        "paddle": Backend.PADDLE,
-        "deepseek": Backend.DEEPSEEK,
-        "glm": Backend.GLM,
-    }
-    ocr_map = {
-        "auto": OCRMode.AUTO,
-        "yes": OCRMode.YES,
-        "no": OCRMode.NO,
-    }
-    table_map = {
-        "auto": TableMode.AUTO,
-        "ybk": TableMode.YBK,
-        "wbk": TableMode.WBK,
-        "llm": TableMode.LLM,
-        "no": TableMode.NO,
-    }
-
-    params = ParseParams(
-        backend=backend_map[args.backend],
-        ocr=ocr_map[args.ocr],
-        table=table_map[args.table],
-        formula=not args.no_formula,
-        markdown=True,
-        doc_json=True,
-    )
-
-    factory = KDocumentFactory(file=src, params=params, out_dir=out_dir)
-    doc = factory()
-
-    started = time.time()
-    try:
-        with Parser() as p:
-            p.parse(doc)
-    except Exception as exc:
-        sys.stderr.write(traceback.format_exc())
-        elapsed = time.time() - started
-        err(
-            f"ppx parse failed after {elapsed:.1f}s: {exc}",
-            exit_code=1,
-        )
-        return
-    elapsed = time.time() - started
-
-    # Write our own metadata.json alongside ppx's outputs
-    metadata = {
-        "source_path": str(src),
-        "source_name": src.name,
-        "source_size_bytes": src.stat().st_size,
-        "parser": "jyppx",
+    payload = {
+        "input_path": str(src),
+        "output_dir": str(out_dir),
         "backend": args.backend,
         "ocr": args.ocr,
         "table": args.table,
         "formula": not args.no_formula,
-        "parsed_at": datetime.now(timezone.utc).isoformat(),
-        "elapsed_seconds": round(elapsed, 2),
     }
-    (out_dir / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
 
-    doc_md = out_dir / "doc.md"
-    doc_json = out_dir / "doc.json"
+    url = args.client_url.rstrip("/") + "/parse"
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=data, headers={"Content-Type": "application/json"}, method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=600) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.URLError as exc:
+        err(
+            f"Could not reach ppx-client server at {url}: {exc.reason}. "
+            f"Is `john-ppx-server` running? Start it with "
+            f"`/Users/mac/Desktop/john/local_clients/ppx/scripts/start.sh` "
+            f"(or set JOHN_PPX_CLIENT_URL to a different server).",
+            exit_code=1,
+        )
+        return
+    except urllib.error.HTTPError as exc:
+        try:
+            detail = json.loads(exc.read().decode("utf-8"))
+        except Exception:
+            detail = {"status": exc.code, "reason": exc.reason}
+        err(
+            f"ppx-client returned HTTP {exc.code}: {detail}",
+            exit_code=1,
+        )
+        return
+
+    # Server returns ParseResult fields directly; pass through to stdout.
+    if not body.get("success", False):
+        err(f"ppx parse failed: {body.get('error', 'unknown error')}", exit_code=1)
+        return
 
     emit(
         {
-            "input_path": str(src),
-            "output_dir": str(out_dir),
-            "backend": args.backend,
-            "doc_md": str(doc_md) if doc_md.exists() else None,
-            "doc_json": str(doc_json) if doc_json.exists() else None,
-            "metadata_json": str(out_dir / "metadata.json"),
-            "elapsed_seconds": round(elapsed, 2),
+            "input_path": body.get("input_path"),
+            "output_dir": body.get("output_dir"),
+            "backend": body.get("backend"),
+            "doc_md": body.get("doc_md"),
+            "doc_json": body.get("doc_json"),
+            "metadata_json": body.get("metadata_json"),
+            "elapsed_seconds": body.get("elapsed_seconds"),
         }
     )
 

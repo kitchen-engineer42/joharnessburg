@@ -1,6 +1,6 @@
 # tests/
 
-Stdlib-only `unittest` tests for the M2 toolkit scripts.
+Stdlib-only `unittest` tests for the plugin's scripts + hooks.
 
 ## Running
 
@@ -26,11 +26,15 @@ Automated tests (run on every commit):
 - `tests/scripts/test_archive_workspace.py` — archive_workspace.py
 - `tests/scripts/test_reduce_events.py` — reduce_events.py
 - `tests/scripts/test_set_template.py` — set_template.py
+- `tests/scripts/test_set_endurance.py` — set_endurance.py (M6 Phase A.1)
+- `tests/scripts/test_session_start_hook.py` — SessionStart hook (M5)
+- `tests/scripts/test_precompact_hook.py` — PreCompact hook (M5)
+- `tests/scripts/test_post_tool_use_hook.py` — PostToolUse hook (M5)
 
-Manual smoke tests (parsers require external deps):
+Manual smoke tests (parsers require external deps + local-client servers):
 
 - `markitdown_parse.py` — requires `pip install markitdown`. Smoke: run on a DOCX file, verify `doc.md` + `metadata.json` written.
-- `ppx_parse.py` — requires `pip install -e /path/to/jyppx/ppx`. Smoke: run on a small PDF, verify `doc.md` + `doc.json` + `pages/` written.
+- `ppx_parse.py` (v0.1.7+) — requires the local ppx-client server running (see `local_clients/ppx/`). Smoke: POST a small PDF, verify the returned file paths exist on disk.
 
 ## Conventions
 

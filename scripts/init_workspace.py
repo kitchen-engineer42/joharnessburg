@@ -161,7 +161,13 @@ def main():
     p.add_argument(
         "--force",
         action="store_true",
-        help="Delete and recreate .john/ if it already exists. Does NOT touch PLAN.md or CLAUDE.md.",
+        help=(
+            "Delete and recreate .john/ if it already exists (including the active_template "
+            "field). PLAN.md is REGENERATED from the template (existing project intent + log "
+            "is lost — back it up first if you need it). CLAUDE.md is never overwritten by "
+            "--force (project memory is preserved); delete it manually if you want a clean "
+            "slate."
+        ),
     )
     p.add_argument(
         "--project-name",

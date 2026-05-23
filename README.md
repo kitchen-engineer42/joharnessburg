@@ -6,49 +6,68 @@ Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in th
 
 ## Status
 
-**v0.1.6 — M6 Phase A.1 gap-closure shipped.** Plugin now loads with 8 core meta-skills (M1), 7 toolkit scripts and 4 slash commands (M2), 6 2skills phase skills (M3), 3 2app phase skills (M4), 3 hooks + 2 example templates (M5), and 12 new files from M6 Phase A.1: `/endurance` slash command + helper script, 3 example subagent role definitions (`knowledge-extractor`, `schema-designer`, `code-quality-reviewer`), 9 platform-integration skill stubs (`platform-auth`, `platform-credits`, `platform-llm-proxy`, `platform-telemetry`, `platform-parser`, `platform-deploy`, `platform-model-config`, `subsite-builder`, `spec-template-manager`) teaching the team's existing patterns from `to-skills-backend` / `skills2app` / live subsites. **53 unit tests green.** End-to-end shakedown runs (M6 Phase B) and handoff docs (M7) still ahead.
+**v0.1.7 — Local-client architecture + template diff-scripts + audit-driven cleanup.** Major architecture refactor on top of v0.1.6:
 
-## Templates
+- **External local-client servers** (workspace-level, outside the plugin): FastAPI HTTP servers at `/Users/mac/Desktop/john/local_clients/{llm,ppx}/` wrap SiliconFlow + DeepSeek (OpenAI-compatible) and `memect-ppx`. John talks to them via env vars (`$JOHN_LLM_CLIENT_URL`, `$JOHN_PPX_CLIENT_URL`). When the tech team deploys production servers, swap the URLs — no code changes in John.
+- **Template diff-script architecture**: templates are now diffs applied via `apply_template.py` (one-click), not session-time overlays. Result: a merged plugin dir at `~/.claude/plugins/joharnessburg-applied/<name>/` that the user launches with `claude --plugin-dir <path>`. After merge, template content IS John — no second-class layer.
+- **New skill** `workerllm-runtime/` teaches produced apps how to call the LLM client.
+- **JSON discipline** added to all 3 agent prompts (full-width quotes / `json.dumps()` to avoid the ~10% defect rate observed in M6).
+- **Reducer quarantine**: `reduce_events.py` now moves malformed events to `_quarantine/` rather than silently skipping; counts surfaced.
+- **ppx ↔ jyppx terminology** sweep: 23 mentions across 13 files reconciled. `ppx_parse.py` now writes `"parser": "ppx"` (was `"jyppx"` — soft schema break in v0.1.7).
+- **Bug fixes**: TOCTOU race in PreCompact hook, silent-fallback in markitdown_parse.py, hardcoded path in set_template.py, --force docstring in init_workspace.py, is_dir guard in workspace_status.py.
 
-Templates are sibling plugins that customize John for a specific domain (slide decks, doc verification, mystery games, etc.). John core stays unchanged; templates add/override/delete its skills at session-start time.
+**64 unit tests green** (53 v0.1.6 + 6 apply_template + 5 reset_john tests). Plugin loads with 8 core meta-skills + 6 2skills phase skills + 3 2app phase skills + 9 platform-integration skill stubs + new `workerllm-runtime` skill (27 total) + 7 toolkit scripts + 2 new template-system scripts (apply_template, reset_john) + 5 slash commands + 3 hooks + 3 agents + 2 example templates with one-click `apply.sh`. M7 (handoff docs) still ahead.
 
-- **Authoring guide**: [`templates/README.md`](templates/README.md) — directory anatomy, override mechanics, install location.
-- **Bundled examples**: [`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/) (lighter — 1 override + 1 add) and [`templates/examples/doc-verification/`](templates/examples/doc-verification/) (heavier, KC-style — 2 overrides + 2 adds).
+## Templates (v0.1.7+ diff-script architecture)
 
-Both bundled examples are **functional demonstrators**, not production-ready. They prove the layered runtime override mechanism works; the team's production templates ship separately.
+Templates are **diffs to original John**, applied via a one-click script. `/joharnessburg-template <name>` does the whole flow: set active_template in workspace.json, run apply.sh, print the launch command.
+
+- **Authoring guide**: [`templates/README.md`](templates/README.md) — directory anatomy, apply mechanics, switching/reset.
+- **Bundled examples**: [`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/) (lighter — 1 override + 1 add) and [`templates/examples/doc-verification/`](templates/examples/doc-verification/) (heavier, KC-style — 2 overrides + 2 adds). Both have `apply.sh` symlinks.
+
+Both bundled examples are **functional demonstrators**, not production-ready. The team's production templates ship separately.
+
+## Local clients (workspace-level, outside the plugin)
+
+The LLM + ppx clients live OUTSIDE this plugin at `/Users/mac/Desktop/john/local_clients/{llm,ppx}/`. They're standalone FastAPI servers. The team is expected to install + launch them locally; the plugin's parsing skill + workerllm-runtime skill teach Claude how to call them. See:
+
+- `local_clients/llm/README.md` — install + launch the LLM proxy
+- `local_clients/ppx/README.md` — install + launch the ppx server
+- Workspace `/skills/local-clients-builder/` — methodology for building your own clients (different providers, on-prem, etc.)
 
 ## Prerequisites
 
 - **Python 3.10+** (the toolkit scripts use stdlib only; system Python is fine).
 - For non-PDF document parsing (`markitdown_parse.py`): `pip install markitdown`.
-- For PDF parsing (`ppx_parse.py`): `pip install -e /path/to/jyppx/ppx` (the memect-ppx Python package; ask the project owner for the source path).
+- For PDF parsing: v0.1.7+ uses an out-of-plugin **ppx-client server** (FastAPI) that wraps `memect-ppx` (the `ppx` parser engine — repo at `github.com/kitchen-engineer42/ppx`). The plugin's `scripts/ppx_parse.py` is a thin HTTP client to that server; install the server from `/Users/mac/Desktop/john/local_clients/ppx/` and launch with `scripts/start.sh`. The ppx engine itself must be installed (`uv pip install -e /path/to/ppx`); jyppx is a separate builder project that uses ppx as a library and is NOT required to drive John.
 
 Both parser dependencies are optional. The plugin installs and `using-john` loads regardless; the parser scripts fail loud with install instructions when invoked without their deps.
 
-## Install
+## Install + upgrade
 
-Three options, pick whichever fits your workflow:
+First-time install:
 
 ```sh
-# Option A — marketplace flow (recommended; mirrors how plugins like skills-analytics install):
+# Option A — marketplace flow (recommended):
 claude plugin marketplace add kitchen-engineer42/joharnessburg
-claude plugin install joharnessburg
+claude plugin install joharnessburg@joharnessburg
 
-# Option B — clone + local install (for offline dev iteration):
-git clone git@github.com:kitchen-engineer42/joharnessburg.git /path/to/clone
-claude plugin install /path/to/clone
-
-# Option C — symlink (for live editing the plugin while testing):
-git clone git@github.com:kitchen-engineer42/joharnessburg.git /path/to/clone
-mkdir -p ~/.claude/plugins
-ln -s /path/to/clone ~/.claude/plugins/joharnessburg
-
-# Verify (all options):
+# Verify
 claude plugin list
-# Expect: joharnessburg listed, status enabled
+# Expect: joharnessburg@joharnessburg listed, status enabled
 ```
 
-In a fresh Claude Code session after install, the `using-john` skill should be available. That's the M0 acceptance test.
+Upgrade from an earlier version (v0.1.x → v0.1.7):
+
+```sh
+claude plugin marketplace update joharnessburg
+claude plugin update joharnessburg@joharnessburg
+# Restart Claude Code for the new version to take effect.
+```
+
+> Note: `claude plugin install` is a no-op when the plugin is already installed. Use `claude plugin update <plugin>@<marketplace>` for upgrades. Auto-update is OFF by default for third-party marketplaces; enable via `/plugin` UI → Marketplaces → joharnessburg → Enable auto-update.
+
+In a fresh Claude Code session after install, the `using-john` skill should load. That's the M0 acceptance test.
 
 ## What's in this repo
 

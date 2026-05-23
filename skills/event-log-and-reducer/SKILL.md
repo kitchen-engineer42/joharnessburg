@@ -90,6 +90,19 @@ A subagent crashed mid-write? Its event file is partial or absent. Options for t
 
 John defaults to **lenient with explicit flagging** — the phase advances on best-effort, but PLAN.md gets a Log entry listing the missing units so they can be re-dispatched.
 
+## Validation + quarantine
+
+Subagents writing JSON events sometimes produce unparseable files — most commonly when string values contain unescaped inner quotes (M6 runs hit ~10% defect rate from this on Chinese-language content). The reducer (v0.1.7+) handles this by **quarantining** unparseable events:
+
+1. On read, `json.loads(file.read_text())` is wrapped in a try/except.
+2. On parse failure: move the original file to `<project>/.john/events/<phase>/_quarantine/<original-filename>` and write a sibling `<original-filename>.parse_error.txt` with the exception message.
+3. Continue reducing the remaining events.
+4. At end-of-phase: log "N events quarantined" prominently in the reducer's stdout output.
+
+This is a **lenient + surfaced** policy: the phase doesn't fail outright (one bad event shouldn't kill 199 good ones), but the user knows immediately how many events were lost and where to inspect them.
+
+**For agents emitting events**: see the JSON-discipline section in your agent role. Prefer full-width `「」` quotes or `json.dumps()` to avoid the quarantine path entirely.
+
 ## Why this beats file locks
 
 The file-lock approach (one shared catalog file, subagents lock-modify-unlock) hits two recurring failures:

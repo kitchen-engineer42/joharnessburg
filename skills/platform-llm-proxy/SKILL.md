@@ -18,6 +18,8 @@ metadata:
 
 Every LLM call in a produced app — for chat, vision, image-gen, embedding — flows through the same pattern: rate-limit-check → credit-lock → LLM call → settle/cancel → telemetry. This skill teaches the shape; existing subsites have battle-tested it.
 
+**Local-dev counterpart**: for produced apps that run STANDALONE (not inside the team's platform), see [[workerllm-runtime]] — same OpenAI-compatible call shape but without lock/settle/cancel + Bearer-token plumbing. The local LLM client at `/Users/mac/Desktop/john/local_clients/llm/` is the dev-time substitute for the production proxy; both expose `/v1/chat/completions`. Migrating a standalone app to the platform = add credits + auth wrappers, keep the SDK call.
+
 ## The standard call shape
 
 ```

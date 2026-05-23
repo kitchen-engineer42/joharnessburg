@@ -32,6 +32,10 @@ Severity: `blocker` (ship-stops), `major` (should fix before release), `minor` (
 
 Plus a summary section: total findings by severity, deterministic checks run + their pass/fail, three biggest concerns the project owner should read first.
 
+## JSON discipline
+
+If you emit findings as JSON (event-log style), apply the same discipline as other agents: prefer full-width `「...」` for inner quotes in Chinese content (e.g., quoting source code comments or string literals); prefer `json.dumps()`-style escaping for ASCII content. Don't hand-format JSON with unescaped inner `"` — the reducer quarantines unparseable events.
+
 ## Anti-pitfalls
 
 - **Don't pile on**. If lint already flagged 200 issues, summarize ("12 unused-import warnings — run `pnpm lint --fix`") rather than listing each.

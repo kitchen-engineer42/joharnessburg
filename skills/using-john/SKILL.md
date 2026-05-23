@@ -46,7 +46,7 @@ Six rules. Internalize these — every other John skill builds on them.
 
 The user can set a long-running goal for the session via `/endurance <goal>`. That goal is pinned to the system prompt and survives context compaction. If an endurance goal is set, treat it as the endurance race you're running — every phase advances the finish line a little closer. If none is set, the project's intent (top of PLAN.md) plays that role.
 
-*Note: the `/endurance` slash command + SessionStart pin are M5 affordances. Until M5 ships, the user can manually write the endurance goal at the top of PLAN.md and you reference it from there.*
+Set the goal with `/endurance <goal>`; inspect or clear via `/endurance` (no args) or `/endurance --clear`.
 
 ## What you should NOT do
 

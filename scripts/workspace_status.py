@@ -34,7 +34,7 @@ def err(msg, exit_code=1):
 
 
 def count_files(p: Path, pattern: str = "*"):
-    if not p.exists():
+    if not p.is_dir():
         return 0
     return sum(1 for _ in p.rglob(pattern) if _.is_file())
 

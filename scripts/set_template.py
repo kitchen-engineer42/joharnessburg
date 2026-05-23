@@ -19,13 +19,32 @@ Exit codes:
 
 import argparse
 import json
+import os
 import sys
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
 
-TEMPLATES_ROOT = Path.home() / ".claude" / "plugins" / "joharnessburg-templates"
+def resolve_templates_root(override: str = None) -> Path:
+    """Locate the templates install dir, with override + env-var + default fallback.
+
+    Resolution order:
+    1. Explicit --templates-root CLI arg (passed as `override`).
+    2. JOHN_TEMPLATES_ROOT env var.
+    3. Default: ~/.claude/plugins/joharnessburg-templates/
+    """
+    if override:
+        return Path(override).expanduser().resolve()
+    env_val = os.environ.get("JOHN_TEMPLATES_ROOT")
+    if env_val:
+        return Path(env_val).expanduser().resolve()
+    return Path.home() / ".claude" / "plugins" / "joharnessburg-templates"
+
+
+# Module-level constant kept for backward-compat with any callers that imported it;
+# new code should call resolve_templates_root() directly.
+TEMPLATES_ROOT = resolve_templates_root()
 
 
 def emit(payload, success=True, exit_code=0):
@@ -40,11 +59,12 @@ def err(msg, exit_code=1):
     emit({"error": msg}, success=False, exit_code=exit_code)
 
 
-def list_installed_templates():
-    """Return a list of template names found under TEMPLATES_ROOT."""
-    if not TEMPLATES_ROOT.exists():
+def list_installed_templates(templates_root: Path = None):
+    """Return a list of template names found under templates_root (or the resolved default)."""
+    root = templates_root or resolve_templates_root()
+    if not root.exists():
         return []
-    return sorted([d.name for d in TEMPLATES_ROOT.iterdir() if d.is_dir()])
+    return sorted([d.name for d in root.iterdir() if d.is_dir()])
 
 
 def main():
@@ -61,20 +81,36 @@ def main():
         action="store_true",
         help="Clear the active template (set to null).",
     )
+    parser.add_argument(
+        "--templates-root",
+        default=None,
+        help="Override the templates install dir (default: $JOHN_TEMPLATES_ROOT or ~/.claude/plugins/joharnessburg-templates/).",
+    )
+    parser.add_argument(
+        "--no-apply",
+        action="store_true",
+        help="Set active_template in workspace.json but skip running the template's apply.sh. Use for debug/dev when you want to inspect the template before merging.",
+    )
+    parser.add_argument(
+        "--reset-all",
+        action="store_true",
+        help="When applying a template (default), pass --reset-all to apply.sh so any prior merged template is wiped first. Required for switching templates.",
+    )
     args = parser.parse_args()
 
     if args.name and args.clear:
         err("Cannot pass both <name> and --clear.", exit_code=1)
         return
 
-    installed = list_installed_templates()
+    templates_root = resolve_templates_root(args.templates_root)
+    installed = list_installed_templates(templates_root)
 
     # List mode
     if not args.name and not args.clear:
         emit(
             {
                 "action": "list",
-                "templates_root": str(TEMPLATES_ROOT),
+                "templates_root": str(templates_root),
                 "installed": installed,
                 "count": len(installed),
             }
@@ -107,7 +143,7 @@ def main():
             err(
                 f"Template '{args.name}' is not installed. "
                 f"Installed: {installed if installed else '(none)'}. "
-                f"Expected location: {TEMPLATES_ROOT / args.name}",
+                f"Expected location: {templates_root / args.name}",
                 exit_code=1,
             )
             return
@@ -119,14 +155,86 @@ def main():
 
     workspace_json.write_text(json.dumps(state, indent=2) + "\n")
 
+    # On --clear: also run reset_john.py to delete any merged dirs.
+    # On --set (default): run the template's apply.sh to build the merged plugin + print launch line.
+    apply_result = None
+    if args.clear:
+        if not args.no_apply:
+            apply_result = _run_reset(plugin_root=_resolve_plugin_root())
+    else:
+        if not args.no_apply:
+            apply_result = _run_apply(
+                template_root=templates_root / new_template,
+                reset_all=args.reset_all,
+            )
+
     emit(
         {
             "action": "clear" if args.clear else "set",
             "previous_template": previous,
             "active_template": new_template,
             "installed": installed,
+            "apply_result": apply_result,
         }
     )
+
+
+def _resolve_plugin_root() -> Path:
+    """The joharnessburg install dir, for invoking sibling scripts.
+
+    Tries CLAUDE_PLUGIN_ROOT (set by Claude Code), then falls back to walking up
+    from this script's location (works when set_template.py is in the plugin's
+    scripts/ dir).
+    """
+    env = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    if env:
+        return Path(env)
+    # set_template.py lives at <plugin>/scripts/set_template.py
+    return Path(__file__).resolve().parent.parent
+
+
+def _run_apply(template_root: Path, reset_all: bool) -> dict:
+    """Run apply_template.py for the given template. Returns its parsed JSON output."""
+    import subprocess
+    plugin_root = _resolve_plugin_root()
+    apply_script = plugin_root / "scripts" / "apply_template.py"
+    if not apply_script.is_file():
+        return {"error": f"apply_template.py not found at {apply_script}; skipping apply."}
+    cmd = ["python3", str(apply_script), "--template-root", str(template_root)]
+    if reset_all:
+        cmd.append("--reset-all")
+    cmd.append("--force")  # set_template invokes; rebuild for fresh state
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    except subprocess.TimeoutExpired:
+        return {"error": "apply_template.py timed out after 300s"}
+    if result.returncode != 0:
+        return {"error": f"apply_template.py failed (rc={result.returncode}): {result.stderr.strip()}"}
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {"error": "apply_template.py output was not valid JSON", "stdout": result.stdout}
+
+
+def _run_reset(plugin_root: Path) -> dict:
+    """Run reset_john.py --yes. Returns its parsed JSON output."""
+    import subprocess
+    reset_script = plugin_root / "scripts" / "reset_john.py"
+    if not reset_script.is_file():
+        return {"error": f"reset_john.py not found at {reset_script}; skipping reset."}
+    try:
+        result = subprocess.run(
+            ["python3", str(reset_script), "--yes"],
+            capture_output=True, text=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return {"error": "reset_john.py timed out after 60s"}
+    if result.returncode != 0:
+        return {"error": f"reset_john.py failed (rc={result.returncode}): {result.stderr.strip()}"}
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {"error": "reset_john.py output was not valid JSON", "stdout": result.stdout}
 
 
 if __name__ == "__main__":

@@ -41,27 +41,64 @@ def err(msg, exit_code=1):
 
 
 def load_events(phase_dir: Path):
-    """Yield (event, source_path) for every JSON file under phase_dir. Skips malformed files with a warning."""
+    """Yield (event, source_path) for every JSON file under phase_dir. Quarantines malformed files.
+
+    Skips files inside `_quarantine/` subdirs (idempotent re-runs).
+
+    On JSONDecodeError: moves the file to `phase_dir/_quarantine/<orig-relpath>` and
+    writes a `.parse_error.txt` sibling. Yields ('__quarantined__', src) sentinel so
+    callers can count quarantined events without unpacking them.
+    """
+    quarantine_dir = phase_dir / "_quarantine"
     for evt_file in phase_dir.rglob("*.json"):
         if not evt_file.is_file():
             continue
+        # Skip files already in _quarantine/ to keep re-runs idempotent
+        try:
+            evt_file.relative_to(quarantine_dir)
+            continue
+        except ValueError:
+            pass
+
         try:
             data = json.loads(evt_file.read_text())
         except json.JSONDecodeError as exc:
-            sys.stderr.write(
-                f"WARN: skipping malformed event file {evt_file}: {exc}\n"
-            )
+            # Quarantine: preserve relative path under phase_dir so the user can trace
+            # where the bad event came from.
+            rel = evt_file.relative_to(phase_dir)
+            dest = quarantine_dir / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                evt_file.rename(dest)
+                (dest.parent / f"{dest.name}.parse_error.txt").write_text(
+                    f"JSONDecodeError at {datetime.now(timezone.utc).isoformat()}:\n{exc}\n"
+                )
+                sys.stderr.write(
+                    f"WARN: quarantined malformed event {evt_file} -> {dest}\n"
+                )
+            except OSError as move_exc:
+                # If rename fails (e.g., permission), at least log it
+                sys.stderr.write(
+                    f"WARN: could not quarantine {evt_file}: {move_exc} (original parse error: {exc})\n"
+                )
+            yield "__quarantined__", evt_file
             continue
         yield data, evt_file
 
 
 def reduce_phase(phase_dir: Path, project_root: Path):
-    """Read all events under phase_dir, sort deterministically, return canonical state dict."""
+    """Read all events under phase_dir, sort deterministically, return canonical state dict.
+
+    Returns (state, events_seen, events_quarantined).
+    """
     events = []
-    malformed = 0
+    quarantined = 0
     seen = 0
     for data, src in load_events(phase_dir):
         seen += 1
+        if data == "__quarantined__":
+            quarantined += 1
+            continue
         if isinstance(data, dict):
             # Annotate with relative source path for traceability
             data = dict(data)  # avoid mutating the on-disk content if re-read
@@ -75,10 +112,10 @@ def reduce_phase(phase_dir: Path, project_root: Path):
 
     # Deterministic sort. Primary: timestamp (lexicographic ISO 8601 sorts correctly).
     # Secondary: _source_file (stable tiebreaker for identical timestamps + clock skew).
+    # Wrapping above guarantees every entry is a dict, so no isinstance guard needed here.
     def sort_key(e):
-        ts = e.get("timestamp", "") if isinstance(e, dict) else ""
-        src = e.get("_source_file", "") if isinstance(e, dict) else ""
-        return (ts, src)
+        assert isinstance(e, dict), "load_events / reduce_phase wrapping invariant violated"
+        return (e.get("timestamp", ""), e.get("_source_file", ""))
 
     events.sort(key=sort_key)
 
@@ -86,9 +123,10 @@ def reduce_phase(phase_dir: Path, project_root: Path):
         "phase": phase_dir.name,
         "reduced_at": datetime.now(timezone.utc).isoformat(),
         "event_count": len(events),
+        "events_quarantined": quarantined,
         "events": events,
     }
-    return state, seen, malformed
+    return state, seen, quarantined
 
 
 def main():
@@ -126,7 +164,7 @@ def main():
         )
         return
 
-    state, seen, _ = reduce_phase(phase_dir, cwd)
+    state, seen, quarantined = reduce_phase(phase_dir, cwd)
 
     checkpoint_dir = john_dir / "checkpoints" / args.phase
     state_file = checkpoint_dir / "state.json"
@@ -135,11 +173,19 @@ def main():
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
         state_file.write_text(json.dumps(state, indent=2) + "\n")
 
+    if quarantined:
+        sys.stderr.write(
+            f"NOTE: {quarantined} event file(s) quarantined under "
+            f"{phase_dir / '_quarantine'}/ — inspect *.parse_error.txt for details.\n"
+        )
+
     emit(
         {
             "phase": args.phase,
             "events_seen": seen,
             "events_folded": state["event_count"],
+            "events_quarantined": quarantined,
+            "quarantine_dir": str((phase_dir / "_quarantine").relative_to(cwd)) if quarantined else None,
             "state_file": str(state_file.relative_to(cwd)) if not args.dry_run else None,
             "dry_run": args.dry_run,
         }

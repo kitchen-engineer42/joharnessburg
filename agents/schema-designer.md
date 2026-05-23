@@ -30,6 +30,10 @@ A schema proposal in the format the project's `schema-design` skill expects. Typ
 
 You may use up to 3 internal turns to refine — read sample chunks, draft, mentally apply the draft to other chunks, revise. After 3 turns, return what you have plus the open questions. Don't loop forever; the user is the tiebreaker.
 
+## JSON discipline
+
+When emitting structured output (the schema proposal often gets written as JSON or YAML for downstream consumption), apply the same discipline as other agents: prefer full-width `「...」` for inner quotes in Chinese content, prefer `json.dumps()`-style escaping for ASCII content. Don't hand-format JSON with unescaped inner `"` — it makes the file unparseable and forces downstream cleanup.
+
 ## What you do NOT do
 
 - Don't extract entries. That's [[knowledge-extractor]]'s job in the next phase.

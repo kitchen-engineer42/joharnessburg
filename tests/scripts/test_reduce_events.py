@@ -97,7 +97,7 @@ class TestReduceEvents(unittest.TestCase):
             self.assertEqual(first_state["event_count"], second_state["event_count"])
             self.assertEqual(first_state["events"], second_state["events"])
 
-    def test_reduce_skips_malformed_events(self):
+    def test_reduce_quarantines_malformed_events(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
             rc, _, _ = run_script("init_workspace.py", cwd=tdp)
@@ -113,7 +113,26 @@ class TestReduceEvents(unittest.TestCase):
             rc, out, err = run_script("reduce_events.py", "extract", cwd=tdp)
             self.assertEqual(rc, 0)
             self.assertEqual(out["events_folded"], 1)
-            self.assertIn("WARN", err)
+            self.assertEqual(out["events_quarantined"], 1)
+            self.assertIn("quarantined", err.lower())
+
+            # The malformed file moved into _quarantine/, not just skipped
+            self.assertFalse((phase_dir / "bad.json").exists())
+            quarantine_path = phase_dir / "_quarantine" / "bad.json"
+            self.assertTrue(quarantine_path.exists())
+            self.assertEqual(
+                quarantine_path.read_text(),
+                "not valid json {{",
+            )
+            err_text_path = phase_dir / "_quarantine" / "bad.json.parse_error.txt"
+            self.assertTrue(err_text_path.is_file())
+            self.assertIn("JSONDecodeError", err_text_path.read_text())
+
+            # Re-running is idempotent: already-quarantined files are skipped, not re-quarantined
+            rc, out2, _ = run_script("reduce_events.py", "extract", cwd=tdp)
+            self.assertEqual(rc, 0)
+            self.assertEqual(out2["events_folded"], 1)
+            self.assertEqual(out2["events_quarantined"], 0)
 
     def test_reduce_dry_run_does_not_write_checkpoint(self):
         with tempfile.TemporaryDirectory() as td:

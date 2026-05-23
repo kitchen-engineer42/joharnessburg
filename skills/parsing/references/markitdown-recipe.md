@@ -14,7 +14,7 @@ Microsoft's MarkItDown is great for office formats it was designed for, mediocre
 
 - **PDFs**: MarkItDown will accept them but its output is much weaker than ppx. ALWAYS use `ppx_parse.py` for PDFs.
 - **Images with text** (PNG, JPG): MarkItDown has OCR but it's basic. Better to convert image → PDF first, then ppx.
-- **EPUB**: weak; jyppx has dedicated EPUB handling that should be preferred when available.
+- **EPUB**: weak; convert to PDF first and route to the ppx client (ppx handles EPUB-derived PDFs much better than markitdown's native EPUB extraction).
 - **Audio/video**: out of scope for John v1. Templates for transcription-driven projects will add their own scripts.
 
 ## Invocation
