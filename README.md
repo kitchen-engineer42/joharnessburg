@@ -29,11 +29,78 @@ Both bundled examples are **functional demonstrators**, not production-ready. Th
 
 ## Local clients (workspace-level, outside the plugin)
 
-The LLM + ppx clients live OUTSIDE this plugin at `/Users/mac/Desktop/john/local_clients/{llm,ppx}/`. They're standalone FastAPI servers. The team is expected to install + launch them locally; the plugin's parsing skill + workerllm-runtime skill teach Claude how to call them. See:
+The LLM + ppx clients live OUTSIDE this plugin in your John workspace at `local_clients/{llm,ppx}/`. They're standalone FastAPI servers — the team installs + launches them locally; the plugin's `parsing` + `workerllm-runtime` skills teach Claude how to call them via env-var-configured URLs (`$JOHN_LLM_CLIENT_URL`, `$JOHN_PPX_CLIENT_URL`).
 
-- `local_clients/llm/README.md` — install + launch the LLM proxy
-- `local_clients/ppx/README.md` — install + launch the ppx server
-- Workspace `/skills/local-clients-builder/` — methodology for building your own clients (different providers, on-prem, etc.)
+When the tech team ships the production servers, swap those env vars; nothing in John changes.
+
+### One-time setup (per machine)
+
+Assumes you have the John workspace (which contains `local_clients/`, `setup_john.sh`, etc.) and `uv` installed (https://docs.astral.sh/uv/).
+
+```sh
+# 1. Clone the ppx engine somewhere outside the workspace
+git clone https://github.com/kitchen-engineer42/ppx.git ~/code/ppx
+
+# 2. Run the workspace setup script — creates venvs + installs both clients
+cd /path/to/john-workspace
+./setup_john.sh
+# First run will create .env from .env.example and prompt you to fill in keys.
+# Edit .env to add SILICONFLOW_API_KEY + DEEPSEEK_API_KEY, then re-run setup_john.sh.
+
+# 3. Install the ppx engine into the ppx client's venv
+cd /path/to/john-workspace/local_clients/ppx
+uv pip install -e ~/code/ppx
+
+# 4. Verify
+cd /path/to/john-workspace
+./setup_john.sh
+# Should report: "memect-ppx is installed in the ppx client's venv."
+```
+
+### Per-session launch
+
+```sh
+cd /path/to/john-workspace
+./start_john.sh
+# Reports both clients' liveness; prints the env vars to export.
+
+# Then in your Claude Code shell (or persist in your .zshrc / .bashrc):
+export JOHN_LLM_CLIENT_URL=http://localhost:8500
+export JOHN_PPX_CLIENT_URL=http://localhost:8501
+
+# Launch Claude Code in your project:
+cd /path/to/your-project
+claude
+```
+
+To stop:
+
+```sh
+cd /path/to/john-workspace
+./stop_john.sh
+```
+
+### Smoke test (verify the chain works end-to-end)
+
+```sh
+# LLM client health + provider inventory
+curl -s http://localhost:8500/healthz | jq
+
+# Actual LLM call (should return "OK" or similar)
+curl -s http://localhost:8500/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"deepseek-v4-flash","messages":[{"role":"user","content":"reply with just OK"}]}' | jq
+
+# ppx client health (should say "ppx: available")
+curl -s http://localhost:8501/healthz | jq
+```
+
+### Reference docs
+
+- `local_clients/llm/README.md` — LLM client install + API contract
+- `local_clients/ppx/README.md` — ppx client install + API contract
+- Workspace `/skills/local-clients-builder/` — methodology for authoring clients against different providers or on-prem infra (parallel to skill-creator)
+- `joharnessburg/skills/workerllm-runtime/SKILL.md` — how the plugin's skills teach Claude to call these clients
 
 ## Prerequisites
 
