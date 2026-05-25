@@ -4,33 +4,6 @@
 
 Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in the middle), or "jo-hannesburg" if you prefer the city pun. Either's fine.
 
-## Status
-
-**v0.1.10 — Codex CLI adapter (additive packaging layer at workspace root).** Codex (GPT-5.5) finished its parallel work on a Codex-CLI-adapted version of John. The adapter is an **additive packaging layer at the workspace root** — manifest at `.codex-plugin/plugin.json`, slash commands at `commands/`, a thin Python wrapper at `scripts/john_codex.py`, and a Codex `hooks.json`. **It does not modify the Claude plugin** (`joharnessburg/`); skills are shared via `"skills": "./joharnessburg/skills/"` in the Codex manifest. `john_codex.py` delegates every command to the same `joharnessburg/scripts/*.py` Claude already calls, so behavior stays in shared scripts + disk state rather than runtime-specific prompts. Parity today: skills shared live, commands additive, scripts delegated, PostToolUse hook wired; SessionStart + PreCompact hooks deferred until Codex event-contract is confirmed; agents remain Claude-owned. **85 plugin tests + 14 FastAPI server tests = 99 green.** Design notes: [`docs/codex_wrap_notes.md`](../docs/codex_wrap_notes.md).
-
-**v0.1.9 — Codex code-review fix pass + audit-driven hardening.** 19 fixes across 5 blocks from Codex (GPT-5.5)'s code review of v0.1.8 ([`docs/codebase_review_codex_2026-05-23.md`](../docs/codebase_review_codex_2026-05-23.md), 13 findings all real) + audit-subagent synthesis from the v0.1.8 end-to-end test (017-test-001):
-
-- **Tier 1 correctness**: `init_workspace.py` now consumes `templates-active/plan_md_template.md` + appends `claude_addon.md` (the v0.1.7 contract was broken); `set_template.py` is atomic (apply BEFORE workspace.json write; failure surfaces `active_template_pending` + `active_template_error` forensics under `session_metadata`); template `scripts/`/`commands/`/`agents/` enforced additive-only (collisions with core skipped + warned + tracked in `.applied-metadata.json`); `ppx_parse.py` catches `HTTPError` before `URLError` (subclass shadowing — 422 responses now surface correctly instead of being reported as "couldn't reach server"); `reduce_events.py --dry-run` is now read-only (no more silent event quarantine in dry-run mode).
-- **Tier 2 defensive + audit gaps**: `copy_input` recursive hidden-file filter (nested `.git/` no longer leaks into `.john/input/`); `start_john.sh`/`stop_john.sh` PID identity verification via `ps -p $pid -o command=` (defends against macOS PID reuse killing unrelated processes); ppx server Pydantic `Literal` validation on `backend`/`ocr`/`table` (invalid input → 422, not 500); `knowledge-extractor` + `schema-designer` agent prompts rewritten with literal JSON code blocks + closed-set enums for `extractor_confidence`/severity (eliminates the 5-variation field-name drift observed across 10 subagents in v0.1.8's asset_mgmt run); `reduce_events.py` chunk_echo completeness check (chunks missing `chunk_echo` or `chunk_complete` flagged in `state.json`'s new `incomplete_chunks` field).
-- **Doc + cleanup**: dropped `skills/spec-template-manager/` (described the legacy spec.md contract John explicitly replaces; one-line rule preserved in `skills/using-john/`); PLAN.md §13 rewritten for v0.1.7+ diff-script + v0.1.8+ per-session-isolation architecture; `commands/joharnessburg-template.md` updated for v0.1.8+ multi-applied coexistence; `local_clients/ppx/README.md` Security Boundary section; `git rm --cached` two tracked `.pyc` files; new `scripts/parse_govcn_html.py` (stdlib-only Chinese gov-regulation HTML parser) + reference doc (M6 + v0.1.8 verification runs both reinvented this ad-hoc — now centralized; v0.1.7 D6 reversed).
-- **FastAPI server tests**: 7 tests each for the LLM and ppx local clients using `fastapi.testclient.TestClient`, covering healthz, model routing, request validation, provider routing, and error paths.
-
-**85 plugin tests + 14 FastAPI server tests = 99 green.**
-
-**v0.1.8 — Multi-template per-session isolation patch + v0.1.7 architecture.** v0.1.8 relaxes `apply_template.py`'s cross-template refusal: applied template dirs (under `~/.claude/plugins/joharnessburg-applied/`) now coexist freely, so parallel Claude Code sessions can run with different templates side-by-side without cross-session leakage. `--reset-all` is still available for explicit clean-slate scenarios. **65 unit tests green.**
-
-**v0.1.7 — Local-client architecture + template diff-scripts + audit-driven cleanup.** Major architecture refactor on top of v0.1.6:
-
-- **External local-client servers** (workspace-level, outside the plugin): FastAPI HTTP servers at `/Users/mac/Desktop/john/local_clients/{llm,ppx}/` wrap SiliconFlow + DeepSeek (OpenAI-compatible) and `memect-ppx`. John talks to them via env vars (`$JOHN_LLM_CLIENT_URL`, `$JOHN_PPX_CLIENT_URL`). When the tech team deploys production servers, swap the URLs — no code changes in John.
-- **Template diff-script architecture**: templates are now diffs applied via `apply_template.py` (one-click), not session-time overlays. Result: a merged plugin dir at `~/.claude/plugins/joharnessburg-applied/<name>/` that the user launches with `claude --plugin-dir <path>`. After merge, template content IS John — no second-class layer.
-- **New skill** `workerllm-runtime/` teaches produced apps how to call the LLM client.
-- **JSON discipline** added to all 3 agent prompts (full-width quotes / `json.dumps()` to avoid the ~10% defect rate observed in M6).
-- **Reducer quarantine**: `reduce_events.py` now moves malformed events to `_quarantine/` rather than silently skipping; counts surfaced.
-- **ppx ↔ jyppx terminology** sweep: 23 mentions across 13 files reconciled. `ppx_parse.py` now writes `"parser": "ppx"` (was `"jyppx"` — soft schema break in v0.1.7).
-- **Bug fixes**: TOCTOU race in PreCompact hook, silent-fallback in markitdown_parse.py, hardcoded path in set_template.py, --force docstring in init_workspace.py, is_dir guard in workspace_status.py.
-
-**65 unit tests green at v0.1.7 release** (53 v0.1.6 + 6 apply_template + 5 reset_john + 1 quarantine test). Plugin loads with 8 core meta-skills + 6 2skills phase skills + 3 2app phase skills + 9 platform-integration skill stubs + new `workerllm-runtime` skill (27 total) + 7 toolkit scripts + 2 new template-system scripts (apply_template, reset_john) + 5 slash commands + 3 hooks + 3 agents + 2 example templates with one-click `apply.sh`. M7 (handoff docs) still ahead.
-
 ## Templates (v0.1.7+ diff-script architecture)
 
 Templates are **diffs to original John**, applied via a one-click script. `/joharnessburg-template <name>` does the whole flow: set active_template in workspace.json, run apply.sh, print the launch command.
