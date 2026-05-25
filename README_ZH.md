@@ -6,33 +6,6 @@
 
 > English README: [`README.md`](README.md)
 
-## 当前状态
-
-**v0.1.10 —— Codex CLI 适配层（workspace 根目录的增量打包层）。** Codex（GPT-5.5）完成了并行开发的 Codex-CLI-适配版 John。适配层是 **workspace 根目录的增量打包层**：清单位于 `.codex-plugin/plugin.json`，slash command 在 `commands/`，Python 薄包装在 `scripts/john_codex.py`，以及一份 Codex `hooks.json`。**它不修改 Claude 插件**（`joharnessburg/`）；skills 通过 Codex 清单中的 `"skills": "./joharnessburg/skills/"` 共享。`john_codex.py` 把每个命令都委托给 Claude 同样调用的 `joharnessburg/scripts/*.py`，所以行为保留在共享脚本 + 磁盘状态中，而不是在运行时专属的 prompt 文档里。目前的对接面：skills 共享、commands 增量、scripts 委托、PostToolUse 钩子已接入；SessionStart + PreCompact 钩子待 Codex 事件契约确认后再接入；agent prompt 暂留为 Claude 专属。**85 个插件测试 + 14 个 FastAPI 服务器测试 = 99 个测试全绿。** 设计说明：[`docs/codex_wrap_notes.md`](../docs/codex_wrap_notes.md)。
-
-**v0.1.9 —— Codex 代码评审修复 + 审计驱动加固。** 基于 Codex（GPT-5.5）对 v0.1.8 的代码评审（`docs/codebase_review_codex_2026-05-23.md`，13 项发现全部为真）以及 v0.1.8 端到端测试（017-test-001）的审计子代理综合结果，本次共修复 19 项问题，分 5 个实施块完成（约 9-12 小时）：
-
-- **Tier 1 正确性 bug**：`init_workspace.py` 现在消费 `templates-active/plan_md_template.md` 和 `claude_addon.md`（v0.1.7 写入但被忽略的契约违规已修复）；`set_template.py` 原子化（先 apply 后写 workspace.json；失败时记录 `active_template_pending` + `active_template_error` 取证字段）；模板 `scripts/`/`commands/`/`agents/` 现强制为 additive-only（与核心文件冲突时跳过 + 警告 + 在 `.applied-metadata.json` 中记录）；`ppx_parse.py` 修复 `HTTPError` 被 `URLError` 屏蔽的 bug（现在 422 响应能正确暴露而不是被报告为"无法连接服务器"）；`reduce_events.py --dry-run` 现为只读（不再悄悄移动格式错误的事件）。
-- **Tier 2 防御性 + 审计缺口**：`copy_input` 递归过滤隐藏文件（嵌套 `.git/` 不再泄漏进 `.john/input/`）；`start_john.sh` / `stop_john.sh` 通过 `ps -p $pid -o command=` 验证 PID 身份（防御 macOS PID 复用）；ppx 服务器对 `backend`/`ocr`/`table` 用 Pydantic `Literal` 校验（无效输入返回 422 而非 500）；`knowledge-extractor` 和 `schema-designer` agent prompt 改为字面量 JSON 模板 + 封闭枚举值（消除 v0.1.8 asset_mgmt 10 子代理并行中观察到的 5 种字段名漂移）；`reduce_events.py` 新增 chunk_echo 完整性校验（缺失 chunk_echo 或 chunk_complete 的 chunk 计入 `state.json` 的 `incomplete_chunks`）。
-- **文档清理**：删除 `skills/spec-template-manager/`（描述的是 John 显式取代的 spec.md 遗留契约；一行规则迁移到 `using-john`）；重写 PLAN.md §13 反映 v0.1.7+ diff-script 架构 + v0.1.8 按会话隔离；更新 `commands/joharnessburg-template.md` 反映 v0.1.8 多 applied 共存；`local_clients/ppx/README.md` 新增"安全边界"章节；`git rm --cached` 两个被跟踪的 `.pyc` 文件；新增 `scripts/parse_govcn_html.py`（基于标准库的中国政府法规 HTML 备用解析器）+ 参考文档 `skills/parsing/references/gov-cn-html.md`（M6 和 v0.1.8 验证运行都临时重新发明过此解析器——现在统一了，v0.1.7 D6 决定逆转）。
-- **FastAPI 服务器测试**：`local_clients/{llm,ppx}/` 各新增 7 个测试（共 14 个），使用 `fastapi.testclient.TestClient`，测试覆盖 healthz、模型路由、Literal 校验、provider 路由 + 错误路径。
-
-**85 个插件单元测试 + 14 个 FastAPI 服务器测试 = 99 个测试全绿。**
-
-**v0.1.8 —— 多模板按会话隔离补丁 + v0.1.7 架构。** v0.1.8 放宽了 `apply_template.py` 的跨模板拒绝逻辑：现在多个已应用的模板目录（`~/.claude/plugins/joharnessburg-applied/` 下）可以自由共存，并行的 Claude Code 会话可以分别使用不同的模板、互不干扰。`--reset-all` 仍可用于显式清盘场景。**65 个单元测试全绿。**
-
-**v0.1.7 —— 本地客户端架构 + 模板 diff-script + 审计驱动的清理。** v0.1.6 之上的一次重大架构重构：
-
-- **外部本地客户端服务器**（位于 workspace 一级、插件外部）：`/Users/mac/Desktop/john/local_clients/{llm,ppx}/` 下的 FastAPI HTTP 服务器，分别封装 SiliconFlow + DeepSeek（OpenAI 兼容接口）和 `memect-ppx`。John 通过环境变量（`$JOHN_LLM_CLIENT_URL`、`$JOHN_PPX_CLIENT_URL`）调用它们。等技术团队部署生产服务器时，换 URL 即可——John 内部一行代码都不用改。
-- **模板 diff-script 架构**：模板现在是通过 `apply_template.py`（一键执行）应用的 diff，不再是会话期间的覆盖层。结果：在 `~/.claude/plugins/joharnessburg-applied/<name>/` 生成一个合并后的插件目录，用户用 `claude --plugin-dir <path>` 启动。合并之后，模板内容就是 John 本身——没有二等公民层。
-- **新增 skill** `workerllm-runtime/` 教产出的应用如何调用 LLM 客户端。
-- **JSON 规范**已添加到全部 3 个 agent prompt 中（推荐使用全角引号 / `json.dumps()`，避免 M6 阶段观察到的约 10% 缺陷率）。
-- **Reducer 隔离机制**：`reduce_events.py` 现在会把格式错误的事件移到 `_quarantine/` 下而不是悄悄跳过；计数会显式上报。
-- **ppx ↔ jyppx 术语清理**：13 个文件中的 23 处提及全部对齐。`ppx_parse.py` 现在写入 `"parser": "ppx"`（之前是 `"jyppx"`——v0.1.7 的一次软 schema break）。
-- **Bug 修复**：PreCompact hook 的 TOCTOU 竞态、`markitdown_parse.py` 的静默回退、`set_template.py` 中硬编码路径、`init_workspace.py` 中 --force 的 docstring、`workspace_status.py` 的 is_dir 防护。
-
-**64 个单元测试全绿**（53 个来自 v0.1.6 + 6 个 apply_template + 5 个 reset_john 测试）。插件加载内容：8 个核心 meta-skill + 6 个 2skills 阶段 skill + 3 个 2app 阶段 skill + 9 个 platform 集成 skill 桩 + 新的 `workerllm-runtime` skill（共 27 个） + 7 个工具脚本 + 2 个新的模板系统脚本（apply_template、reset_john） + 5 个 slash command + 3 个 hook + 3 个 agent + 2 个带一键 `apply.sh` 的示例模板。M7（交接文档）还在路上。
-
 ## 模板（v0.1.7+ diff-script 架构）
 
 模板是 **原始 John 的 diff**，通过一键脚本应用。`/joharnessburg-template <name>` 一条命令完成全流程：在 workspace.json 中设置 active_template、运行 apply.sh、打印启动命令。
