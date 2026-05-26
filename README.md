@@ -153,7 +153,7 @@ These aren't shipped in the plugin repo (they describe **building** John, not th
 
 ## License
 
-Copyright (C) 2026 Memect.
+Copyright (C) 2026 kitchen-engineer42.
 
 John (joharnessburg) is free software: you can redistribute it and/or modify it under the terms of the **GNU Affero General Public License, version 3 or (at your option) any later version**, as published by the Free Software Foundation. See [`LICENSE`](LICENSE) for the full text.
 

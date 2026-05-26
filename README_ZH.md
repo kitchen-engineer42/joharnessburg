@@ -156,7 +156,7 @@ README_ZH.md          # 中文版
 
 ## 许可
 
-版权所有 (C) 2026 Memect。
+版权所有 (C) 2026 kitchen-engineer42。
 
 John（joharnessburg）是自由软件：你可以在 **GNU Affero 通用公共许可证第 3 版或（由你选择）任何更高版本**（由自由软件基金会发布）的条款下重新分发和/或修改本软件。完整许可证文本见 [`LICENSE`](LICENSE)。
 
