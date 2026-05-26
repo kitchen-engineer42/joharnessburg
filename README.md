@@ -153,4 +153,12 @@ These aren't shipped in the plugin repo (they describe **building** John, not th
 
 ## License
 
-Internal use only for now. No external distribution planned.
+Copyright (C) 2026 Memect.
+
+John (joharnessburg) is free software: you can redistribute it and/or modify it under the terms of the **GNU Affero General Public License, version 3 or (at your option) any later version**, as published by the Free Software Foundation. See [`LICENSE`](LICENSE) for the full text.
+
+This program is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+The AGPL's network-use clause (§13) applies: if you run a modified version of John as a service over a network, you must make the modified source available to its users. This is the explicit choice — John is designed for knowledge-engineering pipelines that often run as internal services, and we want derivatives to stay open.
+
+If the AGPL doesn't fit your use case, contact the copyright holder about a commercial license.
