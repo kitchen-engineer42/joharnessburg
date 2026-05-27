@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "joharnessburg",
-      "source": "./",
+      "source": ".",
       "description": "John — knowledge engineering + app building in one long-running Claude Code session."
     }
   ]

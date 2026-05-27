@@ -4,34 +4,101 @@
 
 Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in the middle), or "jo-hannesburg" if you prefer the city pun. Either's fine.
 
-## Templates (v0.1.7+ diff-script architecture)
+> 中文版: [`README_ZH.md`](README_ZH.md)
 
-Templates are **diffs to original John**, applied via a one-click script. `/joharnessburg-template <name>` does the whole flow: set active_template in workspace.json, run apply.sh, print the launch command.
+## Install
 
-- **Authoring guide**: [`templates/README.md`](templates/README.md) — directory anatomy, apply mechanics, switching/reset.
-- **Bundled examples**: [`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/) (lighter — 1 override + 1 add) and [`templates/examples/doc-verification/`](templates/examples/doc-verification/) (heavier, KC-style — 2 overrides + 2 adds). Both have `apply.sh` symlinks.
+```sh
+claude plugin marketplace add kitchen-engineer42/joharnessburg
+claude plugin install joharnessburg@joharnessburg
 
-Both bundled examples are **functional demonstrators**, not production-ready. The team's production templates ship separately.
+# Verify
+claude plugin list
+# Expect: joharnessburg@joharnessburg listed, status enabled
+```
 
-## Local clients (workspace-level, outside the plugin)
+After install, the `using-john` skill auto-loads when you start a fresh Claude Code session. That's John's orientation entry point — Claude reads it and orients itself to the harness.
 
-The LLM + ppx clients live OUTSIDE this plugin in your John workspace at `local_clients/{llm,ppx}/`. They're standalone FastAPI servers — the team installs + launches them locally; the plugin's `parsing` + `workerllm-runtime` skills teach Claude how to call them via env-var-configured URLs (`$JOHN_LLM_CLIENT_URL`, `$JOHN_PPX_CLIENT_URL`).
+## Quick start
 
-When the tech team ships the production servers, swap those env vars; nothing in John changes.
+Open a fresh Claude Code session in a project directory. John's `using-john` skill should trigger on session-start; if not, ask Claude "what is John, how do I use it here?" — that phrasing triggers it.
+
+The natural flow for a new John project:
+
+1. **Scaffold a workspace** — run `/joharnessburg-init` (or just tell Claude "set up John in this dir"). This creates `PLAN.md`, `CLAUDE.md`, and a `.john/` working directory in your project.
+2. **Apply a template** (optional but recommended for common app families) — `/joharnessburg-template <name>`. See [Templates](#templates) below.
+3. **Drop your inputs** into `.john/input/` (PDFs, regulations, sample documents — whatever the produced app should be built from).
+4. **Tell Claude what kind of app to build**. Claude advances through the phases declared in `PLAN.md` via ralph_loop (the iterative driver), dispatches parallel subagents per phase, and ends with a working app.
+
+Other slash commands available after install:
+
+- `/joharnessburg-status` — current phase + progress
+- `/joharnessburg-archive` — archive a finished workspace
+- `/endurance` — re-enter long-running mode if the session has gone idle
+
+## Upgrade
+
+```sh
+claude plugin marketplace update joharnessburg
+claude plugin update joharnessburg@joharnessburg
+# Restart Claude Code for the new version to take effect.
+```
+
+> Note: `claude plugin install` is a no-op when the plugin is already installed. Use `claude plugin update <plugin>@<marketplace>` for upgrades. Auto-update is OFF by default for third-party marketplaces; enable via the `/plugin` UI → Marketplaces → joharnessburg → Enable auto-update if you want it on.
+
+## Prerequisites
+
+- **Python 3.10+** — the plugin's toolkit scripts use stdlib only; system Python is fine.
+- For **non-PDF document parsing** (`markitdown_parse.py`): `pip install markitdown`.
+- For **PDF parsing**: an external `local_clients/ppx/` FastAPI server wrapping `memect-ppx`. See [Local clients](#local-clients) below.
+- For **workerLLM calls at runtime**: an external `local_clients/llm/` FastAPI server. Also under [Local clients](#local-clients).
+
+Both parser dependencies are optional. The plugin installs and `using-john` loads regardless; parser scripts fail loud with install instructions when invoked without their deps.
+
+## Templates
+
+Templates **specialize John for a family of apps**. A template is a *diff against original John* — applied with one command — that purpose-builds the harness for one kind of pipeline (overriding some skills, adding new ones, shipping a starter `PLAN.md` skeleton).
+
+To apply a template:
+
+```sh
+/joharnessburg-template <name>
+```
+
+This sets the active template in `.john/workspace.json`, runs the template's `apply.sh` to produce a merged plugin at `~/.claude/plugins/joharnessburg-applied/<name>/`, and prints the command to launch a Claude Code session pointed at the customized harness.
+
+**Bundled examples** (functional demonstrators, not production-ready):
+
+- [`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/) — lighter (1 override + 1 addition).
+- [`templates/examples/doc-verification/`](templates/examples/doc-verification/) — heavier, KC-style (2 overrides + 2 additions).
+
+Real production templates ship separately. To author your own template, see [`templates/README.md`](templates/README.md) for the diff-script architecture, directory anatomy, switching/reset flows, and `apply.sh` mechanics.
+
+If you want a guided experience for authoring templates, the companion tool **Hamster** ([github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)) is a skills bundle that helps Claude Code build John templates methodically.
+
+## Local clients
+
+For LLM calls + PDF parsing, John talks to **external FastAPI servers** that you run alongside the plugin. They live OUTSIDE the plugin (workspace-level) so you can swap providers without changing John itself.
+
+The plugin's `parsing` + `workerllm-runtime` skills teach Claude to call them via env-var-configured URLs:
+
+- `$JOHN_LLM_CLIENT_URL` (default `http://localhost:8500`) — workerLLM client (wraps SiliconFlow + DeepSeek today).
+- `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`) — PDF parser client (wraps `memect-ppx`, the `ppx` parser engine at [github.com/kitchen-engineer42/ppx](https://github.com/kitchen-engineer42/ppx)).
+
+When your team ships its own production servers (on-prem or different providers), swap these env vars — nothing inside John changes.
 
 ### One-time setup (per machine)
 
-Assumes you have the John workspace (which contains `local_clients/`, `setup_john.sh`, etc.) and `uv` installed (https://docs.astral.sh/uv/).
+Prerequisite: [`uv`](https://docs.astral.sh/uv/) installed. Get the John workspace bundle (which contains `local_clients/` + `setup_john.sh`) — contact the project owner for access if you don't already have it.
 
 ```sh
-# 1. Clone the ppx engine somewhere outside the workspace
+# 1. Clone the ppx engine outside the workspace
 git clone https://github.com/kitchen-engineer42/ppx.git ~/code/ppx
 
 # 2. Run the workspace setup script — creates venvs + installs both clients
 cd /path/to/john-workspace
 ./setup_john.sh
-# First run will create .env from .env.example and prompt you to fill in keys.
-# Edit .env to add SILICONFLOW_API_KEY + DEEPSEEK_API_KEY, then re-run setup_john.sh.
+# First run will create .env from .env.example; fill in SILICONFLOW_API_KEY + DEEPSEEK_API_KEY.
 
 # 3. Install the ppx engine into the ppx client's venv
 cd /path/to/john-workspace/local_clients/ppx
@@ -50,7 +117,7 @@ cd /path/to/john-workspace
 ./start_john.sh
 # Reports both clients' liveness; prints the env vars to export.
 
-# Then in your Claude Code shell (or persist in your .zshrc / .bashrc):
+# Then in your Claude Code shell (or persist in .zshrc / .bashrc):
 export JOHN_LLM_CLIENT_URL=http://localhost:8500
 export JOHN_PPX_CLIENT_URL=http://localhost:8501
 
@@ -85,42 +152,7 @@ curl -s http://localhost:8501/healthz | jq
 
 - `local_clients/llm/README.md` — LLM client install + API contract
 - `local_clients/ppx/README.md` — ppx client install + API contract
-- Workspace `/skills/local-clients-builder/` — methodology for authoring clients against different providers or on-prem infra (parallel to skill-creator)
-- `joharnessburg/skills/workerllm-runtime/SKILL.md` — how the plugin's skills teach Claude to call these clients
-
-## Prerequisites
-
-- **Python 3.10+** (the toolkit scripts use stdlib only; system Python is fine).
-- For non-PDF document parsing (`markitdown_parse.py`): `pip install markitdown`.
-- For PDF parsing: v0.1.7+ uses an out-of-plugin **ppx-client server** (FastAPI) that wraps `memect-ppx` (the `ppx` parser engine — repo at `github.com/kitchen-engineer42/ppx`). The plugin's `scripts/ppx_parse.py` is a thin HTTP client to that server; install the server from `/Users/mac/Desktop/john/local_clients/ppx/` and launch with `scripts/start.sh`. The ppx engine itself must be installed (`uv pip install -e /path/to/ppx`); jyppx is a separate builder project that uses ppx as a library and is NOT required to drive John.
-
-Both parser dependencies are optional. The plugin installs and `using-john` loads regardless; the parser scripts fail loud with install instructions when invoked without their deps.
-
-## Install + upgrade
-
-First-time install:
-
-```sh
-# Option A — marketplace flow (recommended):
-claude plugin marketplace add kitchen-engineer42/joharnessburg
-claude plugin install joharnessburg@joharnessburg
-
-# Verify
-claude plugin list
-# Expect: joharnessburg@joharnessburg listed, status enabled
-```
-
-Upgrade from an earlier version (v0.1.x → v0.1.7):
-
-```sh
-claude plugin marketplace update joharnessburg
-claude plugin update joharnessburg@joharnessburg
-# Restart Claude Code for the new version to take effect.
-```
-
-> Note: `claude plugin install` is a no-op when the plugin is already installed. Use `claude plugin update <plugin>@<marketplace>` for upgrades. Auto-update is OFF by default for third-party marketplaces; enable via `/plugin` UI → Marketplaces → joharnessburg → Enable auto-update.
-
-In a fresh Claude Code session after install, the `using-john` skill should load. That's the M0 acceptance test.
+- `joharnessburg/skills/workerllm-runtime/SKILL.md` — how the plugin teaches Claude to call these clients
 
 ## What's in this repo
 
@@ -129,27 +161,14 @@ In a fresh Claude Code session after install, the `using-john` skill should load
   plugin.json         # Claude Code plugin manifest
   marketplace.json    # Lets the repo double as a marketplace
 hooks/hooks.json      # Hook declarations (auto-registered on install)
-skills/               # John's meta-skills (layer-2; loaded into John-wrapped Claude Code sessions)
+skills/               # John's meta-skills (loaded into John-wrapped Claude Code sessions)
 commands/             # Slash commands
 scripts/              # Small Python toolkit (ppx wrapper, event reducer, scaffolder, etc.)
 agents/               # Subagent role definitions
-templates/            # Template authoring docs (templates themselves install separately)
+templates/            # Bundled template examples + authoring docs
 README.md             # This file
+README_ZH.md          # 中文版
 ```
-
-## Where the design docs live
-
-The implementation plan, spec history, design comparisons, and dev journal live in the **John workspace** — a separate directory where the plugin is developed:
-
-- `PLAN.md` — live implementation plan (M0 → M7)
-- `docs/initial_spec.md` — spec history + user replies
-- `docs/architecture_and_plan.md` — draft PLAN was promoted from
-- `docs/ralph_in_john_vs_original.md` — how John's ralph-loop differs from snarktank/ralph
-- `docs/john_vs_open_source_harnesses.md` — fresh comparison vs 7 open-source harnesses
-- `CLAUDE.md` — workspace memory
-- `DEVLOG.md` — append-only dev journal
-
-These aren't shipped in the plugin repo (they describe **building** John, not the plugin itself). If you're contributing and need the design rationale, ask the project owner for workspace access.
 
 ## License
 

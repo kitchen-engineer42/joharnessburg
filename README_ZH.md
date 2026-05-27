@@ -6,30 +6,96 @@
 
 > English README: [`README.md`](README.md)
 
-## 模板（v0.1.7+ diff-script 架构）
+## 安装
 
-模板是 **原始 John 的 diff**，通过一键脚本应用。`/joharnessburg-template <name>` 一条命令完成全流程：在 workspace.json 中设置 active_template、运行 apply.sh、打印启动命令。
+```sh
+claude plugin marketplace add kitchen-engineer42/joharnessburg
+claude plugin install joharnessburg@joharnessburg
 
-- **作者指南**：[`templates/README.md`](templates/README.md) —— 目录结构、应用机制、切换/重置流程。
-- **内置示例**：[`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/)（较轻量 —— 1 个 override + 1 个新增）和 [`templates/examples/doc-verification/`](templates/examples/doc-verification/)（较重，KC 风格 —— 2 个 override + 2 个新增）。两者都带 `apply.sh` 软链。
+# 验证
+claude plugin list
+# 期望看到：joharnessburg@joharnessburg 出现在列表里，状态为 enabled
+```
 
-两个内置示例都是**功能演示**，不是生产级模板。团队的生产模板会单独交付。
+安装完成后，新开一个 Claude Code 会话时 `using-john` skill 会自动加载——这是 John 的入口定向 skill，Claude 读到它就开始进入 John 的工作模式。
 
-## 本地客户端（workspace 级别，插件外部）
+## 快速开始
 
-LLM + ppx 客户端在你的 John workspace 中、**插件外部**：`local_clients/{llm,ppx}/`。它们是独立的 FastAPI 服务器——由团队在本地安装 + 启动；插件的 `parsing` + `workerllm-runtime` skill 教 Claude 通过环境变量配置的 URL（`$JOHN_LLM_CLIENT_URL`、`$JOHN_PPX_CLIENT_URL`）来调用它们。
+在项目目录中打开一个新的 Claude Code 会话。`using-john` skill 应该会在会话开始时触发；如果没有，你也可以直接问 Claude "John 是什么？我在这个目录里怎么用？"——这种话术也能触发它。
 
-等技术团队上生产服务器时，把这两个环境变量换成生产 URL 即可；John 内部不需要任何改动。
+新 John 项目的自然流程：
+
+1. **创建 workspace** —— 运行 `/joharnessburg-init`（或者直接告诉 Claude "在这个目录里设置 John"）。这会在你的项目里创建 `PLAN.md`、`CLAUDE.md` 和一个 `.john/` 工作目录。
+2. **应用模板**（可选，但对常见 app 家族很推荐）—— `/joharnessburg-template <name>`。详见下面的 [模板](#模板) 章节。
+3. **把输入材料放进** `.john/input/`（PDF、法规、样本文档——任何 produced app 需要的素材）。
+4. **告诉 Claude 你想构建什么 app**。Claude 会按 `PLAN.md` 里声明的 phase，通过 ralph_loop（迭代驱动器）逐步推进，每个 phase 派发并行的 subagent，最终产出一个可工作的 app。
+
+安装后还有其它 slash command 可用：
+
+- `/joharnessburg-status` —— 当前 phase + 进度
+- `/joharnessburg-archive` —— 归档已完成的 workspace
+- `/endurance` —— 如果会话长时间空闲，重新进入耐久模式
+
+## 升级
+
+```sh
+claude plugin marketplace update joharnessburg
+claude plugin update joharnessburg@joharnessburg
+# 重启 Claude Code 让新版本生效。
+```
+
+> 注意：`claude plugin install` 在插件已安装的情况下是 no-op。升级用 `claude plugin update <plugin>@<marketplace>`。第三方 marketplace 默认关闭自动更新；可以通过 `/plugin` UI → Marketplaces → joharnessburg → Enable auto-update 打开。
+
+## 依赖
+
+- **Python 3.10+** —— 插件的工具脚本只用标准库；系统自带的 Python 就够用。
+- 非 PDF 文档解析（`markitdown_parse.py`）：`pip install markitdown`。
+- PDF 解析：插件外部的 `local_clients/ppx/` FastAPI 服务器，封装 `memect-ppx`。详见下面的 [本地客户端](#本地客户端)。
+- 运行时的 workerLLM 调用：插件外部的 `local_clients/llm/` FastAPI 服务器。也在 [本地客户端](#本地客户端) 里。
+
+两个解析器依赖都是可选的。插件无论如何都能安装，`using-john` skill 也能加载；只在调用解析器脚本时，如果依赖缺失，脚本会大声报错并给出安装命令。
+
+## 模板
+
+模板**让 John 针对一类 app 进行特化**。一个模板是**对原始 John 的 diff**——一条命令应用，purpose-build 整个 harness 来服务某一类流水线（覆盖某些 skills、添加新的、附带一份初始 `PLAN.md` 骨架）。
+
+应用一个模板：
+
+```sh
+/joharnessburg-template <name>
+```
+
+这条命令会在 `.john/workspace.json` 里设置 active_template、运行模板的 `apply.sh` 产出一个合并后的插件到 `~/.claude/plugins/joharnessburg-applied/<name>/`，并打印用来启动定制化 harness 的命令。
+
+**内置示例**（功能演示，不是生产级）：
+
+- [`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/) —— 较轻量（1 个 override + 1 个新增）。
+- [`templates/examples/doc-verification/`](templates/examples/doc-verification/) —— 较重，KC 风格（2 个 override + 2 个新增）。
+
+生产模板单独交付。要自己写模板，看 [`templates/README.md`](templates/README.md)——里面写了 diff-script 架构、目录结构、切换/重置流程、`apply.sh` 机制。
+
+如果你想要一种有引导的模板写作体验，配套工具 **Hamster**（[github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)）是一个 skills 包，能帮 Claude Code 方法论地构建 John 模板。
+
+## 本地客户端
+
+对于 LLM 调用 + PDF 解析，John 通过**外部 FastAPI 服务器**通信——这些服务器跟插件并行运行。它们在**插件外部**（workspace 级别），这样换 provider 不影响 John 本身。
+
+插件的 `parsing` + `workerllm-runtime` skill 教 Claude 通过环境变量配置的 URL 调用它们：
+
+- `$JOHN_LLM_CLIENT_URL`（默认 `http://localhost:8500`）—— workerLLM 客户端（当前封装 SiliconFlow + DeepSeek）。
+- `$JOHN_PPX_CLIENT_URL`（默认 `http://localhost:8501`）—— PDF 解析客户端（封装 `memect-ppx`，即 `ppx` 解析引擎，仓库在 [github.com/kitchen-engineer42/ppx](https://github.com/kitchen-engineer42/ppx)）。
+
+等技术团队上自己的生产服务器（on-prem 或别的 provider），把这两个环境变量换掉就行——John 内部不需要任何改动。
 
 ### 一次性安装（每台机器一次）
 
-前提：你已经有 John workspace（里面包含 `local_clients/`、`setup_john.sh` 等），并且安装了 `uv`（https://docs.astral.sh/uv/）。
+前提：装了 [`uv`](https://docs.astral.sh/uv/)。你需要拿到 John workspace 包（里面包含 `local_clients/` 和 `setup_john.sh`）——如果还没有，联系项目所有者。
 
 ```sh
-# 1. 把 ppx 引擎 clone 到 workspace 之外的某个位置
+# 1. 把 ppx 引擎 clone 到 workspace 外面某个位置
 git clone https://github.com/kitchen-engineer42/ppx.git ~/code/ppx
 
-# 2. 运行 workspace 的安装脚本——它会创建 venv 并安装两个客户端
+# 2. 运行 workspace 的安装脚本——创建 venv 并安装两个客户端
 cd /path/to/john-workspace
 ./setup_john.sh
 # 首次运行会从 .env.example 创建 .env，并提示你填入密钥。
@@ -61,14 +127,14 @@ cd /path/to/your-project
 claude
 ```
 
-停止服务器：
+停止：
 
 ```sh
 cd /path/to/john-workspace
 ./stop_john.sh
 ```
 
-### Smoke test（端到端验证整条链路）
+### 端到端验证
 
 ```sh
 # LLM 客户端健康检查 + 提供商清单
@@ -87,42 +153,7 @@ curl -s http://localhost:8501/healthz | jq
 
 - `local_clients/llm/README.md` —— LLM 客户端的安装 + API 契约
 - `local_clients/ppx/README.md` —— ppx 客户端的安装 + API 契约
-- Workspace 下的 `/skills/local-clients-builder/` —— 针对不同的 provider 或自建（on-prem）基础设施编写客户端的方法论（与 skill-creator 平行）
 - `joharnessburg/skills/workerllm-runtime/SKILL.md` —— 插件中的 skill 如何指导 Claude 调用这些客户端
-
-## 依赖
-
-- **Python 3.10+**（工具脚本只用标准库；系统自带的 Python 就够用）。
-- 非 PDF 文档解析（`markitdown_parse.py`）：`pip install markitdown`。
-- PDF 解析：v0.1.7+ 通过插件外部的 **ppx-client 服务器**（FastAPI）封装 `memect-ppx`（即 `ppx` 解析引擎，仓库在 `github.com/kitchen-engineer42/ppx`）。插件中的 `scripts/ppx_parse.py` 只是这台服务器的一个瘦 HTTP 客户端；服务器源代码在 `/Users/mac/Desktop/john/local_clients/ppx/`，用 `scripts/start.sh` 启动。ppx 引擎本身需要安装（`uv pip install -e /path/to/ppx`）；`jyppx` 是另一个独立的 builder 项目，它把 ppx 当作库来用，**不是** 驱动 John 所必需的。
-
-两个解析器依赖都是可选的。插件无论如何都能安装、`using-john` skill 都能加载；只在调用解析器脚本时如果依赖缺失，脚本会大声报错并给出安装命令。
-
-## 安装 + 升级
-
-首次安装：
-
-```sh
-# Option A —— marketplace 流程（推荐）：
-claude plugin marketplace add kitchen-engineer42/joharnessburg
-claude plugin install joharnessburg@joharnessburg
-
-# 验证
-claude plugin list
-# 期望看到：joharnessburg@joharnessburg 出现在列表里，状态为 enabled
-```
-
-从早期版本升级（v0.1.x → v0.1.7）：
-
-```sh
-claude plugin marketplace update joharnessburg
-claude plugin update joharnessburg@joharnessburg
-# 重启 Claude Code 让新版本生效。
-```
-
-> 注意：`claude plugin install` 在插件已安装的情况下是 no-op。升级用 `claude plugin update <plugin>@<marketplace>`。第三方 marketplace 默认关闭自动更新；可以通过 `/plugin` UI → Marketplaces → joharnessburg → Enable auto-update 打开。
-
-安装完成后，在新开的 Claude Code 会话里 `using-john` skill 应该会自动加载。这是 M0 的验收测试。
 
 ## 仓库内容
 
@@ -131,28 +162,14 @@ claude plugin update joharnessburg@joharnessburg
   plugin.json         # Claude Code 插件 manifest
   marketplace.json    # 让这个 repo 同时充当 marketplace
 hooks/hooks.json      # Hook 声明（安装时自动注册）
-skills/               # John 的 meta-skill（layer-2；加载进 John 包装的 Claude Code 会话）
+skills/               # John 的 meta-skill（加载进 John 包装的 Claude Code 会话）
 commands/             # Slash command
 scripts/              # 小型 Python 工具包（ppx 包装、事件 reducer、scaffolder 等）
 agents/               # Subagent 角色定义
-templates/            # 模板撰写文档（模板本身单独安装）
-README.md             # 本文件（英文版）
-README_ZH.md          # 中文版
+templates/            # 内置模板示例 + 模板撰写文档
+README.md             # 英文版
+README_ZH.md          # 本文件
 ```
-
-## 设计文档在哪里
-
-实现计划、规格演进、设计对比、开发日志都在 **John workspace** 里——这是开发该插件的独立目录：
-
-- `PLAN.md` —— 实时维护的实现计划（M0 → M7）
-- `docs/initial_spec.md` —— 规格的演进 + 用户回复
-- `docs/architecture_and_plan.md` —— PLAN.md 之前的草稿
-- `docs/ralph_in_john_vs_original.md` —— John 的 ralph-loop 跟 snarktank/ralph 的差异
-- `docs/john_vs_open_source_harnesses.md` —— 跟 7 个开源 harness 的新鲜对比
-- `CLAUDE.md` —— workspace 记忆
-- `DEVLOG.md` —— 仅追加的开发日志
-
-这些不在插件的 repo 里（它们描述的是**怎么构建** John，不是插件本身）。如果你要贡献代码、需要看设计依据，找项目所有者拿 workspace 访问权限。
 
 ## 许可
 
