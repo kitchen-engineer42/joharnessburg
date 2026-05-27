@@ -69,10 +69,10 @@ claude plugin update joharnessburg@joharnessburg
 
 **内置示例**（功能演示，不是生产级）：
 
-- [`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/) —— 较轻量（1 个 override + 1 个新增）。
-- [`templates/examples/doc-verification/`](templates/examples/doc-verification/) —— 较重，KC 风格（2 个 override + 2 个新增）。
+- [`plugins/joharnessburg/templates/examples/slides-from-textbook/`](plugins/joharnessburg/templates/examples/slides-from-textbook/) —— 较轻量（1 个 override + 1 个新增）。
+- [`plugins/joharnessburg/templates/examples/doc-verification/`](plugins/joharnessburg/templates/examples/doc-verification/) —— 较重，KC 风格（2 个 override + 2 个新增）。
 
-生产模板单独交付。要自己写模板，看 [`templates/README.md`](templates/README.md)——里面写了 diff-script 架构、目录结构、切换/重置流程、`apply.sh` 机制。
+生产模板单独交付。要自己写模板，看 [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md)——里面写了 diff-script 架构、目录结构、切换/重置流程、`apply.sh` 机制。
 
 如果你想要一种有引导的模板写作体验，配套工具 **Hamster**（[github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)）是一个 skills 包，能帮 Claude Code 方法论地构建 John 模板。
 
@@ -153,22 +153,26 @@ curl -s http://localhost:8501/healthz | jq
 
 - `local_clients/llm/README.md` —— LLM 客户端的安装 + API 契约
 - `local_clients/ppx/README.md` —— ppx 客户端的安装 + API 契约
-- `joharnessburg/skills/workerllm-runtime/SKILL.md` —— 插件中的 skill 如何指导 Claude 调用这些客户端
+- `plugins/joharnessburg/skills/workerllm-runtime/SKILL.md` —— 插件中的 skill 如何指导 Claude 调用这些客户端
 
 ## 仓库内容
 
 ```
 .claude-plugin/
-  plugin.json         # Claude Code 插件 manifest
-  marketplace.json    # 让这个 repo 同时充当 marketplace
-hooks/hooks.json      # Hook 声明（安装时自动注册）
-skills/               # John 的 meta-skill（加载进 John 包装的 Claude Code 会话）
-commands/             # Slash command
-scripts/              # 小型 Python 工具包（ppx 包装、事件 reducer、scaffolder 等）
-agents/               # Subagent 角色定义
-templates/            # 内置模板示例 + 模板撰写文档
-README.md             # 英文版
-README_ZH.md          # 本文件
+  marketplace.json              # Marketplace 目录（这个 repo 同时充当 marketplace）
+plugins/
+  joharnessburg/                # 插件本体
+    .claude-plugin/
+      plugin.json               # Claude Code 插件 manifest
+    hooks/hooks.json            # Hook 声明（安装时自动注册）
+    skills/                     # John 的 meta-skill（加载进 John 包装的 Claude Code 会话）
+    commands/                   # Slash command
+    scripts/                    # 小型 Python 工具包（ppx 包装、事件 reducer、scaffolder 等）
+    agents/                     # Subagent 角色定义
+    templates/                  # 内置模板示例 + 模板撰写文档
+README.md                       # 英文版
+README_ZH.md                    # 本文件
+LICENSE                         # AGPL-3.0-or-later
 ```
 
 ## 许可

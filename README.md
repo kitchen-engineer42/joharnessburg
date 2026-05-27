@@ -69,10 +69,10 @@ This sets the active template in `.john/workspace.json`, runs the template's `ap
 
 **Bundled examples** (functional demonstrators, not production-ready):
 
-- [`templates/examples/slides-from-textbook/`](templates/examples/slides-from-textbook/) — lighter (1 override + 1 addition).
-- [`templates/examples/doc-verification/`](templates/examples/doc-verification/) — heavier, KC-style (2 overrides + 2 additions).
+- [`plugins/joharnessburg/templates/examples/slides-from-textbook/`](plugins/joharnessburg/templates/examples/slides-from-textbook/) — lighter (1 override + 1 addition).
+- [`plugins/joharnessburg/templates/examples/doc-verification/`](plugins/joharnessburg/templates/examples/doc-verification/) — heavier, KC-style (2 overrides + 2 additions).
 
-Real production templates ship separately. To author your own template, see [`templates/README.md`](templates/README.md) for the diff-script architecture, directory anatomy, switching/reset flows, and `apply.sh` mechanics.
+Real production templates ship separately. To author your own template, see [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md) for the diff-script architecture, directory anatomy, switching/reset flows, and `apply.sh` mechanics.
 
 If you want a guided experience for authoring templates, the companion tool **Hamster** ([github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)) is a skills bundle that helps Claude Code build John templates methodically.
 
@@ -152,22 +152,26 @@ curl -s http://localhost:8501/healthz | jq
 
 - `local_clients/llm/README.md` — LLM client install + API contract
 - `local_clients/ppx/README.md` — ppx client install + API contract
-- `joharnessburg/skills/workerllm-runtime/SKILL.md` — how the plugin teaches Claude to call these clients
+- `plugins/joharnessburg/skills/workerllm-runtime/SKILL.md` — how the plugin teaches Claude to call these clients
 
 ## What's in this repo
 
 ```
 .claude-plugin/
-  plugin.json         # Claude Code plugin manifest
-  marketplace.json    # Lets the repo double as a marketplace
-hooks/hooks.json      # Hook declarations (auto-registered on install)
-skills/               # John's meta-skills (loaded into John-wrapped Claude Code sessions)
-commands/             # Slash commands
-scripts/              # Small Python toolkit (ppx wrapper, event reducer, scaffolder, etc.)
-agents/               # Subagent role definitions
-templates/            # Bundled template examples + authoring docs
-README.md             # This file
-README_ZH.md          # 中文版
+  marketplace.json              # Marketplace catalog (this repo is also a marketplace)
+plugins/
+  joharnessburg/                # The plugin itself
+    .claude-plugin/
+      plugin.json               # Claude Code plugin manifest
+    hooks/hooks.json            # Hook declarations (auto-registered on install)
+    skills/                     # John's meta-skills (loaded into John-wrapped Claude Code sessions)
+    commands/                   # Slash commands
+    scripts/                    # Small Python toolkit (ppx wrapper, event reducer, scaffolder, etc.)
+    agents/                     # Subagent role definitions
+    templates/                  # Bundled template examples + authoring docs
+README.md                       # This file
+README_ZH.md                    # 中文版
+LICENSE                         # AGPL-3.0-or-later
 ```
 
 ## License
