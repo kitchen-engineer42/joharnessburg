@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """Apply a John template as a diff onto a copy of the joharnessburg install.
 
-v0.1.7 template architecture:
+Template architecture:
 - Templates are diffs to original John, not session-time overlays.
 - This script merges a template's contents (overrides + additive skills/scripts/agents
   + _delete list) onto a snapshot of the joharnessburg plugin, producing a new
   ready-to-run plugin at `~/.claude/plugins/joharnessburg-applied/<template-name>/`.
 - After running, the user launches Claude Code with:
     claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<template-name>/
-  The new plugin IS John for that session — no second-class template skills, no
-  SessionStart-time content surfacing.
+  The new plugin IS John for that session — no second-class template skills.
 
 Reset: delete the merged dir (or run `reset_john.py`).
 
 Switching templates: refuses unless --reset-all flag passed; user must explicitly
 clear the prior applied template first.
-
-This script runs in **layer-1** (your dev workspace, not in a layer-2 session).
 
 Exit codes:
   0  success
@@ -292,7 +289,7 @@ def main(argv: list[str] | None = None):
         else output_parent / template_name
     )
 
-    # Multi-applied policy (v0.1.7.1+):
+    # Multi-applied policy:
     # Each applied template dir is an independent merged plugin; parallel Claude Code
     # sessions can point `--plugin-dir` at different applied dirs and run side-by-side
     # without interference (per-session isolation, no shared mutable runtime state).

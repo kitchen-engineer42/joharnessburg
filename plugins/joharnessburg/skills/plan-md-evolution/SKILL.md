@@ -21,7 +21,7 @@ metadata:
 
 This skill fires every time [[ralph-loop]] step 5 runs ("update PLAN.md after each phase"). It's not optional — drift between PLAN.md and disk truth is what kc_cli's hard-tracking principle was designed to prevent. Disk is truth; PLAN.md is the human-readable summary of the truth.
 
-**Soft enforcement, per spec §8.5.** The six patterns below are John's defaults — suggestions grounded in this project's experience and the lessons from kc_cli + the production services. If a template ships its own evolution patterns (different Log format, different renumbering convention, different Open-Decisions schema), follow that instead. The load-bearing principles are: stay auditable (disk is truth, append-only Log), don't silently corrupt PLAN.md, and surface blockers to the user. The specific forms are flexible.
+**Soft enforcement.** The six patterns below are John's defaults — suggestions grounded in real project experience. If a template ships its own evolution patterns (different Log format, different renumbering convention, different Open-Decisions schema), follow that instead. The load-bearing principles are: stay auditable (disk is truth, append-only Log), don't silently corrupt PLAN.md, and surface blockers to the user. The specific forms are flexible.
 
 **Relationship to [[phase-design]].** Phase-design teaches the design judgment ("when is iteration the right move? what makes a good phase?"); this skill teaches the maintenance mechanics ("how to subdivide in PLAN.md, what to log, how to renumber"). When you're deciding *whether* to subdivide, consult phase-design. When you're doing the actual subdivide, this skill drives.
 

@@ -132,12 +132,10 @@ def err(msg, exit_code=1):
 
 
 def copy_input(src: Path, dest_dir: Path, copied: list, project_root: Path):
-    """Copy a file or the contents of a directory into dest_dir. Skip hidden entries recursively.
+    """Copy a file or the contents of a directory into dest_dir.
 
-    v0.1.9 — Codex #6: previously only filtered top-level hidden entries; nested
-    dirs were copied via raw shutil.copytree which preserved hidden files
-    (.git/, .DS_Store, etc.). Now the filter applies recursively via the
-    `ignore=` parameter to copytree.
+    Skips hidden entries recursively via shutil.copytree's `ignore=` parameter,
+    so .git/, .DS_Store, etc. inside nested input dirs don't get copied.
     """
     if src.is_file():
         dest = dest_dir / src.name
@@ -203,9 +201,8 @@ def main():
         (john_dir / sd).mkdir()
 
     # workspace.json — initial state
-    # Note (v0.1.15+): the legacy `active_template` field was removed. The
-    # template, if any, is determined by the merged plugin the session
-    # launched with (CLAUDE_PLUGIN_ROOT), not by per-workspace state.
+    # Note: the template, if any, is determined by the merged plugin the
+    # session launched with (CLAUDE_PLUGIN_ROOT), not by per-workspace state.
     now = datetime.now(timezone.utc).isoformat()
     workspace_state = {
         "name": "joharnessburg-workspace",
@@ -220,7 +217,7 @@ def main():
 
     # If running inside a merged template plugin, the plugin install ships a
     # templates-active/ dir with plan_md_template.md + claude_addon.md.
-    # apply_template.py writes these in v0.1.7+. Prefer them over the hardcoded
+    # apply_template.py writes these. Prefer them over the hardcoded
     # defaults so projects scaffolded via /joharnessburg:init pick up the
     # active template's intended skeleton automatically.
     templates_active = _resolve_templates_active()

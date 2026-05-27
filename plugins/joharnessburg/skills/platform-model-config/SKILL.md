@@ -44,7 +44,7 @@ Set these in `.env.example` with comments explaining the tier choice. Production
 1. **At design time** (during `app-design-thinking`), list every LLM operation in the produced app + assign a tier. Operations that don't justify T1 should pick T2; operations where T3 suffices should pick T3.
 2. **At code time**, read model names from env vars, never hardcode. Future tier swaps shouldn't require code changes.
 3. **At deploy time**, the platform's key backend (`skills2app/utils/llm_key_backends/`) provisions API keys per app. Your container doesn't manage keys directly — the proxy does.
-4. **For workerLLM-style fan-out** (per spec §8.3): templates pick T3/T4 explicitly. Don't apply John core's default tier to workerLLM tasks.
+4. **For workerLLM-style fan-out**: templates pick T3/T4 explicitly. Don't apply John core's default tier to workerLLM tasks.
 
 ## What you should NOT do
 

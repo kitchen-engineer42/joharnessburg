@@ -92,7 +92,7 @@ John defaults to **lenient with explicit flagging** — the phase advances on be
 
 ## Validation + quarantine
 
-Subagents writing JSON events sometimes produce unparseable files — most commonly when string values contain unescaped inner quotes (M6 runs hit ~10% defect rate from this on Chinese-language content). The reducer (v0.1.7+) handles this by **quarantining** unparseable events:
+Subagents writing JSON events sometimes produce unparseable files — most commonly when string values contain unescaped inner quotes (a real ~10% defect rate is observable on Chinese-language content). The reducer handles this by **quarantining** unparseable events:
 
 1. On read, `json.loads(file.read_text())` is wrapped in a try/except.
 2. On parse failure: move the original file to `<project>/.john/events/<phase>/_quarantine/<original-filename>` and write a sibling `<original-filename>.parse_error.txt` with the exception message.

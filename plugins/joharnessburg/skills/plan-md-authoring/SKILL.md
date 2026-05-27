@@ -40,7 +40,7 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 <initial: pointer to .john/input/ and a one-line corpus profile
  over time: pointer to <project>/.claude/skills/ once the 2skills half ships>
 
-## Four structures (per spec §4)
+## Four structures
 - Format of knowledge: <facts? rules? stories? wiki? mixed? — initial guess, may evolve>
 - Schema of knowledge: <starter sketch; expect to iterate>
 - Runtime structure: <how the produced app works for end-users>

@@ -26,7 +26,7 @@ The team has converged on a clear parser preference order for documents. Use it;
 
 1. **Inspect input first.** Is it a native PDF (text-extractable) or a scan? `pdfinfo` or a quick read of the first KB tells you. If text-extractable → tier 1 or 2. If scan → tier 3.
 2. **Default to `PDF_PARSE_SERVER`** for PDFs in platform-integrated projects. Call via `parse_pdf_util.py` (in `to-skills-backend`); don't re-implement the HTTP client.
-3. **Use the John toolkit** `ppx_parse.py` (thin HTTP client to the local ppx server in v0.1.7+; previously a direct ppx import) when you want layout-aware parsing without round-tripping through the team's production parse server. Same quality. The local ppx server is in `/Users/mac/Desktop/john/local_clients/ppx/`; launch with its `scripts/start.sh`. Swapping to the team's production PDF_PARSE_SERVER = change `JOHN_PPX_CLIENT_URL` and restart Claude.
+3. **Use the John toolkit** `ppx_parse.py` (thin HTTP client to a local ppx server) when you want layout-aware parsing without round-tripping through the team's production parse server. Same quality. The local ppx server lives in the John workspace bundle under `local_clients/ppx/`; launch with its `scripts/start.sh`. Swapping to the team's production PDF_PARSE_SERVER = change `JOHN_PPX_CLIENT_URL` and restart Claude.
 4. **Use `markitdown_parse.py`** for DOCX/HTML/non-PDF formats. Faster than spinning up the parse server when the format isn't PDF.
 5. **Document your choice** in PLAN.md's Log so future-Claude knows which parser produced the parsed artifacts.
 

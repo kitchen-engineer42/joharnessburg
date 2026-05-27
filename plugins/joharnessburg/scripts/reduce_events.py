@@ -50,7 +50,7 @@ def load_events(phase_dir: Path, *, quarantine: bool = True):
             sibling. When False (dry-run mode), malformed events are LEFT IN
             PLACE — the function still detects them and yields the
             '__quarantined__' sentinel for accounting, but no disk mutation
-            happens. Per v0.1.9 — Codex #5: `--dry-run` must be read-only.
+            happens. Dry-run mode is strictly read-only.
 
     Skips files inside `_quarantine/` subdirs (idempotent re-runs).
     """
@@ -99,9 +99,8 @@ def load_events(phase_dir: Path, *, quarantine: bool = True):
 def _check_chunk_completeness(events: list[dict]) -> dict:
     """Detect chunks with missing chunk_echo or chunk_complete events.
 
-    v0.1.9 — Block 2.5: M6 + v0.1.8 audits surfaced cases where a subagent
-    skipped its chunk_echo (or, less commonly, chunk_complete). The reducer
-    should flag these so the user can see them.
+    A subagent may occasionally skip its chunk_echo (or, less commonly,
+    chunk_complete). The reducer flags these so the user can see them.
 
     Returns a dict like:
       {

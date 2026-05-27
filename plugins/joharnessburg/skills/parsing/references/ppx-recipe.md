@@ -44,4 +44,4 @@ jyppx is at `/Users/mac/Desktop/jyppx/` on the dev machine. See `readme-local-pp
 
 ## Production future
 
-In production, the tech team will swap `ppx_parse.py` for a thin RPC client to the internal `PDF_PARSE_SERVER` (per spec §8.7). Layer-2 Claude doesn't see the swap — the script signature stays the same, only the backend changes. Don't design around the in-process detail.
+In production, the tech team will swap `ppx_parse.py` for a thin RPC client to the internal `PDF_PARSE_SERVER`. Layer-2 Claude doesn't see the swap — the script signature stays the same, only the backend changes. Don't design around the in-process detail.

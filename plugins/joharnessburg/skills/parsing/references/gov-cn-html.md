@@ -1,6 +1,6 @@
 # Parsing Chinese government regulation HTML pages
 
-gov.cn-style pages wrap regulation text in a nested container (`#UCAP-CONTENT`, `.pages_content`, or `.TRS_Editor`) surrounded by font-resizer widgets ("字号"), nav, and footer cruft. MarkItDown returns garbled or empty output on these. The M6 + v0.1.8 verification runs both hit this on the loan-ads corpus and authored ad-hoc parsers each time. v0.1.9 ships a narrow fallback to end the reinvention.
+gov.cn-style pages wrap regulation text in a nested container (`#UCAP-CONTENT`, `.pages_content`, or `.TRS_Editor`) surrounded by font-resizer widgets ("字号"), nav, and footer cruft. MarkItDown returns garbled or empty output on these. `parse_govcn_html.py` is a narrow purpose-built fallback for this page family.
 
 ## When to use
 

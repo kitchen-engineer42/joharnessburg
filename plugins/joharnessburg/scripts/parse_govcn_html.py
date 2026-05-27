@@ -4,9 +4,8 @@
 Why this exists: Microsoft's MarkItDown (`markitdown_parse.py`) can't reliably
 extract regulation text from gov.cn-style pages, which wrap article content
 inside a nested `<div id="UCAP-CONTENT">` or `<div class="pages_content">`
-with font-resizer widgets ("字号") and footer cruft around it. Both M6 and
-v0.1.8 verification runs needed an ad-hoc fallback parser for this. v0.1.9
-ships it once so future runs don't reinvent the wheel.
+with font-resizer widgets ("字号") and footer cruft around it. This is a
+narrow purpose-built fallback for that page family.
 
 Strategy:
 1. Read the HTML file as text. Stdlib only (uses html.parser).

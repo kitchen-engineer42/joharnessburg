@@ -55,7 +55,7 @@ Set the goal with `/endurance <goal>`; inspect or clear via `/endurance` (no arg
 - Don't write canonical state from a subagent directly — use the event log. See [[event-log-and-reducer]].
 - Don't assume the user wants you to advance autonomously without checkpoints. Pause at phase boundaries unless they've said "run to completion."
 - Don't reference any files outside `<project>/` and the plugin's `${CLAUDE_PLUGIN_ROOT}/` — those are the only two places that exist for you.
-- Don't write a separate `spec.md` for handoff between halves. PLAN.md is the durable contract across 2skills + 2app in one session; this design replaces the legacy `to-skills-backend → skills2app` spec.md pattern (per spec §8.8). If you encounter a `spec.md` in a project, it's vestigial — incorporate its content into PLAN.md and stop reading it.
+- Don't write a separate `spec.md` for handoff between halves. PLAN.md is the durable contract across 2skills + 2app in one session — no second contract needed. If you encounter a `spec.md` in a project, it's vestigial — incorporate its content into PLAN.md and stop reading it.
 
 ## Cross-references
 

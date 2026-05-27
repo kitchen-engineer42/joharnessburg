@@ -1,21 +1,15 @@
 #!/usr/bin/env python3
 """Parse a PDF via John's local ppx-client server.
 
-v0.1.7+: thin HTTP client. POSTs to `$JOHN_PPX_CLIENT_URL` (default
-`http://localhost:8501`) `/parse` endpoint. The server (at
-`/Users/mac/Desktop/john/local_clients/ppx/`) wraps `memect-ppx` directly.
+Thin HTTP client. POSTs to `$JOHN_PPX_CLIENT_URL` (default
+`http://localhost:8501`) `/parse` endpoint. The server wraps the
+`memect-ppx` parser engine.
 
-Same CLI surface as v0.1.6, same JSON output envelope. Behind the scenes:
-- v0.1.6: in-process import of `memect.pdf.parser.Parser`.
-- v0.1.7+: HTTP POST to a local FastAPI server that does the import.
+When a production PDF_PARSE_SERVER is available, swap `JOHN_PPX_CLIENT_URL`
+to point at it; this script keeps working without code changes.
 
-When the tech team ships the production PDF_PARSE_SERVER, swap
-`JOHN_PPX_CLIENT_URL` to point at it; this script keeps working.
-
-Terminology: `ppx` (memect-ppx) is the parser engine; `jyppx` is a separate
-builder project. This script talks to ppx via the local client, not to jyppx.
-
-This script runs in **layer-2 sessions** inside the user's project.
+Terminology: `ppx` (memect-ppx) is the parser engine. This script talks to
+it via the local client server.
 
 Exit codes:
   0  success

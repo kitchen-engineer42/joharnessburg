@@ -4,7 +4,7 @@ A template is a **diff to original John** that customizes the plugin for a speci
 
 This guide is for anyone authoring a template — internal team members, external contributors, or layer-2 Claude when the user says "let's make a template for X."
 
-## Architecture (v0.1.15+: apply.sh + --plugin-dir)
+## Architecture (apply.sh + --plugin-dir)
 
 The end-to-end flow:
 
@@ -129,10 +129,3 @@ If you find yourself writing "I/my workspace" in a template skill, you've slippe
 - One-off projects where the customizations only apply to this single project. Edit PLAN.md directly; don't generalize.
 - Projects where John core's defaults are already 95% right. The 5% lives in PLAN.md's Open Decisions.
 - Projects where the cost of authoring + maintaining a template exceeds the value. Templates pay off when you build multiple projects of the same shape; for a one-off, they're overhead.
-
-## History
-
-- **v0.1.6**: a "manual-read convention" where layer-2 Claude was instructed to read template files at session start. Friction-prone.
-- **v0.1.7+**: diff-script architecture (this document). `apply_template.py` produces a merged plugin; sessions load it via `--plugin-dir`.
-- **v0.1.15+**: removed the `/joharnessburg-template` slash command and the `active_template` workspace.json field. Sessions are fully determined by their launch-time `--plugin-dir`; there's no per-workspace template state to manage. The slash command's "switch active template" workflow turned out to be confusing in practice (the session's loaded skills don't hot-swap when the metadata changes), so it was dropped in favor of the explicit `apply.sh` + `--plugin-dir` flow.
-- **v0.1.17+**: bundled example templates moved out of this plugin into Hamster's repo at `examples/`. The bundled examples used to live at `templates/examples/{slides-from-textbook,doc-verification}/`, but they were getting copied into the merged plugin at apply time — which meant layer-3 Claude could find them via file walks/greps and apply their competing guidance alongside the actively-loaded template. Now John's runtime contains exactly the one template you loaded (or none), and reference examples for template authors live with Hamster (their natural home, since Hamster is the authoring tool). Historical: when these examples were first written, Hamster didn't exist as a standalone — so they landed in John by default. Now they belong with the authoring tool.

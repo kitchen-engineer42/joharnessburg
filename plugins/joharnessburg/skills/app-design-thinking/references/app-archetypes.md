@@ -32,7 +32,7 @@ Five apps the team built manually before John existed. Each is one combination o
 
 **Pipeline shape**: build-time is hand-coded (the geometry engine, the ops DSL, the constraint solver). No knowledge engineering pipeline; the team wrote the app. Runtime LLM at every user request.
 
-**Why it's useful**: the only one where LLM lives at runtime, not build-time. The team built the runtime by hand; John's analog would be John+mathlab-template producing John-driven math apps for specific corpora (per spec §8.9). Imperative DSL (`ops`) is the right shape for runtime LLM output (per spec §8.13).
+**Why it's useful**: the only one where LLM lives at runtime, not build-time. The team built the runtime by hand; John's analog would be John+mathlab-template producing John-driven math apps for specific corpora. Imperative DSL (`ops`) is the right shape for runtime LLM output.
 
 ## 5. Vote for your app (voteforyourapp)
 

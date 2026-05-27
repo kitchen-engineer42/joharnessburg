@@ -81,9 +81,9 @@ def main():
         state.get("session_metadata", {}).get("endurance_goal")
         or "(no endurance goal set; ask the user with /endurance <goal> if running a long project)"
     )
-    # v0.1.15+: template detection derives from the merged plugin path
-    # (CLAUDE_PLUGIN_ROOT), not from workspace.json. The plugin loaded at
-    # session start IS the source of truth for what template is "active".
+    # Template detection derives from the merged plugin path
+    # (CLAUDE_PLUGIN_ROOT). The plugin loaded at session start IS the
+    # source of truth for what template is "active".
     active_template = _detect_template_from_env()
     active_template_label = active_template or "(none — vanilla John)"
     current_phase = state.get("current_phase") or "(unset)"

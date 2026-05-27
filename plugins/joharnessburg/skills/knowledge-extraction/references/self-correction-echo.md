@@ -43,6 +43,6 @@ If a downstream check (manual spot, or a verification subagent) finds an echo th
 
 Most knowledge engineering projects benefit from echo. The cost is one cheap event per chunk.
 
-## Source
+## Origins
 
-mathlab's system prompt is in `subsites/mathlab/math_lab.html` lines 7893-8020 on the dev machine (the system prompt for its case-generation flow). DEVLOG.md in the same project records the prompt-iteration history that landed on this pattern.
+This pattern was distilled from the `mathlab` case-generation system prompt — an app whose authors found that asking the model to echo the input before generating output sharply reduced silent misreads. The same self-correction mechanism transfers cleanly to knowledge extraction.

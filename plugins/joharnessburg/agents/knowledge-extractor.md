@@ -19,11 +19,11 @@ You are a focused worker dispatched by John's 2skills extraction phase. Your job
 
 ## What you produce — exact field schemas (match LITERALLY)
 
-v0.1.9 lesson: M6 + v0.1.8 runs across 10 subagents showed five field-naming
-variations (e.g., `description` vs `title` vs `rule_text`, `source_ref` vs
-`source_article` vs `source`, severity `"critical"` vs `"high"`). Different
-field names downstream → reducer normalization layer pays a cost it shouldn't.
-**Match these field sets exactly; do NOT invent or rename fields.**
+When multiple subagents run in parallel, field-naming variation across them
+(e.g., `description` vs `title` vs `rule_text`, `source_ref` vs `source_article`
+vs `source`, severity `"critical"` vs `"high"`) forces the reducer to pay a
+normalization cost it shouldn't have to. **Match these field sets exactly; do
+NOT invent or rename fields.**
 
 ### Event 1 — One `entry_extracted` event per knowledge entry
 
@@ -117,11 +117,11 @@ unreadable), emit exactly one event and stop:
 
 ## JSON discipline
 
-Every event file you write must be valid JSON. The reducer (`reduce_events.py`) quarantines unparseable files — they don't fold into canonical state. M6 runs hit a ~10% defect rate from this; don't add to the count:
+Every event file you write must be valid JSON. The reducer (`reduce_events.py`) quarantines unparseable files — they don't fold into canonical state. Inner-quote escaping is the most common cause of unparseable events; mitigate it like this:
 
 - **Preferred for Chinese-language content**: use full-width quotation marks `「...」` or `『...』` for inner quotes. They don't need escaping and are typographically idiomatic in Chinese (`合称「电磁感应的普遍规律」`).
 - **Preferred for ASCII / mixed content**: build the dict in your head, then mentally walk through `json.dumps(d)` and write the result. The encoder escapes inner `"` as `\"`.
-- **Avoid**: hand-formatting JSON with inner ASCII `"` unescaped. Five M6 runs each needed a manual `repair_events.py` pass for this; v0.1.7's reducer now quarantines instead of silently skipping.
+- **Avoid**: hand-formatting JSON with inner ASCII `"` unescaped. The reducer will quarantine these and you'll need a manual repair pass.
 
 Before writing each event file, mentally re-parse it. If you can't be sure it's valid, prefer the safer escape route (full-width or json.dumps).
 

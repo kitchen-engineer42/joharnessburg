@@ -74,7 +74,7 @@ The subagents never talk to each other directly. They only emit events. The redu
 
 ## Scaling concerns
 
-**Why thousands actually scale** (per spec §8.6 user reply): the produced app has a *structure* where knowledge entries fit like *content* in a uniform way. Work units are homogeneous — "extract from chunk 042" is the same task shape as "extract from chunk 419"; the reducer folds them with identical logic. As long as the entry structure is uniform, the orchestration cost doesn't grow non-linearly with entry count. That's the architectural reason event-log+reducer beats file-locks at scale — see [[event-log-and-reducer]].
+**Why thousands actually scale**: the produced app has a *structure* where knowledge entries fit like *content* in a uniform way. Work units are homogeneous — "extract from chunk 042" is the same task shape as "extract from chunk 419"; the reducer folds them with identical logic. As long as the entry structure is uniform, the orchestration cost doesn't grow non-linearly with entry count. That's the architectural reason event-log+reducer beats file-locks at scale — see [[event-log-and-reducer]].
 
 **Tens of work units** (1-50): fan out in waves of ~10 concurrent. Wait for each wave, then dispatch the next. Manageable through Claude Code's Task tool.
 

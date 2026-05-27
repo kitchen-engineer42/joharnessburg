@@ -3,7 +3,7 @@
 Source locations:
 
 - `to-skills-backend/app/pipeline/parse_pdf_util.py` — Python client for `PDF_PARSE_SERVER`. Handles auth, retries, response unpacking. Reuse, don't re-implement.
-- `${CLAUDE_PLUGIN_ROOT}/scripts/ppx_parse.py` — thin HTTP client to John's local ppx-client server (v0.1.7+). The server wraps `memect-ppx` (the `ppx` parser engine). For batch use, calling this is identical in quality to the team's production parse server; just runs locally.
+- `${CLAUDE_PLUGIN_ROOT}/scripts/ppx_parse.py` — thin HTTP client to John's local ppx-client server. The server wraps `memect-ppx` (the `ppx` parser engine). For batch use, calling this is identical in quality to the team's production parse server; just runs locally.
 - `${CLAUDE_PLUGIN_ROOT}/scripts/markitdown_parse.py` — John's markitdown wrapper for DOCX, HTML, basic Markdown.
 
 Performance notes:

@@ -20,12 +20,12 @@ The first useful thing John does on any project: read the user's raw input mater
 
 - **Inputs**: `<project>/.john/input/` (populated by `/joharnessburg:init`)
 - **Outputs**: `<project>/.john/parsed/<source-id>/` — one subdirectory per input file, containing `doc.md`, `doc.json` (when applicable), `metadata.json` (provenance: source path, parser, timestamp).
-- **Tools**: `${CLAUDE_PLUGIN_ROOT}/scripts/ppx_parse.py` (v0.1.7+: thin HTTP client to local ppx-client server) and `${CLAUDE_PLUGIN_ROOT}/scripts/markitdown_parse.py` (in-process).
-- **Server URLs** (read from environment): `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`). The server is launched separately from `/Users/mac/Desktop/john/local_clients/ppx/scripts/start.sh`.
+- **Tools**: `${CLAUDE_PLUGIN_ROOT}/scripts/ppx_parse.py` (thin HTTP client to a local ppx-client server) and `${CLAUDE_PLUGIN_ROOT}/scripts/markitdown_parse.py` (in-process).
+- **Server URLs** (read from environment): `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`). The server is launched separately via `local_clients/ppx/scripts/start.sh` in the John workspace bundle.
 
 ## Routing — which parser for which input
 
-Top strategy (per the user's directive, v0.1.7):
+Top strategy:
 
 - **PDFs + images** → `ppx_parse.py` (calls the local ppx-client server). ppx has a built-in probe + mode selector for non-scanned PDFs and is fast on them; for scans it routes to OCR. Use ppx for all PDFs by default.
 - **DOCX, PPTX, XLSX, HTML, Markdown** → `markitdown_parse.py`. Fast pure-Python; right for office formats and clean HTML.
@@ -74,13 +74,13 @@ Every parsed output gets a `metadata.json` with:
 }
 ```
 
-The original file *path* is metadata; the original *folder hierarchy* is NOT preserved in `.john/parsed/`. The hierarchy was just where the user happened to have the files; John re-arranges knowledge later and shouldn't be constrained by it (per spec §3a: *"Original folder layer and path is kept as an entry of meta-data and we don't usually restore it or trust/rely on too much."*).
+The original file *path* is metadata; the original *folder hierarchy* is NOT preserved in `.john/parsed/`. The hierarchy was just where the user happened to have the files; John re-arranges knowledge later and shouldn't be constrained by it.
 
 ## When parsing fails
 
 The scripts fail loud — JSON error to stdout, traceback to stderr. Typical failures:
 
-1. **Server not running or dependency not installed.** In v0.1.7+, `ppx_parse.py` is a thin HTTP client to a local ppx-client server. If the server isn't running, the script says so + points at `local_clients/ppx/scripts/start.sh`. If the ppx engine (`memect-ppx`) isn't installed in the server's env, the server returns 503 with install guidance. `markitdown_parse.py` still runs in-process and needs `pip install markitdown`. Tell the user the exact install/launch command from the error message.
+1. **Server not running or dependency not installed.** `ppx_parse.py` is a thin HTTP client to a local ppx-client server; if the server isn't running, the script says so + points at `local_clients/ppx/scripts/start.sh`. If the ppx engine (`memect-ppx`) isn't installed in the server's env, the server returns 503 with install guidance. `markitdown_parse.py` runs in-process and needs `pip install markitdown`. Tell the user the exact install/launch command from the error message.
 2. **Bad input path.** Script reports it; check `.john/input/` is populated.
 3. **Parse exception** (OOM on huge PDF, malformed file, etc.). Capture in the parse phase Log section. For the OOM case, escalate to a smaller-batch approach (parse a subset of pages with `--pages` if ppx supports it).
 

@@ -2,7 +2,7 @@
 
 Layer-2 Claude doesn't need to think about this often, but it's worth knowing it exists.
 
-## Today (v0.1.7+, local dev)
+## Today (local dev)
 
 `ppx_parse.py` is a thin HTTP client that POSTs to a local **ppx-client server** (FastAPI). The server wraps `memect-ppx` (the `ppx` parser engine) and runs at `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`).
 
