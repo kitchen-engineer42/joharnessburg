@@ -25,8 +25,8 @@ claude plugin list
 
 新 John 项目的自然流程：
 
-1. **创建 workspace** —— 运行 `/joharnessburg-init`（或者直接告诉 Claude "在这个目录里设置 John"）。这会在你的项目里创建 `PLAN.md`、`CLAUDE.md` 和一个 `.john/` 工作目录。
-2. **应用模板**（可选，但对常见 app 家族很推荐）—— `/joharnessburg-template <name>`。详见下面的 [模板](#模板) 章节。
+1. **（可选）先应用模板** 来特化 app 家族。看下面的 [模板](#模板) 章节——把模板装到 `~/.claude/plugins/joharnessburg-templates/<name>/`，运行它的 `apply.sh`，然后用 `--plugin-dir` 启动 Claude。如果用 vanilla John，跳过这步。
+2. **创建 workspace** —— 运行 `/joharnessburg-init`（或者直接告诉 Claude "在这个目录里设置 John"）。这会在你的项目里创建 `PLAN.md`、`CLAUDE.md` 和一个 `.john/` 工作目录。
 3. **把输入材料放进** `.john/input/`（PDF、法规、样本文档——任何 produced app 需要的素材）。
 4. **告诉 Claude 你想构建什么 app**。Claude 会按 `PLAN.md` 里声明的 phase，通过 ralph_loop（迭代驱动器）逐步推进，每个 phase 派发并行的 subagent，最终产出一个可工作的 app。
 
@@ -57,22 +57,32 @@ claude plugin update joharnessburg@joharnessburg
 
 ## 模板
 
-模板**让 John 针对一类 app 进行特化**。一个模板是**对原始 John 的 diff**——一条命令应用，purpose-build 整个 harness 来服务某一类流水线（覆盖某些 skills、添加新的、附带一份初始 `PLAN.md` 骨架）。
+模板**让 John 针对一类 app 进行特化**。一个模板是**对原始 John 的 diff**，purpose-build 整个 harness 来服务某一类流水线（覆盖某些 skills、添加新的、附带一份初始 `PLAN.md` 骨架）。
 
-应用一个模板：
+三步流程：
 
 ```sh
-/joharnessburg-template <name>
+# 1. 安装模板（拷贝或软链到 user-scope 的模板目录）
+cp -R /path/to/your-template ~/.claude/plugins/joharnessburg-templates/your-template
+
+# 2. 应用模板（产出合并后的插件到 ~/.claude/plugins/joharnessburg-applied/<name>/）
+~/.claude/plugins/joharnessburg-templates/your-template/apply.sh
+
+# 3. 用合并后的插件启动 Claude
+cd /path/to/your-project
+claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 ```
 
-这条命令会在 `.john/workspace.json` 里设置 active_template、运行模板的 `apply.sh` 产出一个合并后的插件到 `~/.claude/plugins/joharnessburg-applied/<name>/`，并打印用来启动定制化 harness 的命令。
+合并后的插件**就是**那个会话的 John —— 模板的 skill 跟核心 skill 同等加载，没有"模板层"这种二等概念。哪个模板被加载是会话启动时固定的；要切换，退出当前会话用不同的 `--plugin-dir` 重新启动。多个 applied 模板可以共存（并行的 Claude 会话可以用不同模板）。
+
+重置：`rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/`（或者全清 `~/.claude/plugins/joharnessburg-applied/`）。下次不带 `--plugin-dir` 启动就是 vanilla John。
 
 **内置示例**（功能演示，不是生产级）：
 
 - [`plugins/joharnessburg/templates/examples/slides-from-textbook/`](plugins/joharnessburg/templates/examples/slides-from-textbook/) —— 较轻量（1 个 override + 1 个新增）。
 - [`plugins/joharnessburg/templates/examples/doc-verification/`](plugins/joharnessburg/templates/examples/doc-verification/) —— 较重，KC 风格（2 个 override + 2 个新增）。
 
-生产模板单独交付。要自己写模板，看 [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md)——里面写了 diff-script 架构、目录结构、切换/重置流程、`apply.sh` 机制。
+生产模板单独交付。要自己写模板，看 [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md)——里面写了 diff-script 架构、目录结构、`apply.sh` 机制。
 
 如果你想要一种有引导的模板写作体验，配套工具 **Hamster**（[github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)）是一个 skills 包，能帮 Claude Code 方法论地构建 John 模板。
 

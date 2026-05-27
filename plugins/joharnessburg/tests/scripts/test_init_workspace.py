@@ -22,10 +22,10 @@ class TestInitWorkspace(unittest.TestCase):
             # Subdirs
             for sd in ["input", "parsed", "chunks", "knowledge", "events", "checkpoints", "trace"]:
                 self.assertTrue((tdp / ".john" / sd).is_dir(), f"missing subdir {sd}")
-            # Workspace state shape
+            # Workspace state shape (v0.1.15+: no active_template field)
             state = json.loads((tdp / ".john" / "workspace.json").read_text())
             self.assertEqual(state["schema_version"], 1)
-            self.assertIsNone(state["active_template"])
+            self.assertNotIn("active_template", state)
             self.assertEqual(state["current_phase"], "bootstrap")
 
     def test_init_errors_when_john_exists_without_force(self):

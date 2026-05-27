@@ -111,7 +111,7 @@ PLAN.md is co-authored. Do NOT fill in everything unilaterally. The taste calls 
 A workable conversation flow (adapt freely):
 
 1. **Confirm project intent.** Echo back what you understood from `/joharnessburg-init` and the user's framing. If anything's ambiguous, ask before sketching.
-2. **Ask about templates.** "Is there an active template (`/joharnessburg-template <name>`), or are we sketching from scratch?" If a template is active, read its `plan_md_template.md` — that's your skeleton. Fill in the project-specific blanks rather than rebuilding.
+2. **Check for an active template.** A template is active if the session launched with `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/` — its parent dir being `joharnessburg-applied/` is the signal. If so, `$CLAUDE_PLUGIN_ROOT/templates-active/plan_md_template.md` (if shipped by the template) is your skeleton; `/joharnessburg-init` automatically uses it on workspace scaffold. Otherwise, you're sketching from scratch — confirm with the user.
 3. **Drive the four-structures conversation.** For 2app especially: ask about the runtime shape (what's the produced app, who uses it, how do they interact?) — that drives schema and format decisions backward, and pipeline decisions forward.
 4. **Sketch phases.** For 2skills the suggested pipeline ([[phase-design]] documents it) is a decent default; for 2app, phases emerge from the runtime decision.
 5. **Show the draft, ask for taste corrections.** Don't commit to disk until the user has read and approved the four-structures section and the first 2-3 phases.

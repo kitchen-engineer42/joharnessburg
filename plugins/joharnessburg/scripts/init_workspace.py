@@ -107,9 +107,9 @@ The `using-john` skill provides general John orientation; this file is for what'
 
 ## Active template
 
-See `.john/workspace.json` `active_template` field. Currently: none.
+Whatever template is loaded is the one your session launched with — Claude Code reads `$CLAUDE_PLUGIN_ROOT` at session start, which is fixed for the lifetime of the session. To check from inside a session: ask Claude "which template am I running?" — it can read the plugin install path and report.
 
-Set with `/joharnessburg-template <name>` if a template is installed.
+To switch templates: exit, optionally run `~/.claude/plugins/joharnessburg-templates/<name>/apply.sh`, then relaunch with `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/`.
 
 ## Project status
 
@@ -170,11 +170,10 @@ def main():
         "--force",
         action="store_true",
         help=(
-            "Delete and recreate .john/ if it already exists (including the active_template "
-            "field). PLAN.md is REGENERATED from the template (existing project intent + log "
-            "is lost — back it up first if you need it). CLAUDE.md is never overwritten by "
-            "--force (project memory is preserved); delete it manually if you want a clean "
-            "slate."
+            "Delete and recreate .john/ if it already exists. PLAN.md is REGENERATED from "
+            "the template (existing project intent + log is lost — back it up first if you "
+            "need it). CLAUDE.md is never overwritten by --force (project memory is "
+            "preserved); delete it manually if you want a clean slate."
         ),
     )
     p.add_argument(
@@ -204,12 +203,14 @@ def main():
         (john_dir / sd).mkdir()
 
     # workspace.json — initial state
+    # Note (v0.1.15+): the legacy `active_template` field was removed. The
+    # template, if any, is determined by the merged plugin the session
+    # launched with (CLAUDE_PLUGIN_ROOT), not by per-workspace state.
     now = datetime.now(timezone.utc).isoformat()
     workspace_state = {
         "name": "joharnessburg-workspace",
         "schema_version": 1,
         "initialized_at": now,
-        "active_template": None,
         "current_phase": "bootstrap",
         "session_metadata": {},
     }

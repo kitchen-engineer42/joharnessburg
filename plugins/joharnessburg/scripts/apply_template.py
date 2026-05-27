@@ -366,6 +366,15 @@ def main(argv: list[str] | None = None):
     }
     (output_root / ".applied-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
 
+    launch_command = f"claude --plugin-dir {output_root}"
+    sys.stderr.write(
+        f"\n✓ Template applied: {template_name}\n"
+        f"  Merged plugin: {output_root}\n"
+        f"  Launch a new Claude Code session with:\n"
+        f"      {launch_command}\n\n"
+    )
+    sys.stderr.flush()
+
     emit(
         {
             "template_name": template_name,
@@ -375,7 +384,7 @@ def main(argv: list[str] | None = None):
             "skills_deleted": deleted,
             "skills_added": added,
             "additive_collisions": additive_collisions,
-            "launch_command": f"claude --plugin-dir {output_root}",
+            "launch_command": launch_command,
         }
     )
 

@@ -16,12 +16,34 @@ Exit codes:
 """
 
 import json
+import os
 import sys
 import traceback
 from pathlib import Path
 
 
 PLAN_PREVIEW_CHARS = 3000
+
+
+def _detect_template_from_env() -> str | None:
+    """If running under a merged template plugin, return the template name.
+
+    Detection rule: if $CLAUDE_PLUGIN_ROOT resolves to a path with parent
+    `~/.claude/plugins/joharnessburg-applied/`, the template name is that
+    path's basename. Otherwise (vanilla John, or any non-applied install)
+    return None.
+    """
+    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    if not plugin_root:
+        return None
+    p = Path(plugin_root).resolve()
+    applied_parent = (Path.home() / ".claude" / "plugins" / "joharnessburg-applied").resolve()
+    try:
+        if p.parent == applied_parent:
+            return p.name
+    except (OSError, ValueError):
+        pass
+    return None
 
 
 def emit(payload):
@@ -59,7 +81,10 @@ def main():
         state.get("session_metadata", {}).get("endurance_goal")
         or "(no endurance goal set; ask the user with /endurance <goal> if running a long project)"
     )
-    active_template = state.get("active_template")
+    # v0.1.15+: template detection derives from the merged plugin path
+    # (CLAUDE_PLUGIN_ROOT), not from workspace.json. The plugin loaded at
+    # session start IS the source of truth for what template is "active".
+    active_template = _detect_template_from_env()
     active_template_label = active_template or "(none — vanilla John)"
     current_phase = state.get("current_phase") or "(unset)"
     initialized_at = state.get("initialized_at", "?")

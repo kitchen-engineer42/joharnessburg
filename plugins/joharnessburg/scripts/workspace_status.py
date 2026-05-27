@@ -16,9 +16,31 @@ Exit codes:
 
 import argparse
 import json
+import os
 import sys
 import traceback
 from pathlib import Path
+
+
+def _detect_template_from_env() -> str | None:
+    """If running under a merged template plugin, return the template name.
+
+    Detection rule: if $CLAUDE_PLUGIN_ROOT resolves to a path with parent
+    `~/.claude/plugins/joharnessburg-applied/`, the template name is that
+    path's basename. Otherwise (vanilla John, or any non-applied install)
+    return None.
+    """
+    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    if not plugin_root:
+        return None
+    p = Path(plugin_root).resolve()
+    applied_parent = (Path.home() / ".claude" / "plugins" / "joharnessburg-applied").resolve()
+    try:
+        if p.parent == applied_parent:
+            return p.name
+    except (OSError, ValueError):
+        pass
+    return None
 
 
 def emit(payload, success=True, exit_code=0):
@@ -125,7 +147,7 @@ def _human_summary(report):
         "",
         f"John workspace at: {report['project_root']}",
         f"  initialized: {ws.get('initialized_at', '?')}",
-        f"  active template: {ws.get('active_template') or '(none)'}",
+        f"  loaded template: {_detect_template_from_env() or '(none — vanilla John)'}",
         f"  current phase: {ws.get('current_phase') or '?'}",
         "",
         "Inventory:",

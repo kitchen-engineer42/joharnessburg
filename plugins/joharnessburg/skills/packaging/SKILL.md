@@ -65,7 +65,7 @@ The header of each entry maps to the description; the rest of the entry maps to 
 
 Two paths, depending on whether a template is active:
 
-**Template-defined packaging** (preferred when applicable). Active templates may ship `scripts/package_<domain>.py` in their template directory at `~/.claude/plugins/joharnessburg-templates/<active>/scripts/`. Check the active template (read `<project>/.john/workspace.json`'s `active_template`). If the template has a packaging script, invoke it via Bash with the project root as an argument. The script handles the schema-specific mapping. Output lands in `<project>/.claude/skills/`.
+**Template-defined packaging** (preferred when applicable). Active templates may ship `scripts/package_<domain>.py` inside the merged plugin (at `$CLAUDE_PLUGIN_ROOT/scripts/`). To check whether you're running under a template, inspect `$CLAUDE_PLUGIN_ROOT` — if its parent is `~/.claude/plugins/joharnessburg-applied/`, you're in a merged-template session and its basename is the template name. List `$CLAUDE_PLUGIN_ROOT/scripts/` for any `package_*.py`; if present, invoke it via Bash with the project root as an argument. The script handles the schema-specific mapping. Output lands in `<project>/.claude/skills/`.
 
 **Inline packaging** (default when no template script is provided). Iterate over `<project>/.john/knowledge/<entry-id>/`, emit each entry as a skill following the conventions in `references/claude-code-skill-format.md`. Map per the patterns above (chunky vs granular). Straightforward but slower because each entry's emission is a Claude-driven decision rather than a deterministic script.
 

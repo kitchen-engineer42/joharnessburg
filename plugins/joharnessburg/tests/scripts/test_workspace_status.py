@@ -28,7 +28,7 @@ class TestWorkspaceStatus(unittest.TestCase):
             self.assertEqual(rc, 0, f"stderr: {err}")
             self.assertTrue(out["success"])
             self.assertEqual(out["workspace"]["current_phase"], "bootstrap")
-            self.assertIsNone(out["workspace"]["active_template"])
+            self.assertNotIn("active_template", out["workspace"])  # v0.1.15+: field removed
             self.assertTrue(out["plan_md_present"])
             self.assertTrue(out["claude_md_present"])
             inv = out["inventory"]

@@ -1,6 +1,7 @@
 """Tests for scripts/session_start_hook.py."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,14 +11,18 @@ from pathlib import Path
 from tests._helpers import SCRIPTS_DIR
 
 
-def run_hook(stdin_data: dict, cwd: Path = None):
+def run_hook(stdin_data: dict, cwd: Path = None, env_overrides: dict = None):
     """Run the session_start hook with stdin JSON; return (rc, stdout_json, stderr)."""
+    env = os.environ.copy()
+    if env_overrides:
+        env.update(env_overrides)
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS_DIR / "session_start_hook.py")],
         input=json.dumps(stdin_data),
         cwd=str(cwd) if cwd else None,
         capture_output=True,
         text=True,
+        env=env,
     )
     try:
         stdout = json.loads(proc.stdout) if proc.stdout.strip() else None
@@ -37,19 +42,25 @@ class TestSessionStartHook(unittest.TestCase):
     def test_emits_additional_context_when_john_active(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
-            # Set up a minimal John workspace
+            # Set up a minimal John workspace (v0.1.15+: no active_template field)
             (tdp / ".john").mkdir()
             workspace_state = {
                 "schema_version": 1,
                 "initialized_at": "2026-05-22T10:00:00+00:00",
-                "active_template": "slides-from-textbook",
                 "current_phase": "extract",
                 "session_metadata": {"endurance_goal": "Build a biology quiz app"},
             }
             (tdp / ".john" / "workspace.json").write_text(json.dumps(workspace_state))
             (tdp / "PLAN.md").write_text("# PLAN.md — test project\n\nIntent: a quiz app.\n")
 
-            rc, out, _ = run_hook({"cwd": str(tdp)}, cwd=tdp)
+            # Simulate launching with a merged template plugin by pointing
+            # CLAUDE_PLUGIN_ROOT at a fake joharnessburg-applied/<name>/ path.
+            fake_plugin = Path.home() / ".claude" / "plugins" / "joharnessburg-applied" / "slides-from-textbook"
+            rc, out, _ = run_hook(
+                {"cwd": str(tdp)},
+                cwd=tdp,
+                env_overrides={"CLAUDE_PLUGIN_ROOT": str(fake_plugin)},
+            )
             self.assertEqual(rc, 0)
             self.assertIn("additionalContext", out)
             ctx = out["additionalContext"]

@@ -1,35 +1,38 @@
-# John templates — authoring guide (v0.1.7)
+# John templates — authoring guide
 
 A template is a **diff to original John** that customizes the plugin for a specific domain (slide decks, doc verification, mystery games, portfolio sites, etc.). John core stays unchanged; templates add/override/delete skills, ship a PLAN.md skeleton, and append project guidance to CLAUDE.md.
 
 This guide is for anyone authoring a template — internal team members, external contributors, or layer-2 Claude when the user says "let's make a template for X."
 
-## The v0.1.7 architecture
+## Architecture (v0.1.15+: apply.sh + --plugin-dir)
 
-1. **Templates live at `~/.claude/plugins/joharnessburg-templates/<name>/`** as directories. Distribution: copy/symlink/git-clone into that location.
-2. **Applying a template** runs `apply_template.py` (via the template's `apply.sh` or via `/joharnessburg-template <name>`). The script:
+The end-to-end flow:
+
+1. **Templates live at `~/.claude/plugins/joharnessburg-templates/<name>/`** as directories. Distribution: copy/symlink/git-clone into that location. (You can keep template sources in their own git repo and `ln -s` into the install dir.)
+2. **Applying a template** runs `apply_template.py` (via the template's `apply.sh`). The script:
    - Copies the joharnessburg install to `~/.claude/plugins/joharnessburg-applied/<template-name>/`.
    - Overlays the template's diff (overrides + additions + deletes).
    - Writes `.applied-metadata.json` with provenance.
-   - Prints the launch command for the user.
-3. **Running John with the template**: `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<template-name>/`. The merged dir IS John for that session — all skills load equally, no special template layer.
-4. **Reset** = delete merged dirs. `/joharnessburg-template --clear` does this for the whole applied-parent. Or run `reset_john.py` directly for a more selective wipe.
-5. **Switching templates (single workspace)**: `/joharnessburg-template <new>` applies the new template; relaunch the session with the new `--plugin-dir`. The new applied dir coexists with the old one (v0.1.8+), so per-workspace switching is non-destructive to other parallel sessions. `--reset-all` wipes everything if you want a clean slate.
-6. **Parallel sessions, different templates** (v0.1.8+): each Claude Code session is independent. Apply slides-from-textbook and doc-verification both; their applied dirs at `~/.claude/plugins/joharnessburg-applied/{slides-from-textbook,doc-verification}/` coexist. Each parallel `claude --plugin-dir <one-of-them>` session sees only that template's content; no cross-session leakage.
+   - Prints the launch command on stderr at success.
+3. **Running John with the template**: `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<template-name>/`. The merged dir IS John for that session — all skills load equally, no special template layer. Which template is loaded is fixed at session start (CLAUDE_PLUGIN_ROOT) and cannot be hot-swapped mid-session.
+4. **Reset** = delete merged dirs. `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/reset_john.py` (or just `rm -rf ~/.claude/plugins/joharnessburg-applied/`).
+5. **Switching templates**: exit the current session, apply a different template (or reuse an existing merged dir), relaunch with the new `--plugin-dir`. No per-workspace "active template" state to worry about — the session's plugin is determined entirely by how you launched.
+6. **Parallel sessions, different templates**: each Claude Code session is independent. Multiple applied dirs at `~/.claude/plugins/joharnessburg-applied/<name>/` coexist freely; each parallel `claude --plugin-dir <one>` sees only that template's content.
 
 ## Why this design
 
 - **Clean run state**: layer-2 Claude doesn't have to remember to read template files mid-session. Whatever's in the merged plugin IS what's loaded.
+- **No per-workspace template state**: there's no `active_template` field to drift or to manage. The plugin path is the source of truth.
 - **Skills-analytics works**: template skills appear as regular skill invocations in the dashboard. No "phantom skill" mystery.
 - **Production-aligned**: when the tech team deploys John for production, templates can ship as part of the deployed plugin; same merge mechanic.
-- **Authoring is local + one-click**: a template author edits files in their template dir, runs `./apply.sh`, launches Claude with the merged plugin, iterates. No plugin republish needed during iteration.
+- **Authoring is local + one-click**: edit template files, run `./apply.sh`, launch Claude with the merged plugin, iterate. No plugin republish needed during iteration.
 
 ## Directory anatomy
 
 ```
 ~/.claude/plugins/joharnessburg-templates/<name>/
 ├── template.json                    # required: name, version, description, requires_john
-├── apply.sh                         # required (copy of joharnessburg/templates/apply.sh)
+├── apply.sh                         # required (copy/symlink of joharnessburg/templates/apply.sh)
 ├── claude_addon.md                  # optional: project-CLAUDE.md guidance, copied to templates-active/ in merged plugin
 ├── plan_md_template.md              # optional: starter PLAN.md, copied to templates-active/ for /joharnessburg-init to consume
 ├── skills/
@@ -53,11 +56,11 @@ Required:
   "name": "your-template-name",
   "version": "0.1.0",
   "description": "What this template does and when to use it.",
-  "requires_john": ">=0.1.7"
+  "requires_john": ">=0.1.15"
 }
 ```
 
-`name` must match the directory name. `requires_john` is informational in v0.1.7 (apply_template.py doesn't enforce it yet; v0.1.8 may).
+`name` must match the directory name. `requires_john` is informational today (apply_template.py doesn't enforce it).
 
 ## Apply mechanics (precise)
 
@@ -71,14 +74,14 @@ When `apply_template.py` runs for your template:
 | `scripts/<name>.py` | Copied into the merged plugin's `scripts/`. NOT-OVERRIDE: shadowing a core script name is a warning + skip. Use different names. |
 | `commands/<name>.md` | Same NOT-OVERRIDE rule. |
 | `agents/<name>.md` | Same NOT-OVERRIDE rule. |
-| `claude_addon.md` | Copied to `templates-active/claude_addon.md` in the merged plugin. Layer-2 Claude can `Read` it and apply its guidance. The merged `/joharnessburg-init` command also surfaces it. |
-| `plan_md_template.md` | Copied to `templates-active/plan_md_template.md`. `/joharnessburg-init` uses it as the PLAN.md skeleton instead of the default. |
+| `claude_addon.md` | Copied to `templates-active/claude_addon.md` in the merged plugin. Layer-2 Claude can `Read` it and apply its guidance. `/joharnessburg-init` also surfaces it under the scaffolded CLAUDE.md's "From active template" section. |
+| `plan_md_template.md` | Copied to `templates-active/plan_md_template.md`. `/joharnessburg-init` uses it as the PLAN.md skeleton instead of the hardcoded default. |
 
 Override semantics: **full replacement**, not merge. The override file is the new core file; nothing from the original is preserved.
 
 ## Authoring workflow
 
-1. **Start from an example** at `templates/examples/{slides-from-textbook,doc-verification}/`. Both are functional demonstrators (per spec §8.10 — production-ready templates are tech-team / team-lead work post-handoff).
+1. **Start from an example** at `templates/examples/{slides-from-textbook,doc-verification}/`. Both are functional demonstrators (per spec §8.10 — production-ready templates are tech-team / team-lead work post-handoff). For a methodical, Claude-guided build, see [Hamster](https://github.com/kitchen-engineer42/hamster).
 2. **Settle the four structures** for your domain (format of knowledge / schema / runtime / pipeline). Capture in `plan_md_template.md`.
 3. **Decide what to override vs add**:
    - John's `chunking` skill is generic — if your domain needs slide-shape or rule-shape chunking, override it.
@@ -86,14 +89,14 @@ Override semantics: **full replacement**, not merge. The override file is the ne
 4. **Write `claude_addon.md`** for taste preferences, terminology, what good output looks like.
 5. **Test the apply cycle**:
    - Symlink your template dir into `~/.claude/plugins/joharnessburg-templates/<name>/`.
-   - Run `./apply.sh` (or `/joharnessburg-template <name>`).
-   - Launch `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/` in a fresh test project.
-   - Verify the new skills + overrides are loaded; check skills-analytics for invocations during a small task.
-6. **Iterate** by editing template files, re-running apply.sh (with `--force` or via the slash command which auto-forces).
+   - Run `./apply.sh` from the template dir.
+   - Read the printed launch command and copy-paste it: `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/`.
+   - In a fresh test project, verify the new skills + overrides are loaded; check skills-analytics for invocations during a small task.
+6. **Iterate** by editing template files and re-running `./apply.sh` (pass `--force` to overwrite the existing merged dir).
 
 ## Install location
 
-Production: `~/.claude/plugins/joharnessburg-templates/<name>/` (user-scope; manual install via `cp -r` or `ln -s`). Distribution: git repos or zipped tarballs the team copies.
+`~/.claude/plugins/joharnessburg-templates/<name>/` (user-scope; manual install via `cp -r` or `ln -s`). Distribution: git repos or zipped tarballs the team copies.
 
 For your team: keep template source under git, symlink into the install location during development:
 
@@ -117,7 +120,7 @@ If you find yourself writing "I/my workspace" in a template skill, you've slippe
 
 - **Overriding a core skill with a near-identical copy**. If your override is 90% the same as the core, you don't need to override — add the small differences as a sibling skill the user/template consults when relevant.
 - **Trying to stack templates**. Templates are diffs to original John, not to each other. You can have multiple applied dirs coexist for parallel sessions, but each session only ever uses ONE template (the one its `--plugin-dir` points at). Stacking template A's diff on top of template B's merged plugin isn't supported.
-- **Patching the joharnessburg cache directly**. apply_template.py builds a separate merged dir under `joharnessburg-applied/`. Never edit the cache at `joharnessburg/joharnessburg/<version>/` — `claude plugin update` will clobber your changes.
+- **Patching the joharnessburg cache directly**. apply_template.py builds a separate merged dir under `joharnessburg-applied/`. Never edit the cache at `~/.claude/plugins/cache/joharnessburg/...` — `claude plugin update` will clobber your changes.
 - **Bundling a closed checklist** unnecessarily. Templates can and should narrow the open methodology of John core when the domain genuinely calls for it (doc-verification locks the rule schema; that's appropriate). But don't lock things that should stay project-specific.
 - **Shipping a `plan_md_template.md` with hardcoded project intent**. The template provides a skeleton; the user fills in their project's specific intent during `/joharnessburg-init`.
 
@@ -127,9 +130,8 @@ If you find yourself writing "I/my workspace" in a template skill, you've slippe
 - Projects where John core's defaults are already 95% right. The 5% lives in PLAN.md's Open Decisions.
 - Projects where the cost of authoring + maintaining a template exceeds the value. Templates pay off when you build multiple projects of the same shape; for a one-off, they're overhead.
 
-## What changed from v0.1.6
+## History
 
-- **v0.1.6** had a "manual-read convention": layer-2 Claude was instructed to read template files at session start. The SessionStart hook surfaced the template name but didn't merge content. Friction-prone; cognitive load; no skills-analytics signal.
-- **v0.1.7** has the diff-script architecture above. SessionStart hook just surfaces the applied-template name as an info line. The merge happened offline via apply.sh. Cleaner.
-
-If you authored a template under v0.1.6, no changes needed to the directory structure — same `skills/`, `_override/`, `_delete`, `claude_addon.md`, `plan_md_template.md` conventions. Add an `apply.sh` (copy/symlink `${CLAUDE_PLUGIN_ROOT}/templates/apply.sh`) and you're done.
+- **v0.1.6**: a "manual-read convention" where layer-2 Claude was instructed to read template files at session start. Friction-prone.
+- **v0.1.7+**: diff-script architecture (this document). `apply_template.py` produces a merged plugin; sessions load it via `--plugin-dir`.
+- **v0.1.15+**: removed the `/joharnessburg-template` slash command and the `active_template` workspace.json field. Sessions are fully determined by their launch-time `--plugin-dir`; there's no per-workspace template state to manage. The slash command's "switch active template" workflow turned out to be confusing in practice (the session's loaded skills don't hot-swap when the metadata changes), so it was dropped in favor of the explicit `apply.sh` + `--plugin-dir` flow.

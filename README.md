@@ -25,8 +25,8 @@ Open a fresh Claude Code session in a project directory. John's `using-john` ski
 
 The natural flow for a new John project:
 
-1. **Scaffold a workspace** — run `/joharnessburg-init` (or just tell Claude "set up John in this dir"). This creates `PLAN.md`, `CLAUDE.md`, and a `.john/` working directory in your project.
-2. **Apply a template** (optional but recommended for common app families) — `/joharnessburg-template <name>`. See [Templates](#templates) below.
+1. **(Optional) Apply a template** for your app family before launching the session. See [Templates](#templates) below — install at `~/.claude/plugins/joharnessburg-templates/<name>/`, run its `apply.sh`, then launch Claude with `--plugin-dir`. Skip for vanilla John.
+2. **Scaffold a workspace** — run `/joharnessburg-init` (or just tell Claude "set up John in this dir"). This creates `PLAN.md`, `CLAUDE.md`, and a `.john/` working directory in your project.
 3. **Drop your inputs** into `.john/input/` (PDFs, regulations, sample documents — whatever the produced app should be built from).
 4. **Tell Claude what kind of app to build**. Claude advances through the phases declared in `PLAN.md` via ralph_loop (the iterative driver), dispatches parallel subagents per phase, and ends with a working app.
 
@@ -57,22 +57,32 @@ Both parser dependencies are optional. The plugin installs and `using-john` load
 
 ## Templates
 
-Templates **specialize John for a family of apps**. A template is a *diff against original John* — applied with one command — that purpose-builds the harness for one kind of pipeline (overriding some skills, adding new ones, shipping a starter `PLAN.md` skeleton).
+Templates **specialize John for a family of apps**. A template is a *diff against original John* that purpose-builds the harness for one kind of pipeline (overriding some skills, adding new ones, shipping a starter `PLAN.md` skeleton).
 
-To apply a template:
+The three-step flow:
 
 ```sh
-/joharnessburg-template <name>
+# 1. Install the template (copy or symlink into user-scope template dir)
+cp -R /path/to/your-template ~/.claude/plugins/joharnessburg-templates/your-template
+
+# 2. Apply it (produces a merged plugin at ~/.claude/plugins/joharnessburg-applied/<name>/)
+~/.claude/plugins/joharnessburg-templates/your-template/apply.sh
+
+# 3. Launch Claude with the merged plugin
+cd /path/to/your-project
+claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 ```
 
-This sets the active template in `.john/workspace.json`, runs the template's `apply.sh` to produce a merged plugin at `~/.claude/plugins/joharnessburg-applied/<name>/`, and prints the command to launch a Claude Code session pointed at the customized harness.
+The merged plugin IS John for that session — all template skills load equally with the core ones; there's no second-class "template layer." Which template is loaded is fixed at session start; to switch, exit and relaunch with a different `--plugin-dir`. Multiple applied templates can coexist (parallel Claude sessions can use different ones).
+
+To reset: `rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/` (or wipe all with `~/.claude/plugins/joharnessburg-applied/`). The next launch without `--plugin-dir` uses vanilla John.
 
 **Bundled examples** (functional demonstrators, not production-ready):
 
 - [`plugins/joharnessburg/templates/examples/slides-from-textbook/`](plugins/joharnessburg/templates/examples/slides-from-textbook/) — lighter (1 override + 1 addition).
 - [`plugins/joharnessburg/templates/examples/doc-verification/`](plugins/joharnessburg/templates/examples/doc-verification/) — heavier, KC-style (2 overrides + 2 additions).
 
-Real production templates ship separately. To author your own template, see [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md) for the diff-script architecture, directory anatomy, switching/reset flows, and `apply.sh` mechanics.
+Real production templates ship separately. To author your own template, see [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md) for the diff-script architecture, directory anatomy, and `apply.sh` mechanics.
 
 If you want a guided experience for authoring templates, the companion tool **Hamster** ([github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)) is a skills bundle that helps Claude Code build John templates methodically.
 
