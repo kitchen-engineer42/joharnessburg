@@ -77,14 +77,9 @@ The merged plugin IS John for that session — all template skills load equally 
 
 To reset: `rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/` (or wipe all with `~/.claude/plugins/joharnessburg-applied/`). The next launch without `--plugin-dir` uses vanilla John.
 
-**Bundled examples** (functional demonstrators, not production-ready):
+**Where to find templates**: This plugin ships no bundled examples — that keeps John's runtime focused on the one template you load (or none). Reference examples (functional demonstrators of the diff format) live in the companion tool **Hamster** ([github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)) under `examples/`. Real production templates ship separately from your team.
 
-- [`plugins/joharnessburg/templates/examples/slides-from-textbook/`](plugins/joharnessburg/templates/examples/slides-from-textbook/) — lighter (1 override + 1 addition).
-- [`plugins/joharnessburg/templates/examples/doc-verification/`](plugins/joharnessburg/templates/examples/doc-verification/) — heavier, KC-style (2 overrides + 2 additions).
-
-Real production templates ship separately. To author your own template, see [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md) for the diff-script architecture, directory anatomy, and `apply.sh` mechanics.
-
-If you want a guided experience for authoring templates, the companion tool **Hamster** ([github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)) is a skills bundle that helps Claude Code build John templates methodically.
+To author your own template, see [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md) for the diff-script architecture, directory anatomy, and `apply.sh` mechanics. For a guided, Claude-driven authoring experience, use Hamster — it ships skills + a methodology that walk Claude Code through building a template from raw inputs.
 
 ## Local clients
 

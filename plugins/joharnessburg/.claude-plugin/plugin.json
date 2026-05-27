@@ -1,6 +1,6 @@
 {
   "name": "joharnessburg",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "John — a Claude Code harness for building knowledge-dense apps. Wraps Claude Code with skills, hooks, slash commands, and a small toolkit so Claude can take unstructured input through knowledge engineering (2skills) and app building (2app) in one long-running session.",
   "author": {
     "name": "memect"

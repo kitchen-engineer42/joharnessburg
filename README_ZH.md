@@ -77,14 +77,9 @@ claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 
 重置：`rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/`（或者全清 `~/.claude/plugins/joharnessburg-applied/`）。下次不带 `--plugin-dir` 启动就是 vanilla John。
 
-**内置示例**（功能演示，不是生产级）：
+**去哪儿找模板**：本插件不内置示例——这能让 John 的运行时聚焦于你加载的那一个模板（或者完全不用模板）。功能演示性质的参考示例（展示 diff 格式）放在配套工具 **Hamster**（[github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)）的 `examples/` 目录下。生产模板由你的团队单独交付。
 
-- [`plugins/joharnessburg/templates/examples/slides-from-textbook/`](plugins/joharnessburg/templates/examples/slides-from-textbook/) —— 较轻量（1 个 override + 1 个新增）。
-- [`plugins/joharnessburg/templates/examples/doc-verification/`](plugins/joharnessburg/templates/examples/doc-verification/) —— 较重，KC 风格（2 个 override + 2 个新增）。
-
-生产模板单独交付。要自己写模板，看 [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md)——里面写了 diff-script 架构、目录结构、`apply.sh` 机制。
-
-如果你想要一种有引导的模板写作体验，配套工具 **Hamster**（[github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)）是一个 skills 包，能帮 Claude Code 方法论地构建 John 模板。
+要自己写模板，看 [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md)——里面写了 diff-script 架构、目录结构、`apply.sh` 机制。如果你想要一种有引导的、Claude 驱动的模板写作体验，用 Hamster——它内置了 skills 和方法论，能带 Claude Code 从原始输入开始一步步构建模板。
 
 ## 本地客户端
 

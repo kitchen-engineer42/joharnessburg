@@ -81,7 +81,7 @@ Override semantics: **full replacement**, not merge. The override file is the ne
 
 ## Authoring workflow
 
-1. **Start from an example** at `templates/examples/{slides-from-textbook,doc-verification}/`. Both are functional demonstrators (per spec §8.10 — production-ready templates are tech-team / team-lead work post-handoff). For a methodical, Claude-guided build, see [Hamster](https://github.com/kitchen-engineer42/hamster).
+1. **Reference an example template** — they live in [Hamster](https://github.com/kitchen-engineer42/hamster) under `examples/{slides-from-textbook,doc-verification}/` (not in this plugin — see the rationale below in the History section). Both are functional demonstrators of the diff format. For a methodical, Claude-guided build, use Hamster's full workflow.
 2. **Settle the four structures** for your domain (format of knowledge / schema / runtime / pipeline). Capture in `plan_md_template.md`.
 3. **Decide what to override vs add**:
    - John's `chunking` skill is generic — if your domain needs slide-shape or rule-shape chunking, override it.
@@ -135,3 +135,4 @@ If you find yourself writing "I/my workspace" in a template skill, you've slippe
 - **v0.1.6**: a "manual-read convention" where layer-2 Claude was instructed to read template files at session start. Friction-prone.
 - **v0.1.7+**: diff-script architecture (this document). `apply_template.py` produces a merged plugin; sessions load it via `--plugin-dir`.
 - **v0.1.15+**: removed the `/joharnessburg-template` slash command and the `active_template` workspace.json field. Sessions are fully determined by their launch-time `--plugin-dir`; there's no per-workspace template state to manage. The slash command's "switch active template" workflow turned out to be confusing in practice (the session's loaded skills don't hot-swap when the metadata changes), so it was dropped in favor of the explicit `apply.sh` + `--plugin-dir` flow.
+- **v0.1.17+**: bundled example templates moved out of this plugin into Hamster's repo at `examples/`. The bundled examples used to live at `templates/examples/{slides-from-textbook,doc-verification}/`, but they were getting copied into the merged plugin at apply time — which meant layer-3 Claude could find them via file walks/greps and apply their competing guidance alongside the actively-loaded template. Now John's runtime contains exactly the one template you loaded (or none), and reference examples for template authors live with Hamster (their natural home, since Hamster is the authoring tool). Historical: when these examples were first written, Hamster didn't exist as a standalone — so they landed in John by default. Now they belong with the authoring tool.
