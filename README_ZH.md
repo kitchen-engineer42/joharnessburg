@@ -26,14 +26,14 @@ claude plugin list
 新 John 项目的自然流程：
 
 1. **（可选）先应用模板** 来特化 app 家族。看下面的 [模板](#模板) 章节——把模板装到 `~/.claude/plugins/joharnessburg-templates/<name>/`，运行它的 `apply.sh`，然后用 `--plugin-dir` 启动 Claude。如果用 vanilla John，跳过这步。
-2. **创建 workspace** —— 运行 `/joharnessburg-init`（或者直接告诉 Claude "在这个目录里设置 John"）。这会在你的项目里创建 `PLAN.md`、`CLAUDE.md` 和一个 `.john/` 工作目录。
+2. **创建 workspace** —— 运行 `/joharnessburg:init`（或者直接告诉 Claude "在这个目录里设置 John"）。这会在你的项目里创建 `PLAN.md`、`CLAUDE.md` 和一个 `.john/` 工作目录。
 3. **把输入材料放进** `.john/input/`（PDF、法规、样本文档——任何 produced app 需要的素材）。
 4. **告诉 Claude 你想构建什么 app**。Claude 会按 `PLAN.md` 里声明的 phase，通过 ralph_loop（迭代驱动器）逐步推进，每个 phase 派发并行的 subagent，最终产出一个可工作的 app。
 
 安装后还有其它 slash command 可用：
 
-- `/joharnessburg-status` —— 当前 phase + 进度
-- `/joharnessburg-archive` —— 归档已完成的 workspace
+- `/joharnessburg:status` —— 当前 phase + 进度
+- `/joharnessburg:archive` —— 归档已完成的 workspace
 - `/endurance` —— 如果会话长时间空闲，重新进入耐久模式
 
 ## 升级

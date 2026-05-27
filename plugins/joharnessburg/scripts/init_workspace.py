@@ -41,7 +41,7 @@ SUBDIRS = [
 PLAN_TEMPLATE = """\
 # PLAN.md — {project_name}
 
-*Created by `/joharnessburg-init` on {date}. Edit freely; this is your living plan and the durable contract that spans 2skills (knowledge engineering) and 2app (app building) in one session.*
+*Created by `/joharnessburg:init` on {date}. Edit freely; this is your living plan and the durable contract that spans 2skills (knowledge engineering) and 2app (app building) in one session.*
 
 ## Project intent
 
@@ -86,7 +86,7 @@ These four constrain each other in a cascade — format determines schema, schem
 
 *Append-only, most recent first.*
 
-- {date}: PLAN.md scaffolded by `/joharnessburg-init`
+- {date}: PLAN.md scaffolded by `/joharnessburg:init`
 """
 
 
@@ -113,7 +113,7 @@ To switch templates: exit, optionally run `~/.claude/plugins/joharnessburg-templ
 
 ## Project status
 
-- Scaffolded by `/joharnessburg-init` on {date}
+- Scaffolded by `/joharnessburg:init` on {date}
 """
 
 
@@ -221,7 +221,7 @@ def main():
     # If running inside a merged template plugin, the plugin install ships a
     # templates-active/ dir with plan_md_template.md + claude_addon.md.
     # apply_template.py writes these in v0.1.7+. Prefer them over the hardcoded
-    # defaults so projects scaffolded via /joharnessburg-init pick up the
+    # defaults so projects scaffolded via /joharnessburg:init pick up the
     # active template's intended skeleton automatically.
     templates_active = _resolve_templates_active()
     template_plan_md = None
@@ -281,7 +281,7 @@ def main():
         if template_claude_addon is not None:
             body += (
                 "\n\n## From active template\n\n"
-                "*Appended by `/joharnessburg-init` from the merged template's "
+                "*Appended by `/joharnessburg:init` from the merged template's "
                 "`templates-active/claude_addon.md`. Treat as project memory.*\n\n"
                 + template_claude_addon.rstrip()
                 + "\n"

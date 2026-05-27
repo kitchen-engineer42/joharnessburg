@@ -75,4 +75,4 @@ Build a quiz app from a single chapter of a high-school biology textbook (provid
 - 2026-05-23: Phase 1 done. doc.md = 8,234 chars; metadata.json records jyppx parse with default backend. Spot-check shows clean OCR.
 - 2026-05-23: Phase 2 partially done (3 of 6 chunks). chunk_004 in flight; chunk_005 + chunk_006 pending. Reducer not run yet; will run when all chunks complete.
 - 2026-05-22: Schema confirmed: facts + glossary. Header has classification, difficulty, cross-refs. Decision logged after corpus survey (parsing's doc.md confirmed the chapter is fact-heavy with ~40 technical terms — supports the format choice).
-- 2026-05-22: PLAN.md scaffolded by `/joharnessburg-init`.
+- 2026-05-22: PLAN.md scaffolded by `/joharnessburg:init`.

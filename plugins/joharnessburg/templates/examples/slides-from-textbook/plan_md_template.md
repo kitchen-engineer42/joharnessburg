@@ -1,6 +1,6 @@
 # PLAN.md — {project_name}
 
-*Created by `/joharnessburg-init` on {date}, using the **slides-from-textbook** template. Edit freely; this is your living plan.*
+*Created by `/joharnessburg:init` on {date}, using the **slides-from-textbook** template. Edit freely; this is your living plan.*
 
 ## Project intent
 
@@ -75,4 +75,4 @@
 
 ## Log
 
-- {date}: PLAN.md scaffolded by `/joharnessburg-init` using the slides-from-textbook template.
+- {date}: PLAN.md scaffolded by `/joharnessburg:init` using the slides-from-textbook template.

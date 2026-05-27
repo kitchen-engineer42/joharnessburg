@@ -1,6 +1,6 @@
 ---
 name: plan-md-authoring
-description: How to write the initial PLAN.md at the start of a John project. Use this skill whenever the user has just run /joharnessburg-init, when there is no PLAN.md yet, or when the user says "let's start a new project" / "design the plan" / "what should we build." PLAN.md is the durable contract that spans 2skills knowledge engineering and 2app app building in ONE session — get it right at the top or every phase pays for it.
+description: How to write the initial PLAN.md at the start of a John project. Use this skill whenever the user has just run /joharnessburg:init, when there is no PLAN.md yet, or when the user says "let's start a new project" / "design the plan" / "what should we build." PLAN.md is the durable contract that spans 2skills knowledge engineering and 2app app building in ONE session — get it right at the top or every phase pays for it.
 metadata:
   triggers:
     - write PLAN.md
@@ -22,7 +22,7 @@ The plan is not a recipe. It's a **wide-tunnel agreement** between you and the u
 
 ## When to start writing
 
-After `/joharnessburg-init` has scaffolded `<project>/.john/` and put the user's input materials in `<project>/.john/input/`. Before you've parsed anything. Before you've decided on a knowledge schema.
+After `/joharnessburg:init` has scaffolded `<project>/.john/` and put the user's input materials in `<project>/.john/input/`. Before you've parsed anything. Before you've decided on a knowledge schema.
 
 The plan should be **written through a conversation with the user**, not generated unilaterally. If you find yourself filling in sections without asking, stop and ask. You only get one chance to shape a project at the top — don't waste it on assumptions.
 
@@ -110,8 +110,8 @@ PLAN.md is co-authored. Do NOT fill in everything unilaterally. The taste calls 
 
 A workable conversation flow (adapt freely):
 
-1. **Confirm project intent.** Echo back what you understood from `/joharnessburg-init` and the user's framing. If anything's ambiguous, ask before sketching.
-2. **Check for an active template.** A template is active if the session launched with `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/` — its parent dir being `joharnessburg-applied/` is the signal. If so, `$CLAUDE_PLUGIN_ROOT/templates-active/plan_md_template.md` (if shipped by the template) is your skeleton; `/joharnessburg-init` automatically uses it on workspace scaffold. Otherwise, you're sketching from scratch — confirm with the user.
+1. **Confirm project intent.** Echo back what you understood from `/joharnessburg:init` and the user's framing. If anything's ambiguous, ask before sketching.
+2. **Check for an active template.** A template is active if the session launched with `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/` — its parent dir being `joharnessburg-applied/` is the signal. If so, `$CLAUDE_PLUGIN_ROOT/templates-active/plan_md_template.md` (if shipped by the template) is your skeleton; `/joharnessburg:init` automatically uses it on workspace scaffold. Otherwise, you're sketching from scratch — confirm with the user.
 3. **Drive the four-structures conversation.** For 2app especially: ask about the runtime shape (what's the produced app, who uses it, how do they interact?) — that drives schema and format decisions backward, and pipeline decisions forward.
 4. **Sketch phases.** For 2skills the suggested pipeline ([[phase-design]] documents it) is a decent default; for 2app, phases emerge from the runtime decision.
 5. **Show the draft, ask for taste corrections.** Don't commit to disk until the user has read and approved the four-structures section and the first 2-3 phases.

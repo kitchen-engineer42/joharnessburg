@@ -271,7 +271,7 @@ class TestApplyTemplate(unittest.TestCase):
             (template / "scripts" / "new_helper.py").write_text(
                 "# new helper from the template\n"
             )
-            # Add a colliding commands/joharnessburg-init.md (if exists in core)
+            # Add a colliding commands/init.md (if exists in core)
             # Our fake_john doesn't have commands/ yet — add one + a collision
             (john / "commands").mkdir(parents=True, exist_ok=True)
             (john / "commands" / "joharnessburg-init.md").write_text(
@@ -303,7 +303,7 @@ class TestApplyTemplate(unittest.TestCase):
             self.assertEqual(
                 (merged / "commands" / "joharnessburg-init.md").read_text(),
                 "# core init command\n",
-                "core commands/joharnessburg-init.md should NOT be overwritten",
+                "core commands/init.md should NOT be overwritten",
             )
             # The non-colliding additions should be present
             self.assertTrue((merged / "scripts" / "new_helper.py").is_file())

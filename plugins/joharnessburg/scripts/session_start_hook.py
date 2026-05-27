@@ -108,7 +108,7 @@ def main():
     else:
         plan_preview = (
             f"(no PLAN.md at {plan_path}; the workspace was scaffolded but PLAN.md is missing — "
-            f"layer-2 Claude should investigate or re-run /joharnessburg-init)"
+            f"layer-2 Claude should investigate or re-run /joharnessburg:init)"
         )
 
     # Compose the additionalContext string

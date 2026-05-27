@@ -1,6 +1,6 @@
 # PLAN.md — {project_name}
 
-*Created by `/joharnessburg-init` on {date}, using the **doc-verification** template (KC_CLI-equivalent). Edit freely; this is your living plan.*
+*Created by `/joharnessburg:init` on {date}, using the **doc-verification** template (KC_CLI-equivalent). Edit freely; this is your living plan.*
 
 ## Project intent
 
@@ -84,4 +84,4 @@
 
 ## Log
 
-- {date}: PLAN.md scaffolded by `/joharnessburg-init` using the doc-verification template.
+- {date}: PLAN.md scaffolded by `/joharnessburg:init` using the doc-verification template.

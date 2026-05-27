@@ -25,11 +25,11 @@ The two halves are nicknamed **2skills** and **2app**. Same session, same memory
 Everything John writes lives in the **user's project directory** (the current working directory when this session was started). You write here, not into John's plugin install location.
 
 - `<project>/PLAN.md` — the durable plan. Read this first. Has phases, subagent assignments, the four-structures section, open decisions, an append-only log. It is the source of truth across context compactions.
-- `<project>/CLAUDE.md` — project memory. If absent, John's `/joharnessburg-init` creates a starter; if present, read it for project-specific conventions.
+- `<project>/CLAUDE.md` — project memory. If absent, John's `/joharnessburg:init` creates a starter; if present, read it for project-specific conventions.
 - `<project>/.john/` — working state. Hidden, ephemeral-ish. Contains `workspace.json` (active template + current phase), `input/` (user materials), `parsed/`, `chunks/`, `knowledge/`, `events/` (append-only logs), `checkpoints/`, `trace/` (offloaded large tool results).
 - `<project>/.claude/skills/` — the *deliverable* skills produced by the 2skills half (Claude Code's project-scoped auto-discovery path). The 2app half consumes these.
 
-If none of this exists yet, John hasn't been initialized for this project. Suggest the user run `/joharnessburg-init <path-to-input>` to scaffold.
+If none of this exists yet, John hasn't been initialized for this project. Suggest the user run `/joharnessburg:init <path-to-input>` to scaffold.
 
 ## How to behave in a John session
 

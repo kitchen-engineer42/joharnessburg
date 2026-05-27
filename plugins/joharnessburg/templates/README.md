@@ -34,7 +34,7 @@ The end-to-end flow:
 ├── template.json                    # required: name, version, description, requires_john
 ├── apply.sh                         # required (copy/symlink of joharnessburg/templates/apply.sh)
 ├── claude_addon.md                  # optional: project-CLAUDE.md guidance, copied to templates-active/ in merged plugin
-├── plan_md_template.md              # optional: starter PLAN.md, copied to templates-active/ for /joharnessburg-init to consume
+├── plan_md_template.md              # optional: starter PLAN.md, copied to templates-active/ for /joharnessburg:init to consume
 ├── skills/
 │   ├── <new-skill>/                 # additive — new skill not in John core
 │   │   ├── SKILL.md
@@ -74,8 +74,8 @@ When `apply_template.py` runs for your template:
 | `scripts/<name>.py` | Copied into the merged plugin's `scripts/`. NOT-OVERRIDE: shadowing a core script name is a warning + skip. Use different names. |
 | `commands/<name>.md` | Same NOT-OVERRIDE rule. |
 | `agents/<name>.md` | Same NOT-OVERRIDE rule. |
-| `claude_addon.md` | Copied to `templates-active/claude_addon.md` in the merged plugin. Layer-2 Claude can `Read` it and apply its guidance. `/joharnessburg-init` also surfaces it under the scaffolded CLAUDE.md's "From active template" section. |
-| `plan_md_template.md` | Copied to `templates-active/plan_md_template.md`. `/joharnessburg-init` uses it as the PLAN.md skeleton instead of the hardcoded default. |
+| `claude_addon.md` | Copied to `templates-active/claude_addon.md` in the merged plugin. Layer-2 Claude can `Read` it and apply its guidance. `/joharnessburg:init` also surfaces it under the scaffolded CLAUDE.md's "From active template" section. |
+| `plan_md_template.md` | Copied to `templates-active/plan_md_template.md`. `/joharnessburg:init` uses it as the PLAN.md skeleton instead of the hardcoded default. |
 
 Override semantics: **full replacement**, not merge. The override file is the new core file; nothing from the original is preserved.
 
@@ -122,7 +122,7 @@ If you find yourself writing "I/my workspace" in a template skill, you've slippe
 - **Trying to stack templates**. Templates are diffs to original John, not to each other. You can have multiple applied dirs coexist for parallel sessions, but each session only ever uses ONE template (the one its `--plugin-dir` points at). Stacking template A's diff on top of template B's merged plugin isn't supported.
 - **Patching the joharnessburg cache directly**. apply_template.py builds a separate merged dir under `joharnessburg-applied/`. Never edit the cache at `~/.claude/plugins/cache/joharnessburg/...` — `claude plugin update` will clobber your changes.
 - **Bundling a closed checklist** unnecessarily. Templates can and should narrow the open methodology of John core when the domain genuinely calls for it (doc-verification locks the rule schema; that's appropriate). But don't lock things that should stay project-specific.
-- **Shipping a `plan_md_template.md` with hardcoded project intent**. The template provides a skeleton; the user fills in their project's specific intent during `/joharnessburg-init`.
+- **Shipping a `plan_md_template.md` with hardcoded project intent**. The template provides a skeleton; the user fills in their project's specific intent during `/joharnessburg:init`.
 
 ## When NOT to write a template
 

@@ -221,7 +221,7 @@ def main():
     if not john_dir.exists():
         err(
             f"No .john/ directory found in {cwd}. "
-            f"Run /joharnessburg-init first.",
+            f"Run /joharnessburg:init first.",
             exit_code=1,
         )
         return

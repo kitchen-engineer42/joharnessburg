@@ -10,7 +10,7 @@ reads from `Path.cwd()`, never from the John dev workspace.
 
 Exit codes:
   0  success (status emitted)
-  1  no .john/ found in cwd (suggest /joharnessburg-init)
+  1  no .john/ found in cwd (suggest /joharnessburg:init)
   2  unexpected exception
 """
 
@@ -84,7 +84,7 @@ def main():
     if not john_dir.exists():
         err(
             f"No .john/ directory found in {cwd}. "
-            f"Run /joharnessburg-init to scaffold one.",
+            f"Run /joharnessburg:init to scaffold one.",
             exit_code=1,
         )
         return
@@ -93,7 +93,7 @@ def main():
     if not workspace_json.exists():
         err(
             f".john/ exists but workspace.json is missing. Workspace may be corrupt; "
-            f"consider /joharnessburg-init --force to rebuild.",
+            f"consider /joharnessburg:init --force to rebuild.",
             exit_code=1,
         )
         return

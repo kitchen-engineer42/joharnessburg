@@ -26,14 +26,14 @@ Open a fresh Claude Code session in a project directory. John's `using-john` ski
 The natural flow for a new John project:
 
 1. **(Optional) Apply a template** for your app family before launching the session. See [Templates](#templates) below — install at `~/.claude/plugins/joharnessburg-templates/<name>/`, run its `apply.sh`, then launch Claude with `--plugin-dir`. Skip for vanilla John.
-2. **Scaffold a workspace** — run `/joharnessburg-init` (or just tell Claude "set up John in this dir"). This creates `PLAN.md`, `CLAUDE.md`, and a `.john/` working directory in your project.
+2. **Scaffold a workspace** — run `/joharnessburg:init` (or just tell Claude "set up John in this dir"). This creates `PLAN.md`, `CLAUDE.md`, and a `.john/` working directory in your project.
 3. **Drop your inputs** into `.john/input/` (PDFs, regulations, sample documents — whatever the produced app should be built from).
 4. **Tell Claude what kind of app to build**. Claude advances through the phases declared in `PLAN.md` via ralph_loop (the iterative driver), dispatches parallel subagents per phase, and ends with a working app.
 
 Other slash commands available after install:
 
-- `/joharnessburg-status` — current phase + progress
-- `/joharnessburg-archive` — archive a finished workspace
+- `/joharnessburg:status` — current phase + progress
+- `/joharnessburg:archive` — archive a finished workspace
 - `/endurance` — re-enter long-running mode if the session has gone idle
 
 ## Upgrade

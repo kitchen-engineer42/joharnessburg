@@ -69,7 +69,7 @@ def main():
     if not workspace_json.exists():
         err(
             f"No .john/workspace.json found in {cwd}. "
-            f"Run /joharnessburg-init first.",
+            f"Run /joharnessburg:init first.",
             exit_code=1,
         )
         return

@@ -22,6 +22,6 @@ When this command fires:
 
 4. After a successful `set`, gently remind the user that this is best used for *real* long runs — not every John session needs an endurance goal. A short Q&A session or a one-phase iteration is fine with just the project intent at the top of PLAN.md. Endurance mode is for runs that span hours, multiple compactions, or many ralph-loop iterations.
 
-5. On `success: false` with "No .john/workspace.json found", tell the user to run `/joharnessburg-init` first — endurance goals attach to a John workspace.
+5. On `success: false` with "No .john/workspace.json found", tell the user to run `/joharnessburg:init` first — endurance goals attach to a John workspace.
 
 Endurance mode pairs with the `ralph-loop` and `context-management` skills — the goal is what survives compaction and what you re-align to after each iteration.
