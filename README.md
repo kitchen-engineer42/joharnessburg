@@ -2,7 +2,7 @@
 
 **John** — a Claude Code plugin that wraps Claude Code in skills, hooks, slash commands, and a small toolkit so it can take unstructured input (books, regulations, mixed docs) through knowledge engineering and app building in one long-running session.
 
-Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in the middle), or "jo-hannesburg" if you prefer the city pun. Either's fine.
+Plugin name: `john` (so its slash commands are `/john:init`, `/john:status`, etc.). It's distributed through the `joharnessburg` marketplace — pronounced "jo-harness-burg" (the harness is in the middle), or "jo-hannesburg" if you prefer the city pun. Hence `claude plugin install john@joharnessburg`.
 
 > 中文版: [`README_ZH.md`](README_ZH.md)
 
@@ -10,11 +10,11 @@ Plugin slug: `joharnessburg`. Pronounced "jo-harness-burg" (the harness is in th
 
 ```sh
 claude plugin marketplace add kitchen-engineer42/joharnessburg
-claude plugin install joharnessburg@joharnessburg
+claude plugin install john@joharnessburg
 
 # Verify
 claude plugin list
-# Expect: joharnessburg@joharnessburg listed, status enabled
+# Expect: john@joharnessburg listed, status enabled
 ```
 
 After install, the `using-john` skill auto-loads when you start a fresh Claude Code session. That's John's orientation entry point — Claude reads it and orients itself to the harness.
@@ -26,21 +26,21 @@ Open a fresh Claude Code session in a project directory. John's `using-john` ski
 The natural flow for a new John project:
 
 1. **(Optional) Apply a template** for your app family before launching the session. See [Templates](#templates) below — install at `~/.claude/plugins/joharnessburg-templates/<name>/`, run its `apply.sh`, then launch Claude with `--plugin-dir`. Skip for vanilla John.
-2. **Scaffold a workspace** — run `/joharnessburg:init` (or just tell Claude "set up John in this dir"). This creates `PLAN.md`, `CLAUDE.md`, and a `.john/` working directory in your project.
+2. **Scaffold a workspace** — run `/john:init` (or just tell Claude "set up John in this dir"). This creates `PLAN.md`, `CLAUDE.md`, and a `.john/` working directory in your project.
 3. **Drop your inputs** into `.john/input/` (PDFs, regulations, sample documents — whatever the produced app should be built from).
 4. **Tell Claude what kind of app to build**. Claude advances through the phases declared in `PLAN.md` via ralph_loop (the iterative driver), dispatches parallel subagents per phase, and ends with a working app.
 
 Other slash commands available after install:
 
-- `/joharnessburg:status` — current phase + progress
-- `/joharnessburg:archive` — archive a finished workspace
+- `/john:status` — current phase + progress
+- `/john:archive` — archive a finished workspace
 - `/endurance` — re-enter long-running mode if the session has gone idle
 
 ## Upgrade
 
 ```sh
 claude plugin marketplace update joharnessburg
-claude plugin update joharnessburg@joharnessburg
+claude plugin update john@joharnessburg
 # Restart Claude Code for the new version to take effect.
 ```
 

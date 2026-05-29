@@ -18,7 +18,7 @@ The first useful thing John does on any project: read the user's raw input mater
 
 ## Where the work happens
 
-- **Inputs**: `<project>/.john/input/` (populated by `/joharnessburg:init`)
+- **Inputs**: `<project>/.john/input/` (populated by `/john:init`)
 - **Outputs**: `<project>/.john/parsed/<source-id>/` — one subdirectory per input file, containing `doc.md`, `doc.json` (when applicable), `metadata.json` (provenance: source path, parser, timestamp).
 - **Tools**: `${CLAUDE_PLUGIN_ROOT}/scripts/ppx_parse.py` (thin HTTP client to a local ppx-client server) and `${CLAUDE_PLUGIN_ROOT}/scripts/markitdown_parse.py` (in-process).
 - **Server URLs** (read from environment): `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`). The server is launched separately via `local_clients/ppx/scripts/start.sh` in the John workspace bundle.

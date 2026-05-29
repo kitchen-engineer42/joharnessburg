@@ -89,7 +89,7 @@ Does NOT ship:
 - Event logs from extraction/rewrite — audit trail, not deliverable.
 - Source documents from `<project>/.john/input/` — provenance, not deliverable.
 
-If the user wants to ship the working state too (for transparency, reproducibility, archival), they use `/joharnessburg:archive` which bundles everything. Packaging is about the *runtime-consumable* output, not the audit trail.
+If the user wants to ship the working state too (for transparency, reproducibility, archival), they use `/john:archive` which bundles everything. Packaging is about the *runtime-consumable* output, not the audit trail.
 
 ## Quality checks before the phase is done
 

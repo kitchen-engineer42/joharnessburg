@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "joharnessburg",
+      "name": "john",
       "source": "./plugins/joharnessburg",
       "description": "John — knowledge engineering + app building in one long-running Claude Code session."
     }

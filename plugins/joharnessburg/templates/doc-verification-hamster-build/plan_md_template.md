@@ -1,6 +1,6 @@
 # PLAN.md — {project_name}
 
-*Created by `/joharnessburg:init` on {date}, using the **doc-verification-hamster-build** template (kc_cli-derived, 8 phases). Edit freely; this is your living plan.*
+*Created by `/john:init` on {date}, using the **doc-verification-hamster-build** template (kc_cli-derived, 8 phases). Edit freely; this is your living plan.*
 
 ## Project intent
 
@@ -128,4 +128,4 @@ Fill in:
 
 ## Log
 
-- {date}: PLAN.md scaffolded by `/joharnessburg:init` using the `doc-verification-hamster-build` template.
+- {date}: PLAN.md scaffolded by `/john:init` using the `doc-verification-hamster-build` template.

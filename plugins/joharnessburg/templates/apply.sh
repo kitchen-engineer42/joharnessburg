@@ -26,7 +26,7 @@ import json, pathlib, sys
 p = pathlib.Path(sys.argv[1])
 data = json.loads(p.read_text())
 for k, entries in data.get("plugins", {}).items():
-    if k.startswith("joharnessburg") and entries:
+    if ("joharnessburg" in k or "john" in k) and entries:
         path = entries[0].get("installPath")
         if path:
             print(path + "/scripts/apply_template.py")

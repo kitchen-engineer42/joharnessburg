@@ -177,7 +177,7 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertTrue(out["templates_active_used"])
             plan_body = (project / "PLAN.md").read_text()
             self.assertIn("CUSTOM TEMPLATE PLAN — my-test-project", plan_body)
-            self.assertNotIn("Created by `/joharnessburg:init`", plan_body)
+            self.assertNotIn("Created by `/john:init`", plan_body)
 
     def test_init_falls_back_to_default_plan_md_when_no_templates_active(self):
         with tempfile.TemporaryDirectory() as td:
@@ -192,7 +192,7 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertEqual(out["plan_md_source"], "default")
             self.assertFalse(out["templates_active_used"])
             plan_body = (tdp / "PLAN.md").read_text()
-            self.assertIn("Created by `/joharnessburg:init`", plan_body)
+            self.assertIn("Created by `/john:init`", plan_body)
 
     def test_init_template_plan_md_falls_back_when_format_args_dont_match(self):
         # Template authors may use literal `{...}` strings; init should not crash

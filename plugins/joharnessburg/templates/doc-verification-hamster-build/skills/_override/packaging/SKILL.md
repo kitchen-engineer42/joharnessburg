@@ -217,7 +217,7 @@ Ships in `<project>/release/v1/`:
 
 Does NOT ship:
 - Raw `<project>/.john/knowledge/` — working state, audit trail material only.
-- Event logs — captured separately by `/joharnessburg:archive` if the user wants them.
+- Event logs — captured separately by `/john:archive` if the user wants them.
 - Sample inputs from `<project>/.john/input/samples/` — those are dev-time, not runtime. Fixtures in the release bundle are a curated subset.
 
 ## The handoff to 2app

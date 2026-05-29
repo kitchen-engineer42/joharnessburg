@@ -12,6 +12,6 @@ When this command fires:
 
 2. The script emits JSON to stdout and a human-readable summary to stderr. Show the user the human-readable summary directly. Use the JSON to decide your own next action (e.g., advance phase, dispatch subagents).
 
-3. On `success: false` with "No .john/ directory found", tell the user to run `/joharnessburg:init` first to scaffold the workspace.
+3. On `success: false` with "No .john/ directory found", tell the user to run `/john:init` first to scaffold the workspace.
 
 After showing the status, if the user is asking "what's next?", consult `PLAN.md` (read the file) to identify the next incomplete phase and propose advancing it per the `ralph-loop` skill.

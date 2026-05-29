@@ -14,7 +14,7 @@ PLAN.md has three sections that record state-over-time: **Log** (what happened),
 - 2026-05-23: Phase 4 subdivided into 4a (summary extraction) and 4b (detail extraction). Rationale: different prompts, different verification.
 - 2026-05-23: Phase 3 done. 187 entries extracted across 42 chunks, dedup folded to 173.
 - 2026-05-22: Schema iterated to add 'severity' field. Rationale: runtime needs to color-code by severity.
-- 2026-05-22: /joharnessburg:init scaffolded the workspace.
+- 2026-05-22: /john:init scaffolded the workspace.
 ```
 
 **Rules**:

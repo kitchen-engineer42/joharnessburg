@@ -84,7 +84,10 @@ def resolve_john_install() -> Path | None:
         return None
     plugins = data.get("plugins", {})
     for key, entries in plugins.items():
-        if not key.startswith("joharnessburg"):
+        # The plugin is named `john` but ships from the `joharnessburg` marketplace,
+        # so the registry key (e.g. "john@joharnessburg" or marketplace-scoped) still
+        # contains "joharnessburg". Match on substring to be robust to key format.
+        if "joharnessburg" not in key and "john" not in key:
             continue
         if not isinstance(entries, list) or not entries:
             continue
@@ -276,7 +279,7 @@ def main(argv: list[str] | None = None):
     if not john_install or not john_install.is_dir():
         err(
             "Could not resolve the joharnessburg plugin install. "
-            "Ensure it's installed (`claude plugin install joharnessburg@joharnessburg`) "
+            "Ensure it's installed (`claude plugin install john@joharnessburg`) "
             "or pass --john-install <path>.",
         )
         return
