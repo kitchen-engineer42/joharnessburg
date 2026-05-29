@@ -30,7 +30,7 @@ If no endurance goal is set, the project's intent from PLAN.md's top section ser
 
 ### 2. Filesystem offload for large tool results
 
-When a tool returns a result that feels heavy (multi-KB parsed data, verbose error trace, raw PDF text), don't keep it in conversation context. Write it to `<project>/.john/trace/<id>.txt` and reference the path; leave a head+tail digest in your context. In M5 the PostToolUse hook will auto-wire this for results past a size threshold; until then, do it manually for results that feel large.
+When a tool returns a result that feels heavy (multi-KB parsed data, verbose error trace, raw PDF text), don't keep it in conversation context. Write it to `<project>/.john/trace/<id>.txt` and reference the path; leave a head+tail digest in your context. John's PostToolUse hook auto-wires this for results past a size threshold; do it manually for anything the hook doesn't catch but that still feels large.
 
 When you need the full content again, Read the trace file. Until then, the digest is enough for most decision-making, and your context stays clean.
 

@@ -24,13 +24,13 @@ This is the most consequential decision in the 2skills half. Get it wrong-or-too
 
 ## The four-structures cascade
 
-Per spec §4: format → schema → runtime → production-pipeline. Each constrains the next. Schema is the second link in the chain — downstream of *what kind of knowledge* and upstream of *what the app does*. The cascade itself is explained in `references/four-structures-cascade.md` and applied in [[plan-md-authoring]]; this skill is where the *schema link* gets designed.
+The four-structure cascade — format → schema → runtime → production-pipeline — has each link constrain the next. Schema is the second link in the chain — downstream of *what kind of knowledge* and upstream of *what the app does*. The cascade itself is explained in `references/four-structures-cascade.md` and applied in [[plan-md-authoring]]; this skill is where the *schema link* gets designed.
 
 You make schema decisions **only after the format decision is roughly settled**. Reverse the order and you end up over-fitting the schema to the corpus, then re-doing it when the runtime asks for something the schema can't represent.
 
 ## Before you design — read the corpus first
 
-Per spec §8.4: *"John should teach Claude to design a good schema. Abstract from previous projects the methodology, tell Claude what to consider, when and how to iterate."* That methodology starts with **reading what's actually in the corpus** before sketching a schema. Pre-designing in a vacuum is how you get over-fit or under-specified schemas.
+John's job is to *teach* schema design, not hand you a schema: abstract the methodology from prior projects — what to consider, when and how to iterate — and apply it here. That methodology starts with **reading what's actually in the corpus** before sketching a schema. Pre-designing in a vacuum is how you get over-fit or under-specified schemas.
 
 Practical method:
 
@@ -62,21 +62,13 @@ Common forms knowledge takes:
 
 A project can have **multiple formats** — e.g., facts + skills + glossary, or storylines + character profiles. They don't have to share a schema.
 
-## Schema shape per format (starting points)
+## Schema shape per format
 
-For each format, a starter schema. **These are starting points, not requirements.** Wide tunnel.
-
-- **Facts**: `{id, claim, sources[], confidence, related_facts[]}`. Header (one-liner) + body (full elaboration).
-- **Rules**: `{id, source_ref, trigger, judgment, decision_tree, glossary_refs[]}`. From KC's design — see `references/kc-rule-schema.md`.
-- **Skills**: SKILL.md frontmatter (name, description) + body + optional `references/`/`scripts/`/`assets/` subdirs. See [[packaging]].
-- **Wiki entries**: `{id, title, body, links[], categories[]}`. Plain-old wiki.
-- **Storylines**: `{id, narrative_arc, characters[], scenes[], branches[]}`. See mystery-detective-game's GameData type as one shape.
-- **Screenplays**: `{scene_id, location, time, dialogue[], action[]}`.
-- **Graphs**: nodes `{id, type, attrs}` + edges `{from, to, type, attrs}`.
+Design the schema for *this* corpus — there's no canonical shape to fill in. For illustrations of the *kind* of fields each common format tends to want (facts, rules, skills, wiki, storylines, screenplays, graphs), see `references/starter-schemas.md`. Read them as examples, not a menu. Header + body progressive disclosure stays universal regardless of which format you land on.
 
 ## The MECE principle
 
-Per the user's PLAN.md M3 framing: extract "everything there is OR everything needed for what." Mutually Exclusive, Collectively Exhaustive within the chosen schema. **Don't extract the same fact three times under different schemas; don't leave the user's input partially covered.**
+Extract "everything there is" OR "everything needed for what" — Mutually Exclusive, Collectively Exhaustive within the chosen schema. **Don't extract the same fact three times under different schemas; don't leave the user's input partially covered.**
 
 MECE applies to coverage, not granularity — a fact and a rule that depends on the fact can coexist if they're in different formats. Inside a single format, no duplicates.
 

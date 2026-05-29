@@ -65,7 +65,7 @@ When a rule-skill / app needs a workerLLM call, pick the cheapest tier that's go
 
 ## Error patterns
 
-- **Connection refused / timeout** at `$JOHN_LLM_CLIENT_URL`: the local server isn't running. Tell the user: *"The john-llm-server isn't running. Launch it with `/Users/mac/Desktop/john/local_clients/llm/scripts/start.sh` in a separate terminal."*
+- **Connection refused / timeout** at `$JOHN_LLM_CLIENT_URL`: the local server isn't running. Tell the user that their LLM client server isn't reachable at `$JOHN_LLM_CLIENT_URL` — they need to start it (or point `$JOHN_LLM_CLIENT_URL` at a running one) in a separate terminal.
 - **503 from the server** with `"Provider '<name>' is not configured"`: the workspace `.env` is missing the API key for the routed provider. Tell the user which env var to set.
 - **Upstream provider error (502)**: provider returned an error. Surface its message; usually a model-name typo or out-of-credit.
 - **501 with "streaming not implemented"**: pass `stream=false` (default). Streaming isn't supported by this client.

@@ -328,6 +328,32 @@ class TestApplyTemplate(unittest.TestCase):
                 {"scripts", "commands"},
             )
 
+    def test_apply_force_refuses_to_delete_unrelated_dir(self):
+        # Safety guard: --force must not rmtree a dir that is neither under the
+        # applied parent nor an existing applied template (no marker).
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            john = tdp / "john"
+            template = tdp / "template"
+            applied_parent = tdp / "applied"
+            _build_fake_john(john)
+            _build_fake_template(template, name="guard-tpl")
+
+            victim = tdp / "myproject"
+            victim.mkdir()
+            (victim / "important.txt").write_text("do not delete")
+
+            rc, out, err = run_apply(
+                "--template-root", str(template),
+                "--john-install", str(john),
+                "--output", str(victim),
+                "--force",
+                output_parent_override=applied_parent,
+            )
+            self.assertEqual(rc, 1)
+            self.assertIn("Refusing to delete", out["error"])
+            self.assertTrue((victim / "important.txt").exists())
+
     def test_apply_uses_template_name_from_template_json(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

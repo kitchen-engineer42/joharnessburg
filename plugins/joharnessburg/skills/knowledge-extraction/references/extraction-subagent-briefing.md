@@ -85,6 +85,6 @@ Do NOT include raw entry content in your return. Those are in the event log.
 
 Pattern synthesized from:
 
-- A2O's `chunks2skus/extractors/` extraction prompts (the actual prompts on the dev machine)
-- Spec §7 working agreements (briefing subagents with full context)
-- Spec §8.13 (mathlab's self-correction echo)
+- A2O's `chunks2skus/extractors/` extraction prompts
+- The working-agreement principle of briefing subagents with full context
+- mathlab's self-correction echo

@@ -172,9 +172,9 @@ plugins/
     hooks/hooks.json            # Hook 声明（安装时自动注册）
     skills/                     # John 的 meta-skill（加载进 John 包装的 Claude Code 会话）
     commands/                   # Slash command
-    scripts/                    # 小型 Python 工具包（ppx 包装、事件 reducer、scaffolder 等）
+    scripts/                    # 小型 Python 工具包（ppx 包装、事件 reducer、apply_template 等）
     agents/                     # Subagent 角色定义
-    templates/                  # 内置模板示例 + 模板撰写文档
+    templates/                  # 通用 apply.sh + 撰写指南（templates/README.md）；以及已收录的模板
 README.md                       # 英文版
 README_ZH.md                    # 本文件
 LICENSE                         # AGPL-3.0-or-later

@@ -30,7 +30,7 @@ Every iteration of substantive work in a John session takes the same shape:
 
 That's it. The rest of this skill is failure modes and nuance.
 
-**Templates may override this pattern.** Per the user's spec §8.5 sign-off, the active template can define its own iteration model — substitute different phases, run a different loop shape, override what counts as "one unit." If a template ships its own loop instructions in `claude_addon.md` or a sibling skill, follow that instead. This skill is John's default; templates shape the variation. Always check PLAN.md and CLAUDE.md for template-specific overrides before assuming the default applies.
+**Templates may override this pattern.** The active template can define its own iteration model — substitute different phases, run a different loop shape, override what counts as "one unit." If a template ships its own loop instructions in `claude_addon.md` or a sibling skill, follow that instead. This skill is John's default; templates shape the variation. Always check PLAN.md and CLAUDE.md for template-specific overrides before assuming the default applies.
 
 ## Why this loop
 

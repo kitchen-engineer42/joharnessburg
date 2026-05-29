@@ -30,7 +30,7 @@ Extraction is fan-out; rewrite is consolidation. The raw event log from [[knowle
 
 ## Header + body — what goes where
 
-**Why this matters at scale.** At 1000+ entries, loading all bodies into a context consumes 2M+ tokens — impossible. Loading all *headers* is more like 4K tokens — easy. The header+body split is what makes large knowledge bases work at all; it's not an optimization, it's the only way. Per spec §3a, this design is one of the strengths of the current pipeline worth preserving universally.
+**Why this matters at scale.** At 1000+ entries, loading all bodies into a context consumes 2M+ tokens — impossible. Loading all *headers* is more like 4K tokens — easy. The header+body split is what makes large knowledge bases work at all; it's not an optimization, it's the only way. It's one of the strengths of the knowledge pipeline worth preserving universally.
 
 **Header** is the entry's "first impression." Pinned in indexes, included in cross-link contexts, cheap to load. Includes:
 
@@ -71,7 +71,7 @@ A2O's two-tier dedup handles this without false positives or false negatives at 
 - **Tier 1 (cheap)**: a small/cheap model (Haiku, or a workerLLM) does a quick-scan over header pairs from the same bucket. Asks: "Are these two entries describing the same thing?" Outputs yes/no/maybe.
 - **Tier 2 (expensive)**: for everything in tier-1's "maybe" or "yes" pile, a SOTA model (Claude Sonnet/Opus) does a deep-read over both bodies and decides definitively.
 
-Tier 1 filters out obvious non-duplicates cheaply (the bulk). Tier 2 spends real tokens only on plausible candidates. The ratio matters — typical run: 10,000 pairs through tier 1, 50 through tier 2.
+Tier 1 filters out obvious non-duplicates cheaply (the bulk). Tier 2 spends real tokens only on plausible candidates. The ratio matters — in a typical run the vast majority of pairs are filtered cheaply by tier 1, and only a small fraction reach tier 2.
 
 When duplicates are confirmed, the rewrite phase has options:
 
@@ -83,7 +83,7 @@ When duplicates are confirmed, the rewrite phase has options:
 
 **Warning — corrective events + dedup interaction.** If the corpus already contains corrective events from prior iterations (entry A superseded by entry A-v2), the tier-2 deep-read may find A and A-v2 highly similar and propose a merge. **Don't merge correction chains.** When tier 2 encounters a candidate pair where one is a supersession of the other (check the `supersedes` field), the right action is to drop the older entry from the canonical state and keep the newer one — which is what supersession already does. Do NOT emit a merge that loses the correction history. The audit dimension: any merge decision against a known-superseded entry should be flagged in the rewrite phase Log.
 
-**Bucket weight tuning.** The default weights (TF-IDF 0.2 / Label 0.3 / Vector 0.5) work for general-purpose corpora; they're tunable per project. Signals to retune: if tier-1 quick-scan flags >50% of pairs as "maybe", the vector weight is too high (too aggressive bucketing). If spot-checks find obvious duplicates that tier 1 missed, TF-IDF or Label weight is too low. Templates that handle specific domains (e.g., legal docs with consistent vocabulary) may want to bump TF-IDF higher. Checkpoint the weights used per run so iterations are reproducible.
+**Bucket weight tuning.** Bucketing scores each candidate pair with a weighted blend of signals (lexical/TF-IDF overlap, label match, vector similarity); the weights are tunable per project, and domains with consistent vocabulary vs. heavy synonymy want different blends. Checkpoint the weights used per run so iterations are reproducible. `references/two-tier-dedup.md` gives concrete starting weights and the signals that tell you to retune.
 
 ## When to iterate vs ship
 

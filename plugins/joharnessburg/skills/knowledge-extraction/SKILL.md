@@ -25,7 +25,7 @@ The phase where chunks become entries. This is where the vertical axis of John's
 
 ## The MECE sweep
 
-Per the user's framing in PLAN.md M3: extract "everything there is" OR "everything needed for what" — depends on the project's intent.
+Extract "everything there is" OR "everything needed for what" — which one depends on the project's intent. Decide that early and let it shape the sweep.
 
 - **Comprehensive sweep**: "extract everything there is in this corpus that matches the schema." Right for encyclopedic projects, regulations, broad knowledge bases.
 - **Goal-directed sweep**: "extract everything needed to answer X." Right for narrow apps where coverage outside the goal is wasteful.
@@ -64,7 +64,7 @@ Cost: one event per chunk's worth of summarization. Cheap compared to re-running
 
 ## Model tier per chunk
 
-Per spec §8.3 user reply, John core uses Claude's defaults: Opus for the main agent, Sonnet/Haiku for subagents per task. For extraction subagents:
+John core uses Claude's defaults: Opus for the main agent, Sonnet/Haiku for subagents per task. For extraction subagents:
 
 - **Sonnet** is usually right. Extraction needs decent reading comprehension + schema adherence; Sonnet has both.
 - **Haiku** works for highly structured chunks (e.g., extracting facts from a clean table). Cheap, fast.

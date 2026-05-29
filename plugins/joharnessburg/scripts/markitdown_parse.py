@@ -104,7 +104,7 @@ def main():
         )
         return
 
-    doc_md_path.write_text(text)
+    doc_md_path.write_text(text, encoding="utf-8")
 
     metadata = {
         "source_path": str(src),
@@ -114,7 +114,7 @@ def main():
         "parsed_at": datetime.now(timezone.utc).isoformat(),
         "char_count": len(text),
     }
-    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n")
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
     emit(
         {

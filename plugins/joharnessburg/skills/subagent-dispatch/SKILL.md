@@ -20,7 +20,7 @@ Three triggers, in order of clarity:
 
 1. **Per-entry work that fits one context window per entry but doesn't fit yours in aggregate.** Classic case: 200 chunks to extract knowledge from. Each chunk is small; 200 of them through your context is not.
 2. **Work where you want a context firewall.** Some tasks produce large intermediate state (a 50KB raw extraction) that you don't need in your context — you only need the digest. The subagent handles the raw; you see the summary.
-3. **Work that benefits from a tighter persona or cheaper model.** A subagent can be given a narrow role ("you are a knowledge extractor; here is the schema; here is one chunk; emit entries to the event log and return a one-line digest") that focuses its output. Per the user's spec §8.3, John core delegates model selection to Claude — Sonnet/Haiku are routinely used for subagents per task requirement, and you should request the cheapest viable model when dispatching. Templates that need workerLLMs (SiliconFlow, DeepSeek, etc. via cheap LLM clients) wire that themselves; John core uses Claude's tier defaults.
+3. **Work that benefits from a tighter persona or cheaper model.** A subagent can be given a narrow role ("you are a knowledge extractor; here is the schema; here is one chunk; emit entries to the event log and return a one-line digest") that focuses its output. John core delegates model selection to Claude — Sonnet/Haiku are routinely used for subagents per task requirement, and you should request the cheapest viable model when dispatching. Templates that need workerLLMs (SiliconFlow, DeepSeek, etc. via cheap LLM clients) wire that themselves; John core uses Claude's tier defaults.
 
 ## When NOT to spawn a subagent
 

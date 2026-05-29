@@ -171,9 +171,9 @@ plugins/
     hooks/hooks.json            # Hook declarations (auto-registered on install)
     skills/                     # John's meta-skills (loaded into John-wrapped Claude Code sessions)
     commands/                   # Slash commands
-    scripts/                    # Small Python toolkit (ppx wrapper, event reducer, scaffolder, etc.)
+    scripts/                    # Small Python toolkit (ppx wrapper, event reducer, apply_template, etc.)
     agents/                     # Subagent role definitions
-    templates/                  # Bundled template examples + authoring docs
+    templates/                  # Universal apply.sh + authoring guide (templates/README.md); plus any promoted templates
 README.md                       # This file
 README_ZH.md                    # 中文版
 LICENSE                         # AGPL-3.0-or-later

@@ -66,7 +66,7 @@ def load_events(phase_dir: Path, *, quarantine: bool = True):
             pass
 
         try:
-            data = json.loads(evt_file.read_text())
+            data = json.loads(evt_file.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             if quarantine:
                 # Move + write a .parse_error.txt sibling.
@@ -76,7 +76,8 @@ def load_events(phase_dir: Path, *, quarantine: bool = True):
                 try:
                     evt_file.rename(dest)
                     (dest.parent / f"{dest.name}.parse_error.txt").write_text(
-                        f"JSONDecodeError at {datetime.now(timezone.utc).isoformat()}:\n{exc}\n"
+                        f"JSONDecodeError at {datetime.now(timezone.utc).isoformat()}:\n{exc}\n",
+                        encoding="utf-8",
                     )
                     sys.stderr.write(
                         f"WARN: quarantined malformed event {evt_file} -> {dest}\n"
@@ -243,7 +244,7 @@ def main():
 
     if not args.dry_run:
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
-        state_file.write_text(json.dumps(state, indent=2) + "\n")
+        state_file.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
 
     if quarantined:
         sys.stderr.write(

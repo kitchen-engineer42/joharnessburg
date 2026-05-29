@@ -1,0 +1,14 @@
+#!/bin/bash
+# Serve {{ PROJECT_NAME }}'s dashboards over HTTP for shared review.
+#
+# Usage:
+#   ./serve.sh [PORT]
+#
+# Default port: 8080. Serves the current directory (the bundle root); browse to
+# http://localhost:PORT/<output-dir>/dashboard.html for the latest run.
+
+PORT="${1:-8080}"
+cd "$(dirname "$0")"
+echo "Serving {{ PROJECT_NAME }} dashboards at http://localhost:$PORT/"
+echo "(Ctrl+C to stop)"
+python3 -m http.server "$PORT"

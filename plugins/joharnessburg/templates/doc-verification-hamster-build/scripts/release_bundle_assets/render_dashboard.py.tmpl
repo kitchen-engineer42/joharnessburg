@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Re-render the HTML dashboard from a saved result.json.
+
+Useful when:
+  - Re-running with updated confidence_calibration.json (don't need to re-verify)
+  - Customizing dashboard styling (edit kc_runtime/dashboard.py, then re-render)
+  - Generating dashboards for batches verified earlier
+
+Usage:
+  python render_dashboard.py \\
+    --results <output-dir>/result.json \\
+    [--catalog catalog.json] \\
+    [--calibration confidence_calibration.json] \\
+    --output <output-dir>/dashboard.html
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+BUNDLE_ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(BUNDLE_ROOT))
+
+from kc_runtime.dashboard import render_html
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--results", required=True, type=Path,
+                        help="Path to result.json (produced by run.py)")
+    parser.add_argument("--catalog", type=Path, default=BUNDLE_ROOT / "catalog.json",
+                        help="Path to catalog.json (default: bundle root)")
+    parser.add_argument("--calibration", type=Path,
+                        default=BUNDLE_ROOT / "confidence_calibration.json",
+                        help="Path to confidence_calibration.json (default: bundle root)")
+    parser.add_argument("--output", required=True, type=Path,
+                        help="Where to write dashboard.html")
+    args = parser.parse_args()
+
+    if not args.results.exists():
+        print(f"ERROR: results file doesn't exist: {args.results}", file=sys.stderr)
+        return 1
+
+    result = json.loads(args.results.read_text())
+    catalog = json.loads(args.catalog.read_text()) if args.catalog.exists() else {}
+    calibration = json.loads(args.calibration.read_text()) if args.calibration.exists() else {}
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    render_html(result, calibration, catalog, args.output)
+    print(f"Rendered: {args.output}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

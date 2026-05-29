@@ -68,4 +68,4 @@ Why keep the stub: a fresh-session Claude reading PLAN.md sees the historical co
 
 ## Source
 
-Patterns synthesized from spec §8.5 user reply on phase orchestration + KC's "milestones derived from disk" principle + the team's experience iterating PLAN.md in this very project (each milestone has subdivided + inserted + promoted phases at least once).
+Patterns synthesized from John's phase-orchestration design + KC's "milestones derived from disk" principle + real experience iterating a PLAN.md (milestones routinely subdivide, insert, and promote phases as work proceeds).

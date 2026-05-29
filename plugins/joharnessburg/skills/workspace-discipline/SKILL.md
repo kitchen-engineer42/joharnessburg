@@ -58,7 +58,7 @@ Before doing something destructive, irreversible, or hard-to-redo, leave a check
 - About to delete a directory of stale artifacts? Move it to `<project>/.john/checkpoints/<phase>/archived-<timestamp>/` instead — recovery is possible.
 - About to overwrite PLAN.md with a major restructure? Save the prior version as `<project>/.john/checkpoints/plan/PLAN-<timestamp>.md`.
 
-The PreCompact hook (M5) does this automatically before Claude Code compacts context. You should do it manually for the analogous moments in your work.
+John's PreCompact hook does this automatically before Claude Code compacts context. You should do it manually for the analogous moments in your work.
 
 ## Rule 4: Append-only event logs
 

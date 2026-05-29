@@ -1,6 +1,6 @@
 # self-correction-echo — the mathlab pattern, generalized
 
-Mathlab's system prompt requires the first or second `op` in its output to be a `text` op echoing back the core equation of the problem. From mathlab's DEVLOG: *"这一步是自我校验"* — *"this step is self-correction."* The model reading its own transcription catches OCR/misread errors before subsequent extraction builds on them.
+Mathlab's system prompt requires the first or second `op` in its output to be a `text` op echoing back the core equation of the problem — *"这一步是自我校验"* ("this step is self-correction"). The model reading its own transcription catches OCR/misread errors before subsequent extraction builds on them.
 
 Generalize: **any skill whose action depends on parsing user-provided content should require an explicit echo of what was understood first.**
 

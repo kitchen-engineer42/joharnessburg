@@ -18,7 +18,7 @@ metadata:
 
 You are layer-2 Claude designing phases for your user's project. The phases will live in their `<project>/PLAN.md` and drive every loop iteration via [[ralph-loop]].
 
-**Phases are suggestions, not enforcement.** Per spec §8.5, John's stance is "phases-as-skills with template override room" — the engine doesn't gate on phase boundaries; the floor is disk-verifiable artifacts (see [[workspace-discipline]]). You're designing scaffolding that helps work decompose cleanly, not laws that punish deviation. Templates may radically reshape the phase list; users may request changes mid-flight; corpora may surprise you. Stay wide.
+**Phases are suggestions, not enforcement.** John's stance is phases-as-skills with template override room — the engine doesn't gate on phase boundaries; the floor is disk-verifiable artifacts (see [[workspace-discipline]]). You're designing scaffolding that helps work decompose cleanly, not laws that punish deviation. Templates may radically reshape the phase list; users may request changes mid-flight; corpora may surprise you. Stay wide.
 
 A phase is a unit of work with three properties:
 
@@ -38,7 +38,7 @@ Total across both halves: usually 8-15 phases for a moderately ambitious project
 
 ## Suggested 2skills phases
 
-These are starting points, not requirements. The user or the active template overrides. See PLAN.md §10 for full intent + artifacts.
+These are starting points, not requirements. The user or the active template overrides; treat the list below as a default to adapt, not a fixed sequence.
 
 | # | Name | Why it might exist | Why it might not |
 |---|---|---|---|

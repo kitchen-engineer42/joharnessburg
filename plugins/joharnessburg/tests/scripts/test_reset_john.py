@@ -71,10 +71,14 @@ class TestResetJohn(unittest.TestCase):
             tdp = Path(td)
             applied = tdp / "applied"
             applied.mkdir()
+            # Real applied dirs carry .applied-metadata.json (written by
+            # apply_template.py); the reset guard requires that marker.
             (applied / "t1").mkdir()
             (applied / "t1" / "skill.md").write_text("content")
+            (applied / "t1" / ".applied-metadata.json").write_text("{}")
             (applied / "t2").mkdir()
             (applied / "t2" / "skill.md").write_text("content")
+            (applied / "t2" / ".applied-metadata.json").write_text("{}")
 
             rc, out, _ = run_reset("--yes", applied_parent_override=applied)
             self.assertEqual(rc, 0)
@@ -82,6 +86,27 @@ class TestResetJohn(unittest.TestCase):
             self.assertEqual(len(out["deleted"]), 2)
             self.assertFalse((applied / "t1").exists())
             self.assertFalse((applied / "t2").exists())
+
+    def test_reset_skips_dirs_without_metadata_marker(self):
+        """A dir lacking .applied-metadata.json is left untouched (guard)."""
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            applied = tdp / "applied"
+            applied.mkdir()
+            # Recognized applied template — gets deleted.
+            (applied / "real").mkdir()
+            (applied / "real" / ".applied-metadata.json").write_text("{}")
+            # Not one of ours (no marker) — must be skipped, not deleted.
+            (applied / "innocent").mkdir()
+            (applied / "innocent" / "important.txt").write_text("do not delete")
+
+            rc, out, _ = run_reset("--yes", applied_parent_override=applied)
+            self.assertEqual(rc, 0)
+            self.assertTrue(out["success"])
+            self.assertEqual(len(out["deleted"]), 1)
+            self.assertIn("innocent", " ".join(out.get("skipped", [])))
+            self.assertFalse((applied / "real").exists())
+            self.assertTrue((applied / "innocent" / "important.txt").exists())
 
     def test_reset_list_does_not_delete(self):
         with tempfile.TemporaryDirectory() as td:

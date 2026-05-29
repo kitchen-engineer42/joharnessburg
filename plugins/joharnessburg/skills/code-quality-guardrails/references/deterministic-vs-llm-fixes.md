@@ -54,4 +54,4 @@ John inherits this shape but doesn't enforce specific costs — templates decide
 
 ## Source
 
-skills2app's `utils/agent_backends/claude.py` (the cross-validation agent definition) + its `utils/prompts/review.py` (the review prompt template) are at `/Users/mac/Desktop/john/production/skills2app/` on the dev machine. Spec §8.14 covers the inherited patterns.
+skills2app's `utils/agent_backends/claude.py` (the cross-validation agent definition) + its `utils/prompts/review.py` (the review prompt template) hold these inherited patterns.

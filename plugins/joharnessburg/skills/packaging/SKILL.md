@@ -37,7 +37,7 @@ A skill in Claude Code is one directory with at minimum a `SKILL.md`:
 
 The frontmatter has `name` and `description`. Optionally `metadata.triggers[]` for keyword-based auto-load. Body is markdown — what the agent should do/know.
 
-This is the same skill format John itself ships. Your packaging output is structurally identical to a John meta-skill or M3 phase skill — the difference is who wrote it (humans for John core; layer-2 Claude during a 2skills run for produced knowledge).
+This is the same skill format John itself ships. Your packaging output is structurally identical to a John meta-skill or phase skill — the difference is who wrote it (humans for John core; layer-2 Claude during a 2skills run for produced knowledge).
 
 ## Mapping knowledge entries → skills
 
@@ -69,11 +69,11 @@ Two paths, depending on whether a template is active:
 
 **Inline packaging** (default when no template script is provided). Iterate over `<project>/.john/knowledge/<entry-id>/`, emit each entry as a skill following the conventions in `references/claude-code-skill-format.md`. Map per the patterns above (chunky vs granular). Straightforward but slower because each entry's emission is a Claude-driven decision rather than a deterministic script.
 
-M3 ships packaging as **skill-only** in this plugin. Template-specific packaging scripts are M5 territory (templates ship in M5). For M3 use, expect inline packaging in most projects until templates land.
+John core ships packaging as **skill-only** — there's no core packaging script. Template-specific packaging scripts are a template concern; expect inline packaging in most projects unless the active template provides its own.
 
 ## Asset lifecycle for template-provided media
 
-Some templates ship reusable assets (HTML templates, icons, image sets) that produced skills reference. Asset handling is **template-defined** (M5 scope): each template specifies whether assets are copied into each produced skill's `assets/` directory, symlinked, or referenced via the template install path. For M3, layer-2 Claude defers asset questions to the active template's documentation; if no template is active, skills typically don't need bundled assets and `assets/` stays empty.
+Some templates ship reusable assets (HTML templates, icons, image sets) that produced skills reference. Asset handling is **template-defined**: each template specifies whether assets are copied into each produced skill's `assets/` directory, symlinked, or referenced via the template install path. Defer asset questions to the active template's documentation; if no template is active, skills typically don't need bundled assets and `assets/` stays empty.
 
 ## What ships, what doesn't
 
@@ -97,13 +97,13 @@ If the user wants to ship the working state too (for transparency, reproducibili
 2. **Descriptions are pushy.** Spot-check 5: would Claude reliably trigger this skill on a relevant prompt?
 3. **Cross-links resolve.** `[[skill-name]]` references in bodies point to skills that actually exist.
 4. **No leaked workspace paths.** Skills shouldn't reference `<project>/.john/` (working state) or the user's input source paths — those don't matter to the runtime.
-5. **The skills-analytics dashboard (if installed) shows the new skills as discoverable.** Optional check, valuable in M6 shakedown.
+5. **The skills-analytics dashboard (if installed) shows the new skills as discoverable.** Optional check, valuable when shaking down a fresh run.
 
 ## The handoff to 2app
 
 After packaging completes, PLAN.md's Knowledge inventory section transitions from "pointer to `.john/input/`" to "pointer to `.claude/skills/`" — the 2app phases now have a *real* knowledge source to consume, not raw input. Update PLAN.md's Log section accordingly.
 
-The 2app half (M4 phase skills, not yet shipped) reads from `.claude/skills/` as its starting context. The two halves of John meet at this directory.
+The 2app half (the app-building phase skills) reads from `.claude/skills/` as its starting context. The two halves of John meet at this directory.
 
 ## Cross-references
 

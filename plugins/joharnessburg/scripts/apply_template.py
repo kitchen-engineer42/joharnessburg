@@ -321,6 +321,20 @@ def main(argv: list[str] | None = None):
         return
 
     if output_root.exists():
+        # Safety guard: with --force we are about to delete output_root. Only do
+        # that when it is clearly an applied-template dir — under the applied
+        # parent, or already carrying our provenance marker. This stops a stray
+        # `--output ~/code/myproject --force` from wiping an unrelated directory.
+        is_under_parent = output_parent in output_root.parents
+        has_marker = (output_root / ".applied-metadata.json").exists()
+        if not (is_under_parent or has_marker):
+            err(
+                f"Refusing to delete {output_root}: it is neither under the applied "
+                f"parent ({output_parent}) nor an existing applied template "
+                f"(no .applied-metadata.json). Point --output under {output_parent}, "
+                f"or remove the directory yourself first.",
+            )
+            return
         shutil.rmtree(output_root)
 
     # 1. Copy John install to output

@@ -1,6 +1,6 @@
 # sweep-strategy — what MECE means in extraction
 
-The user's PLAN.md M3 framing: extract "everything there is or everything needed for what." Both modes are legitimate; the project's intent decides.
+Two framings for extraction: "everything there is" or "everything needed for what." Both modes are legitimate; the project's intent decides.
 
 ## Comprehensive sweep — "everything there is"
 

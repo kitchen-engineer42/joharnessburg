@@ -6,13 +6,13 @@ Layer-2 Claude doesn't need to think about this often, but it's worth knowing it
 
 `ppx_parse.py` is a thin HTTP client that POSTs to a local **ppx-client server** (FastAPI). The server wraps `memect-ppx` (the `ppx` parser engine) and runs at `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`).
 
-The server lives outside the plugin at `/Users/mac/Desktop/john/local_clients/ppx/` (workspace tooling, not shipped with John). Install + launch with `local_clients/ppx/scripts/start.sh`. Engine install: `uv pip install -e /path/to/ppx` (see `github.com/kitchen-engineer42/ppx`).
+The server lives outside the plugin (workspace tooling, not shipped with John) and is reached via `$JOHN_PPX_CLIENT_URL` — your local ppx client server. Launch it with the client's `scripts/start.sh`. Engine install: `uv pip install -e /path/to/ppx` (see `github.com/kitchen-engineer42/ppx`).
 
 > *Terminology note*: `ppx` is the parser engine; `jyppx` is a separate builder project (at `github.com/memect/jyppx`) that uses ppx as a library to produce tailored parsers per corpus. John's `ppx_parse.py` talks to ppx (via the local client), not to jyppx.
 
 ## Tomorrow (production migration)
 
-Per spec §8.7, the tech team will swap the URL `JOHN_PPX_CLIENT_URL` to point at an internal `PDF_PARSE_SERVER` — a hosted service with proper queuing, retries, and cache. Same script name, same CLI surface, same HTTP contract, different backend. The local-client server already mimics the production server's HTTP shape, so the swap is just an env-var change.
+In production, the tech team will swap the URL `JOHN_PPX_CLIENT_URL` to point at an internal `PDF_PARSE_SERVER` — a hosted service with proper queuing, retries, and cache. Same script name, same CLI surface, same HTTP contract, different backend. The local-client server already mimics the production server's HTTP shape, so the swap is just an env-var change.
 
 ## Implications for layer-2 Claude
 
@@ -26,5 +26,5 @@ If you find yourself caring about these, you're probably over-fitting to local-d
 
 ## Source
 
-- Spec §8.7 user reply: *"in-process ppx for now. Company has server designated to run ppx by large batch, tech team will re-router to the server when John goes production in the future."*
-- `to-skills-backend/app/pipeline/stages/doc_converter.py` (in the dev workspace) is roughly the shape the future RPC client will take.
+- In-process ppx for now. The company has a server designated to run ppx in large batches; the tech team will re-route to that server when John goes to production.
+- `to-skills-backend/app/pipeline/stages/doc_converter.py` is roughly the shape the future RPC client will take.

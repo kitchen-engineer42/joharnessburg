@@ -212,7 +212,7 @@ def main():
         "session_metadata": {},
     }
     (john_dir / "workspace.json").write_text(
-        json.dumps(workspace_state, indent=2) + "\n"
+        json.dumps(workspace_state, indent=2) + "\n", encoding="utf-8"
     )
 
     # If running inside a merged template plugin, the plugin install ships a
@@ -227,7 +227,7 @@ def main():
         candidate_plan = templates_active / "plan_md_template.md"
         if candidate_plan.is_file():
             try:
-                content = candidate_plan.read_text()
+                content = candidate_plan.read_text(encoding="utf-8")
                 if content.strip():
                     template_plan_md = content
             except OSError as exc:
@@ -237,7 +237,7 @@ def main():
         candidate_addon = templates_active / "claude_addon.md"
         if candidate_addon.is_file():
             try:
-                content = candidate_addon.read_text()
+                content = candidate_addon.read_text(encoding="utf-8")
                 if content.strip():
                     template_claude_addon = content
             except OSError as exc:
@@ -259,11 +259,12 @@ def main():
                 # Template authors may use literal `{...}` strings without
                 # intending format substitution. Fall back to raw content.
                 body = template_plan_md
-            plan_path.write_text(body)
+            plan_path.write_text(body, encoding="utf-8")
             plan_source = "template"
         else:
             plan_path.write_text(
-                PLAN_TEMPLATE.format(project_name=project_name, date=date)
+                PLAN_TEMPLATE.format(project_name=project_name, date=date),
+                encoding="utf-8",
             )
         plan_written = True
 
@@ -284,7 +285,7 @@ def main():
                 + "\n"
             )
             claude_addon_appended = True
-        claude_path.write_text(body)
+        claude_path.write_text(body, encoding="utf-8")
         claude_written = True
 
     # Copy input materials (if provided)

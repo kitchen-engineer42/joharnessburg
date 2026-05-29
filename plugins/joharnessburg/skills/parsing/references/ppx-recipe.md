@@ -40,7 +40,7 @@ That's it for default usage. Backend `default`, OCR `auto`, table `auto`, formul
 
 ## Source: jyppx
 
-jyppx is at `/Users/mac/Desktop/jyppx/` on the dev machine. See `readme-local-ppx.md` for the full CLI surface. The Python API used by our wrapper is `memect.pdf.parser.Parser` + `memect.pdf.base.KDocumentFactory`.
+jyppx is a separate builder project. See `readme-local-ppx.md` for the full CLI surface. The Python API used by our wrapper is `memect.pdf.parser.Parser` + `memect.pdf.base.KDocumentFactory`.
 
 ## Production future
 

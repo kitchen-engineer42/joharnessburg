@@ -82,7 +82,7 @@ Practical conversation flow:
 
 ## When to iterate
 
-Per spec §8.4-§8.5 user replies on iteration: the runtime + pipeline decisions will evolve. Signs they need updating:
+The runtime and pipeline decisions will evolve as the project reveals itself — expect to revisit them. Signs they need updating:
 
 - A pipeline phase produces something the runtime doesn't actually need (drop the phase).
 - The runtime wants a feature whose data isn't in the schema (consult [[schema-design]] for a schema extension, OR redefine the runtime to work with what you have).

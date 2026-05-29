@@ -1,6 +1,6 @@
 # cross-validation-pattern — the opt-in LLM reviewer
 
-When deterministic guardrails have run and the residual issues need judgment, dispatch a cross-validation subagent. Borrowed from skills2app's `AGENT_REVIEW_ENABLED` flow (spec §8.14).
+When deterministic guardrails have run and the residual issues need judgment, dispatch a cross-validation subagent. Borrowed from skills2app's `AGENT_REVIEW_ENABLED` flow.
 
 ## The shape
 
@@ -77,4 +77,4 @@ Cross-validation fires near the end of a polish or pre-deploy phase. Step 5 of [
 
 ## Source
 
-skills2app's `utils/prompts/review.py` + `utils/agent_backends/claude.py` (the `AGENT_REVIEW_ENABLED` codepath) at `/Users/mac/Desktop/john/production/skills2app/` on the dev machine. The retry-on-issues loop (review → if fail, dispatch back to coder with feedback → re-review) is also there; John could adopt it later but v1 stops at "surface to user."
+skills2app's `utils/prompts/review.py` + `utils/agent_backends/claude.py` (the `AGENT_REVIEW_ENABLED` codepath). The retry-on-issues loop (review → if fail, dispatch back to coder with feedback → re-review) is also there; John could adopt it later but v1 stops at "surface to user."

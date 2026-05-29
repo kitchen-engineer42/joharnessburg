@@ -96,13 +96,19 @@ def main():
     # Write the full result (idempotent — same sha means same content, fine to overwrite)
     if not offload_path.exists():
         try:
-            offload_path.write_text(tool_result)
+            offload_path.write_text(tool_result, encoding="utf-8")
         except OSError as exc:
             sys.stderr.write(f"WARN: could not offload tool result: {exc}\n")
             emit({})
             return
 
-    digest = make_digest(tool_result, offload_path, tool_name)
+    # Show a cwd-relative pointer (e.g. .john/trace/<name>.txt) rather than the
+    # user's absolute home path.
+    try:
+        offload_display = offload_path.relative_to(cwd)
+    except ValueError:
+        offload_display = offload_path
+    digest = make_digest(tool_result, offload_display, tool_name)
 
     emit({
         "hookSpecificOutput": {

@@ -45,6 +45,6 @@ Glossary is especially valuable when:
 
 ## Source
 
-- A2O's `LabelTree` and `RelationType` define typed relationships and a hierarchical taxonomy on the dev machine.
+- A2O's `LabelTree` and `RelationType` define typed relationships and a hierarchical taxonomy.
 - KC's rule files reference each other via `related_rules` and `glossary_refs`.
 - Mystery-detective-game's GameData type uses cross-references heavily for character-to-clue-to-scene navigation.

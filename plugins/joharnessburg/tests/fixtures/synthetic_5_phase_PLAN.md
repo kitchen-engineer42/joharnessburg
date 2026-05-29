@@ -1,6 +1,6 @@
 # PLAN.md — synthetic-5-phase-project (test fixture)
 
-*Synthetic PLAN.md used to verify M1+M3+M4 skill guidance applies cleanly to a realistic structure. NOT a real project. Lives in `joharnessburg/tests/fixtures/`.*
+*Synthetic PLAN.md used to verify the skill guidance applies cleanly to a realistic structure. NOT a real project. Lives in `joharnessburg/tests/fixtures/`.*
 
 ## Project intent
 
@@ -11,7 +11,7 @@ Build a quiz app from a single chapter of a high-school biology textbook (provid
 - Initial input: `.john/input/bio-chapter-3.pdf` (one PDF, ~60 pages)
 - Produced skills (after 2skills half): `.claude/skills/` will contain ~30 fact entries + a glossary
 
-## Four structures (per spec §4)
+## Four structures
 
 - **Format of knowledge**: facts (atomic biology claims) + glossary (technical terms)
 - **Schema of knowledge**: facts have `{id, claim, citation, difficulty, glossary_refs[]}`; glossary entries have `{term, definition, used_in_facts[]}`. Header (one-liner + difficulty + classification) and body (full claim with citation + 1-paragraph elaboration).

@@ -100,14 +100,25 @@ def main(argv: list[str] | None = None):
         return
 
     deleted = []
+    skipped = []
     for d in applied:
+        # Only delete dirs we recognize as applied templates (carry our
+        # provenance marker). Anything else under the parent is left alone so a
+        # mis-set --applied-parent can't wipe unrelated directories.
+        if not (d / ".applied-metadata.json").exists():
+            skipped.append(str(d))
+            sys.stderr.write(
+                f"WARN: skipping {d} (no .applied-metadata.json; not a recognized applied template)\n"
+            )
+            continue
         shutil.rmtree(d)
         deleted.append(str(d))
 
     emit(
         {
             "deleted": deleted,
-            "message": f"Reset complete. Launch `claude` (without --plugin-dir) for vanilla John.",
+            "skipped": skipped,
+            "message": "Reset complete. Launch `claude` (without --plugin-dir) for vanilla John.",
         }
     )
 

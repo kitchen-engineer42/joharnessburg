@@ -75,5 +75,5 @@ The rewrite phase's reducer folds these events into the canonical knowledge stat
 
 ## Source
 
-- A2O's `chunks2skus/postprocessors/bucketing.py` + `dedup.py` on the dev machine implement this pattern with concrete numbers.
+- A2O's `chunks2skus/postprocessors/bucketing.py` + `dedup.py` implement this pattern with concrete numbers.
 - The pattern's lineage: standard information-retrieval bucketing, adapted for LLM-driven decision-making.
