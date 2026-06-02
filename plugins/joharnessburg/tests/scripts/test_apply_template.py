@@ -354,6 +354,41 @@ class TestApplyTemplate(unittest.TestCase):
             self.assertIn("Refusing to delete", out["error"])
             self.assertTrue((victim / "important.txt").exists())
 
+    def test_apply_copies_template_workflows_into_templates_active(self):
+        # v0.1.21 — a template's workflows/ ship into the merged plugin's
+        # templates-active/workflows/ (NOT the plugin root — saved workflows
+        # aren't a plugin-registered surface; /john:init installs them into the
+        # project's .claude/workflows/).
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            john = tdp / "john"
+            template = tdp / "template"
+            applied_parent = tdp / "applied"
+
+            _build_fake_john(john)
+            _build_fake_template(template, name="wf-tpl")
+            (template / "workflows").mkdir(parents=True)
+            (template / "workflows" / "rule-sweep.js").write_text(
+                "// saved dynamic workflow: rule-sweep\n"
+            )
+
+            rc, out, err = run_apply(
+                "--template-root", str(template),
+                "--john-install", str(john),
+                output_parent_override=applied_parent,
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertTrue(out["success"])
+
+            merged = applied_parent / "wf-tpl"
+            shipped = merged / "templates-active" / "workflows" / "rule-sweep.js"
+            self.assertTrue(shipped.is_file(), "workflow should land in templates-active/workflows/")
+            self.assertIn("rule-sweep", shipped.read_text())
+
+            self.assertIn("rule-sweep.js", out["workflows_copied"])
+            meta = json.loads((merged / ".applied-metadata.json").read_text())
+            self.assertIn("rule-sweep.js", meta["workflows_copied"])
+
     def test_apply_uses_template_name_from_template_json(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

@@ -243,6 +243,54 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertIn("## From active template", claude_body)
             self.assertIn("This is the template's claude_addon content.", claude_body)
 
+    # v0.1.21 — init installs template-shipped workflows into .claude/workflows/
+    def test_init_installs_template_workflows_into_dot_claude(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            templates_active = tdp / "templates-active"
+            (templates_active / "workflows").mkdir(parents=True)
+            (templates_active / "workflows" / "rule-sweep.js").write_text(
+                "// saved dynamic workflow\n"
+            )
+
+            project = tdp / "project"
+            project.mkdir()
+            rc, out, err = run_script(
+                "init_workspace.py",
+                cwd=project,
+                env_override={"JOHN_TEMPLATES_ACTIVE": str(templates_active)},
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            installed = project / ".claude" / "workflows" / "rule-sweep.js"
+            self.assertTrue(installed.is_file(), "workflow should be installed into .claude/workflows/")
+            self.assertIn("rule-sweep.js", out["workflows_installed"])
+            self.assertEqual(out["workflows_skipped"], [])
+
+    def test_init_skips_existing_workflow_in_dot_claude(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            templates_active = tdp / "templates-active"
+            (templates_active / "workflows").mkdir(parents=True)
+            (templates_active / "workflows" / "rule-sweep.js").write_text(
+                "// template version\n"
+            )
+
+            project = tdp / "project"
+            (project / ".claude" / "workflows").mkdir(parents=True)
+            user_wf = project / ".claude" / "workflows" / "rule-sweep.js"
+            user_wf.write_text("// user's edited version\n")
+
+            rc, out, err = run_script(
+                "init_workspace.py",
+                cwd=project,
+                env_override={"JOHN_TEMPLATES_ACTIVE": str(templates_active)},
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            # User's version must be preserved (skip-if-exists)
+            self.assertEqual(user_wf.read_text(), "// user's edited version\n")
+            self.assertIn("rule-sweep.js", out["workflows_skipped"])
+            self.assertEqual(out["workflows_installed"], [])
+
     def test_init_does_not_append_claude_addon_when_claude_md_already_exists(self):
         # Per existing contract: never overwrite existing CLAUDE.md.
         # The addon should only be appended when CLAUDE.md is being CREATED.

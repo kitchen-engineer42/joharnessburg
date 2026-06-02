@@ -36,6 +36,20 @@ Other slash commands available after install:
 - `/john:archive` — archive a finished workspace
 - `/endurance` — re-enter long-running mode if the session has gone idle
 
+## Running John with dynamic workflows
+
+John's vertical axis — fanning out hundreds-to-thousands of per-entry subagents (extract every chunk, apply every rule, render every slide) — maps directly onto Claude Code's **dynamic workflows**: Claude writes a script that runs the fan-out off its context, adversarially cross-checks the workers, and writes every result to John's event log. The `vertical-workflows` skill teaches Claude the John-shaped fan-out; you set the session up so it fires on the *right* phases and not on everything.
+
+**Requirements:** Claude Code with dynamic-workflows support (research preview; a recent build on a paid plan), feature enabled.
+
+**Recommended session config** (these are your moves — John reads them, it can't set them for you):
+
+1. **Turn off the workflow keyword trigger.** In `/config`, switch off **Workflow keyword trigger**. Otherwise the mere word "workflow" — common in John's own prose and your messages — fires a workflow you didn't intend. Turning it off makes workflow use deliberate.
+2. **Turn on ultracode.** Run `/effort ultracode` at the start of the session. This is what lets Claude *author* a workflow autonomously (no keyword needed); John's skills then steer it to the heavy fan-out phases and keep small/coupled/interactive work inline. Ultracode is **per-session** — it resets when you start a new session, so set it each time (it needs a model that supports `xhigh` effort).
+3. **Pre-seed your permission allowlist.** Workflow subagents inherit your tool allowlist; un-allowlisted Bash/web/MCP calls still prompt mid-run and will stall an unattended pipeline. Add the tools John's agents call (Read/Write/Grep/Glob/Bash + your workerLLM and ppx client calls) to your allowlist before a long run.
+
+**Fallback:** none of this is required. If workflows aren't available (older Claude Code, feature off, not in ultracode), John runs the *same* fan-out as inline subagents — same events, same reducer, same `PLAN.md`, same output. Nothing below the execution line changes; you just don't get the off-context scale and the built-in cross-check.
+
 ## Upgrade
 
 ```sh

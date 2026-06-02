@@ -76,7 +76,7 @@ These four constrain each other in a cascade — format determines schema, schem
 
 ## Subagent matrix
 
-*For any phase with vertical fan-out, list work units and their state here. Empty until phases need it. See the `subagent-dispatch` skill.*
+*For any phase with vertical fan-out, list work units and their state here. Empty until phases need it. Note whether the phase runs as a dynamic workflow (`vertical-workflows` skill) or inline dispatch (`subagent-dispatch`) — work units and event paths are the same either way.*
 
 ## Open decisions
 
@@ -288,6 +288,29 @@ def main():
         claude_path.write_text(body, encoding="utf-8")
         claude_written = True
 
+    # Install template-shipped dynamic workflows into the project's
+    # .claude/workflows/ so Claude Code registers them as /<name> commands.
+    # A merged template's workflows ride in templates-active/workflows/ (written
+    # by apply_template.py). Claude Code reads saved workflows from the project's
+    # .claude/workflows/, not from the plugin — so this is where they must land.
+    # Skip-if-exists: never clobber a workflow the user has already saved/edited.
+    workflows_installed = []
+    workflows_skipped = []
+    if templates_active is not None:
+        wf_src = templates_active / "workflows"
+        if wf_src.is_dir():
+            wf_dest = cwd / ".claude" / "workflows"
+            wf_dest.mkdir(parents=True, exist_ok=True)
+            for wf in sorted(wf_src.iterdir()):
+                if not wf.is_file():
+                    continue
+                target = wf_dest / wf.name
+                if target.exists():
+                    workflows_skipped.append(wf.name)
+                    continue
+                shutil.copy2(wf, target)
+                workflows_installed.append(wf.name)
+
     # Copy input materials (if provided)
     copied = []
     if args.input_path:
@@ -310,6 +333,8 @@ def main():
             "templates_active_used": templates_active is not None and (
                 template_plan_md is not None or template_claude_addon is not None
             ),
+            "workflows_installed": workflows_installed,
+            "workflows_skipped": workflows_skipped,
             "copied_input": copied,
             "active_template": None,
             "current_phase": "bootstrap",

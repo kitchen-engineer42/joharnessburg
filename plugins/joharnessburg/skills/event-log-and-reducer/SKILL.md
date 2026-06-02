@@ -133,9 +133,19 @@ For thousands of work units, partition events into sub-directories per work-unit
 
 Every John skill that dispatches subagents (knowledge-extraction, slide-rendering, app-feature-author, etc.) instructs the subagent to "emit events to `<project>/.john/events/<phase>/...`, do not write canonical state directly." That's the contract. The subagent doesn't need to know how the reducer works; it just emits events in the shape the phase expects.
 
+## Workflow agents are also event producers
+
+When a fan-out phase runs as a dynamic workflow ([[vertical-workflows]]) instead of inline dispatch, **nothing here changes.** The workflow's worker agents write the same events to `<project>/.john/events/<phase>/`; you still run this reducer afterward; the checkpoint is still truth. The workflow keeps results in *script variables* for a clean context, but those are a convenience — the durable record is the event files on disk.
+
+Two consequences worth holding onto:
+
+- **The event log, not the runtime, is what survives.** Workflow resume is session-bound: stop a run and it resumes within the session, but exit Claude Code and the workflow restarts fresh. The event log isn't session-bound — it survives restarts, compaction, and crashes. So a workflow-driven phase is durable for the same reason an inline one is: the events are on disk, and the reducer can re-derive state from them at any time.
+- **16 concurrent writers, zero contention — by design.** A workflow runs up to 16 agents at once, all potentially writing state. The one-file-per-agent append-only design (the whole reason John chose event-log over file-locks) already eliminates the write contention that naive parallel adoption would hit. John pre-solved the concurrency hazard; running multiple workflow *batches* into the same event tree is equally safe — reduce once at the end.
+
 ## Cross-references
 
 - [[subagent-dispatch]] — what triggers the fan-out that emits events
+- [[vertical-workflows]] — workflow workers are event producers too; truth lives here, not in the run
 - [[ralph-loop]] — runs reducer at phase end and advances PLAN.md
 - [[workspace-discipline]] — disk-is-truth includes checkpoint state
 - [[phase-design]] — phases that fan out declare their event schemas

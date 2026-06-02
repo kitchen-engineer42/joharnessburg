@@ -37,7 +37,7 @@ Six rules. Internalize these — every other John skill builds on them.
 
 1. **Read PLAN.md first, every iteration.** Cheap, keeps you honest. The plan is the contract.
 2. **Advance one phase at a time.** Don't try to finish multiple phases in one pass; the matrix is sequential horizontally.
-3. **Spawn subagents for vertical-axis parallel work.** Per-chunk extraction, per-entry rewrite, per-skill authoring — these are subagent jobs, not main-agent jobs. See [[subagent-dispatch]].
+3. **Spawn subagents for vertical-axis parallel work.** Per-chunk extraction, per-entry rewrite, per-skill authoring — these are subagent jobs, not main-agent jobs. See [[subagent-dispatch]]. When a fan-out is large and uniform (dozens-to-thousands of units) and the session is workflow-configured, run it as a dynamic workflow instead of hand-dispatching — see [[vertical-workflows]]. If workflows aren't available, fall back to inline dispatch; the events and output are identical either way. (The README's "Running John with dynamic workflows" documents the session config that assumption rests on.)
 4. **Disk is truth.** Never trust your in-memory belief about what's done. Check disk. See [[workspace-discipline]].
 5. **When stuck or hitting a judgment call, write it to PLAN.md's Log section and stop.** Ask the user. Don't barrel through ambiguity.
 6. **After a phase, update PLAN.md.** Mark done, log decisions, surface blockers, then loop. See [[ralph-loop]] and [[plan-md-evolution]].
@@ -64,6 +64,7 @@ Set the goal with `/endurance <goal>`; inspect or clear via `/endurance` (no arg
 - [[plan-md-evolution]] — how to keep PLAN.md current as work progresses
 - [[phase-design]] — how to decide what phases this project needs
 - [[subagent-dispatch]] — when and how to spawn subagents
+- [[vertical-workflows]] — running a large fan-out phase as a dynamic workflow
 - [[event-log-and-reducer]] — the parallel-subagent coordination pattern
 - [[context-management]] — surviving multi-day sessions
 - [[workspace-discipline]] — disk-is-truth, idempotent operations, checkpoint hygiene

@@ -44,7 +44,8 @@ The end-to-end flow:
 │   └── _delete                      # optional: newline-delimited list of core skill names to remove from merged plugin
 ├── scripts/                         # optional: additional Python scripts (additive, no override semantics)
 ├── commands/                        # optional: additional slash commands (additive)
-└── agents/                          # optional: additional subagent role definitions (additive)
+├── agents/                          # optional: additional subagent role definitions (additive)
+└── workflows/                       # optional: saved dynamic-workflow scripts; installed into the project's .claude/workflows/ by /john:init
 ```
 
 ## template.json schema
@@ -76,8 +77,21 @@ When `apply_template.py` runs for your template:
 | `agents/<name>.md` | Same NOT-OVERRIDE rule. |
 | `claude_addon.md` | Copied to `templates-active/claude_addon.md` in the merged plugin. Layer-2 Claude can `Read` it and apply its guidance. `/john:init` also surfaces it under the scaffolded CLAUDE.md's "From active template" section. |
 | `plan_md_template.md` | Copied to `templates-active/plan_md_template.md`. `/john:init` uses it as the PLAN.md skeleton instead of the hardcoded default. |
+| `workflows/<name>.js` | Copied to `templates-active/workflows/` in the merged plugin, then installed by `/john:init` into the project's `.claude/workflows/` (skip-if-exists). Claude Code registers it as a `/<name>` command. |
 
 Override semantics: **full replacement**, not merge. The override file is the new core file; nothing from the original is preserved.
+
+## Shipping a saved workflow (research preview)
+
+John core ships the *skill* to author workflows (the `vertical-workflows` skill), not rigid scripts — Claude writes the right fan-out for each project live. But when a template has a **stable** sweep shape (doc-verification's rule × chapter sweep; slides-from-textbook's per-slide render), you can freeze that orchestration as a reviewed, saved workflow and ship it in `workflows/`.
+
+How it flows: `apply_template.py` copies `workflows/*` into the merged plugin's `templates-active/workflows/`; `/john:init` then copies them into the user's project `.claude/workflows/`, where Claude Code reads saved workflows (a plugin can't register them directly — that's why they ride through `templates-active/` to the project). Each becomes a `/<name>` command in that project.
+
+Caveats — this is a research-preview surface, so keep it optional and graceful:
+
+- **Requires the user's Claude Code to support dynamic workflows** (and the feature enabled). If it doesn't, the script files are inert and Claude falls back to authoring/dispatching live per the `vertical-workflows` skill — don't make a template *depend* on a shipped workflow.
+- **Whether Claude auto-invokes a saved `/name` workflow** (vs the user typing it, or Claude re-authoring live under ultracode) is not guaranteed. Frame shipped workflows as reviewed *starting points* Claude can invoke or adapt, not as a hard pipeline step.
+- **Freeze the shape, not the project specifics.** A shipped workflow encodes the fan-out *structure*; the per-entry prompt + schema stay project-specific. Don't bake one corpus's details into it (same discipline as `plan_md_template.md`).
 
 ## Authoring workflow
 

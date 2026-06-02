@@ -232,6 +232,30 @@ def apply_template_metadata(output_root: Path, template_root: Path) -> dict:
     return meta
 
 
+def apply_template_workflows(output_root: Path, template_root: Path) -> list[str]:
+    """Copy a template's workflows/ into templates-active/workflows/ in the merged plugin.
+
+    Saved dynamic workflows are NOT a plugin-registered surface — Claude Code reads
+    them from the project's `.claude/workflows/`, not from a plugin dir. So a
+    template's workflows ride in templates-active/ alongside claude_addon.md /
+    plan_md_template.md, and `/john:init` installs them into the project's
+    `.claude/workflows/` at scaffold time (see init_workspace.py). This keeps the
+    "templates-active is what init consumes" pattern consistent and means workflows
+    only land where the runtime actually looks for them.
+    """
+    copied: list[str] = []
+    src = template_root / "workflows"
+    if not src.is_dir():
+        return copied
+    target_dir = output_root / "templates-active" / "workflows"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for entry in sorted(src.iterdir()):
+        if entry.is_file():
+            shutil.copy2(entry, target_dir / entry.name)
+            copied.append(entry.name)
+    return copied
+
+
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description="Apply a John template as a diff onto a copy of the joharnessburg install.",
@@ -363,6 +387,7 @@ def main(argv: list[str] | None = None):
                 additive_collisions[sub] = collisions
 
     template_metadata = apply_template_metadata(output_root, template_root)
+    workflows_copied = apply_template_workflows(output_root, template_root)
 
     # 3. Write applied-metadata
     metadata = {
@@ -377,6 +402,7 @@ def main(argv: list[str] | None = None):
         "additive_dirs_copied": additive_dirs_copied,
         "additive_collisions": additive_collisions,
         "template_files_copied": template_metadata,
+        "workflows_copied": workflows_copied,
     }
     (output_root / ".applied-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
 
@@ -398,6 +424,7 @@ def main(argv: list[str] | None = None):
             "skills_deleted": deleted,
             "skills_added": added,
             "additive_collisions": additive_collisions,
+            "workflows_copied": workflows_copied,
             "launch_command": launch_command,
         }
     )

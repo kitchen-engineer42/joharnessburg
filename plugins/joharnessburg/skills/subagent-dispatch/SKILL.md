@@ -14,6 +14,21 @@ metadata:
 
 Subagents are the vertical axis. Your main session is the horizontal axis. Getting the line between them right is what makes John work at hundreds of knowledge entries instead of melting your context.
 
+## Three tiers: inline subagent, one workflow, or batched workflows
+
+Before *how* to dispatch, decide the **mechanism** by the size and shape of the fan-out:
+
+```
+a few units, result needed in your context     → inline subagent (dispatch in waves yourself)
+dozens–hundreds, uniform per-entry work          → ONE dynamic workflow run   → see [[vertical-workflows]]
+thousands                                         → batched workflow runs per chunk-range,
+                                                     all writing to the same event log
+```
+
+A **dynamic workflow** is a script you write (with your Workflow tool) that fans out the *same* subagents at scale, keeps their results off your context, adversarially cross-checks them, and returns only a summary. It's the right engine once a fan-out is large and uniform — exactly John's per-entry vertical axis. The mechanics, the John-shaped stages, and the event wiring are in [[vertical-workflows]]; this skill covers the inline tier and the briefing discipline that *both* tiers share (a workflow's workers need the same full briefing).
+
+If the session isn't workflow-capable (no `ultracode`, feature disabled, older Claude Code), the upper tiers fall back to inline dispatch — same events, same reducer, same PLAN.md. The rest of this skill is that inline mechanism and the briefing rules.
+
 ## When to spawn a subagent
 
 Three triggers, in order of clarity:
@@ -28,6 +43,7 @@ Three triggers, in order of clarity:
 - **Tightly coupled work.** If unit A's output is unit B's input, they're not parallel — they're serial. Do them yourself or in a chain.
 - **Work where the result depends on conversation context.** Subagents have their own context; if your conversation with the user is load-bearing for the decision, do it inline.
 - **One-off judgment calls.** "Should we use schema X or schema Y?" — that's not a subagent task, it's an Open Decision the user owns. Write it to PLAN.md's Open Decisions section and stop. See [[plan-md-authoring]].
+- **Work that needs user sign-off mid-task.** Keep it in the main session. This matters doubly for workflows — a workflow takes no user input once it starts, so anything needing a checkpoint belongs *between* runs, not inside one. See [[vertical-workflows]].
 
 ## Briefing a subagent
 
@@ -76,11 +92,11 @@ The subagents never talk to each other directly. They only emit events. The redu
 
 **Why thousands actually scale**: the produced app has a *structure* where knowledge entries fit like *content* in a uniform way. Work units are homogeneous — "extract from chunk 042" is the same task shape as "extract from chunk 419"; the reducer folds them with identical logic. As long as the entry structure is uniform, the orchestration cost doesn't grow non-linearly with entry count. That's the architectural reason event-log+reducer beats file-locks at scale — see [[event-log-and-reducer]].
 
-**Tens of work units** (1-50): fan out in waves of ~10 concurrent. Wait for each wave, then dispatch the next. Manageable through Claude Code's Task tool.
+**Tens of work units** (1-50): inline is fine — fan out in waves of ~10 concurrent through Claude Code's Task tool. Wait for each wave, then dispatch the next. Below a dozen or so, a workflow's runtime overhead isn't worth it.
 
-**Hundreds** (50-500): batch into smaller work-unit chunks per subagent (e.g., "process chunks 100-110" rather than one subagent per chunk). Keeps total subagent count manageable while still parallel.
+**Hundreds** (50-500): this is workflow territory. One [[vertical-workflows]] run fans the units out off your context and cross-checks them; the runtime handles the 16-at-a-time batching for you. (Inline fallback if workflows are unavailable: batch into smaller work-unit ranges per subagent — "process chunks 100-110" rather than one per chunk — to keep the wave count manageable.)
 
-**Thousands** (500+): rethink whether all work units are genuinely distinct (often they can be deduplicated or clustered upstream). If still genuinely thousands, partition the event log into sub-directories per work-unit-type and let the reducer handle each partition incrementally. Cost considerations usually limit production runs to 50-300, but the architecture handles thousands without re-engineering.
+**Thousands** (500+): first rethink whether all work units are genuinely distinct (often they can be deduplicated or clustered upstream). If still genuinely thousands, run [[vertical-workflows]] in batches per chunk-range (a single workflow caps at 1,000 agents), each batch writing to the **same** event log; reduce once at the end. The append-only one-file-per-agent design means the batches don't contend. Cost considerations usually limit production runs to 50-300, but the architecture handles thousands without re-engineering.
 
 ## Returning condensed digests
 
@@ -106,6 +122,7 @@ If a phase's work is well-defined enough for a cheap model, route it to one. If 
 
 ## Cross-references
 
+- [[vertical-workflows]] — the workflow tier (dozens+) and its John-shaped stages; this skill is the inline tier + shared briefing discipline
 - [[event-log-and-reducer]] — the coordination pattern for parallel subagents
 - [[ralph-loop]] — what dispatches the fan-out from main loop
 - [[phase-design]] — defining the work units up front in PLAN.md

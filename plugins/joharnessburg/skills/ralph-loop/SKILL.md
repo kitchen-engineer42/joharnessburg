@@ -58,6 +58,14 @@ Many phases (especially in the 2skills half) have hundreds of similar work units
 
 This is the horizontal/vertical matrix in practice. Main loop is horizontal; per-phase fan-out is vertical.
 
+### A fan-out phase is one workflow run
+
+When the fan-out is large and uniform (dozens-to-thousands of units), the right engine for step 3-4 is a **dynamic workflow**: a script you author that fans the units out off your context, adversarially cross-checks the workers, and returns a compact summary while the per-entry events land on disk. One **fan-out phase = one workflow run**; the **phase boundary is the sign-off seam between runs** (workflows take no user input mid-run, so review, PLAN.md updates, and user questions happen *between* runs, never inside). The loop becomes:
+
+> launch the phase workflow → wait → run `reduce_events.py` → read the checkpoint → update PLAN.md → advance.
+
+The loop is **engine-agnostic** below this line: whether the units were dispatched by a workflow or inline, you still run the reducer and read the checkpoint — that's truth, not the workflow's return value. If the session isn't workflow-capable, dispatch inline; everything else is identical. The mechanics and the John-shaped stages are in [[vertical-workflows]].
+
 ## Surviving context compaction
 
 When Claude Code compacts your context mid-session:
@@ -102,6 +110,7 @@ If you find a behavior in another `ralph` reference that contradicts this skill,
 - [[plan-md-evolution]] — keep the plan current as you loop; fires at step 5 of every iteration
 - [[phase-design]] — what makes a good phase boundary
 - [[subagent-dispatch]] — when and how to fan out within an iteration
+- [[vertical-workflows]] — running a fan-out phase as one workflow; the sign-off seam between runs
 - [[event-log-and-reducer]] — coordinate subagent fan-out
 - [[context-management]] — surviving the long haul
 - [[workspace-discipline]] — disk-is-truth before you advance

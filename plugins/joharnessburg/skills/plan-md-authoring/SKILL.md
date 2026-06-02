@@ -50,6 +50,7 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 ### Phase 1: <name>
 - Intent: <one sentence>
 - Subagent assignments: <if vertical fan-out, what's the unit?>
+- Execution: <Workflow yes/no; if yes: worker agent + cross-check agent + model — see [[vertical-workflows]]>
 - Skills to invoke: <[[skill-1]], [[skill-2]]>
 - Required artifacts (disk-verifiable): <paths the engine can check>
 - Done criteria: <observable conditions; not "feels finished">
@@ -84,7 +85,7 @@ This section is the user's project taste applied. Wide tunnel — sketch loose, 
 
 **Phases.** This is the production pipeline. For 2skills, John suggests a starter (parse → survey → schema-design → chunk → extract → rewrite → package, see [[phase-design]]) but the user or active template can override. For 2app, phases come from your conversation about the runtime structure. Don't try to nail every phase at start — leave the last few as "TBD: decide after phase N" if you genuinely don't know yet.
 
-**Subagent matrix.** Often empty at PLAN.md authoring time. Fills in when a phase hits fan-out. See [[subagent-dispatch]].
+**Subagent matrix.** Often empty at PLAN.md authoring time. Fills in when a phase hits fan-out. For a large uniform fan-out, note whether the phase runs as a dynamic workflow ([[vertical-workflows]]) or inline dispatch ([[subagent-dispatch]]) — the work units and event paths are the same either way.
 
 **Open decisions.** Be brave about putting stuff here. "Open decisions" is the user's chance to weigh in; if you suppress your uncertainty, you'll guess wrong and waste a phase.
 
@@ -133,4 +134,5 @@ PLAN.md spans both halves of John in one document. Phases 1-N typically handle k
 - [[schema-design]] — the methodology for the knowledge-format question
 - [[ralph-loop]] — what runs against the plan
 - [[subagent-dispatch]] — populating the Subagent matrix
+- [[vertical-workflows]] — running a fan-out phase as one workflow run
 - [[workspace-discipline]] — disk-verifiable done criteria

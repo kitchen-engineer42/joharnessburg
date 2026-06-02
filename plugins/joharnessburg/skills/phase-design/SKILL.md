@@ -81,8 +81,8 @@ Each of those has 4-7 phases. The user and active template shape them.
 
 - **Intent fits one sentence.** No ambiguity about the goal.
 - **Done criteria are observable on disk.** A test, a file, a count, a structural check. Not a feeling.
-- **Vertical fan-out is acknowledged.** If the phase has 200 work units inside, the Subagent matrix says so up front.
-- **Boundary is a clean compaction point.** If context compacts at the boundary, the next iteration can resume cleanly by reading disk.
+- **Vertical fan-out is acknowledged.** If the phase has 200 work units inside, the Subagent matrix says so up front. For a large uniform fan-out, the phase declares its **execution: Workflow yes/no + the worker agent + the cross-check agent + the model** — so the loop knows to launch one workflow run for the phase rather than hand-dispatch. See [[vertical-workflows]].
+- **Boundary is a clean compaction point.** If context compacts at the boundary, the next iteration can resume cleanly by reading disk. For fan-out phases this boundary is also the **sign-off seam between workflow runs** — the only place a workflow-driven phase can take user input.
 - **No dependencies on phases below it.** Phase 5 doesn't read state that Phase 7 produces.
 
 ## What makes a phase "bad"
@@ -126,5 +126,6 @@ If you find yourself writing recipe-style steps inside a phase definition, push 
 - [[plan-md-authoring]] — phases live in PLAN.md
 - [[ralph-loop]] — what advances one phase at a time
 - [[subagent-dispatch]] — vertical fan-out within a phase
+- [[vertical-workflows]] — running a fan-out phase as one workflow run
 - [[workspace-discipline]] — disk-verifiable done criteria
 - [[plan-md-evolution]] — how to change phases mid-flight
