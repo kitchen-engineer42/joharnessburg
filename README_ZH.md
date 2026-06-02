@@ -191,17 +191,11 @@ plugins/
     templates/                  # 通用 apply.sh + 撰写指南（templates/README.md）；以及已收录的模板
 README.md                       # 英文版
 README_ZH.md                    # 本文件
-LICENSE                         # AGPL-3.0-or-later
+LICENSE                         # MIT
 ```
 
 ## 许可
 
-版权所有 (C) 2026 kitchen-engineer42。
+John（joharnessburg）以 **MIT 许可证**发布——见 [`LICENSE`](LICENSE)。自由使用、fork、在其上构建。
 
-John（joharnessburg）是自由软件：你可以在 **GNU Affero 通用公共许可证第 3 版或（由你选择）任何更高版本**（由自由软件基金会发布）的条款下重新分发和/或修改本软件。完整许可证文本见 [`LICENSE`](LICENSE)。
-
-本程序在希望有用的前提下分发，但**不提供任何担保**；甚至不暗含适销性或针对特定用途的适用性担保。
-
-AGPL 的网络使用条款（§13）适用：如果你以网络服务的形式运行 John 的修改版本，你必须向其用户提供修改后的源代码。这是显式的选择——John 面向常常以内部服务形式运行的知识工程流水线设计，我们希望衍生作品保持开源。
-
-如果 AGPL 不适合你的使用场景，请联系版权持有人商谈商业许可。
+vanilla John 及其配套工具 Hamster 均为 MIT。在 John 之上构建的领域特化变体（例如 KC Agent CLI）可能以单独的商业条款提供。

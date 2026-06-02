@@ -190,17 +190,11 @@ plugins/
     templates/                  # Universal apply.sh + authoring guide (templates/README.md); plus any promoted templates
 README.md                       # This file
 README_ZH.md                    # 中文版
-LICENSE                         # AGPL-3.0-or-later
+LICENSE                         # MIT
 ```
 
 ## License
 
-Copyright (C) 2026 kitchen-engineer42.
+John (joharnessburg) is released under the **MIT License** — see [`LICENSE`](LICENSE). Use it, fork it, build on it freely.
 
-John (joharnessburg) is free software: you can redistribute it and/or modify it under the terms of the **GNU Affero General Public License, version 3 or (at your option) any later version**, as published by the Free Software Foundation. See [`LICENSE`](LICENSE) for the full text.
-
-This program is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-The AGPL's network-use clause (§13) applies: if you run a modified version of John as a service over a network, you must make the modified source available to its users. This is the explicit choice — John is designed for knowledge-engineering pipelines that often run as internal services, and we want derivatives to stay open.
-
-If the AGPL doesn't fit your use case, contact the copyright holder about a commercial license.
+Vanilla John and its companion tool Hamster are MIT. Domain-specialized variants built on top of John (e.g. KC Agent CLI) may be offered under separate commercial terms.
