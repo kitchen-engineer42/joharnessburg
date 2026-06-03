@@ -1,6 +1,6 @@
 {
   "name": "john",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "description": "John — a Claude Code harness for building knowledge-dense apps. Wraps Claude Code with skills, hooks, slash commands, and a small toolkit so Claude can take unstructured input through knowledge engineering (2skills) and app building (2app) in one long-running session.",
   "author": {
     "name": "kitchen-engineer42"
@@ -13,5 +13,7 @@
     "claude-code",
     "endurance"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": "https://github.com/kitchen-engineer42/joharnessburg",
+  "homepage": "https://joharnessburg.com"
 }
