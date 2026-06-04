@@ -34,7 +34,7 @@ Other slash commands available after install:
 
 - `/john:status` — current phase + progress
 - `/john:archive` — archive a finished workspace
-- `/endurance` — re-enter long-running mode if the session has gone idle
+- `/john:endurance` — re-enter long-running mode if the session has gone idle
 
 ## Running John with dynamic workflows
 

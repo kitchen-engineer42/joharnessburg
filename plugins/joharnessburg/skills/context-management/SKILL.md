@@ -20,9 +20,9 @@ You should use all five. They compound.
 
 ### 1. Endurance goal pinned in system prompt
 
-If the user has run `/endurance <goal>`, that goal is in `<project>/.john/workspace.json` and the SessionStart hook will inject it into your system prompt at the top of every session (and every post-compaction state). It survives compaction because the system prompt isn't windowed.
+If the user has run `/john:endurance <goal>`, that goal is in `<project>/.john/workspace.json` and the SessionStart hook will inject it into your system prompt at the top of every session (and every post-compaction state). It survives compaction because the system prompt isn't windowed.
 
-Set the goal with `/endurance <goal>`. Inspect or clear with `/endurance` (no arg) or `/endurance --clear`.
+Set the goal with `/john:endurance <goal>`. Inspect or clear with `/john:endurance` (no arg) or `/john:endurance --clear`.
 
 What this gives you: even after compaction wipes most of conversation history, the endurance-race direction is still in front of you. You know what you're working toward.
 

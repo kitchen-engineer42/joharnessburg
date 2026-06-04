@@ -79,7 +79,7 @@ def main():
 
     endurance_goal = (
         state.get("session_metadata", {}).get("endurance_goal")
-        or "(no endurance goal set; ask the user with /endurance <goal> if running a long project)"
+        or "(no endurance goal set; ask the user with /john:endurance <goal> if running a long project)"
     )
     # Template detection derives from the merged plugin path
     # (CLAUDE_PLUGIN_ROOT). The plugin loaded at session start IS the

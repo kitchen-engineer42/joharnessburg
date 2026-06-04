@@ -1,11 +1,11 @@
 ---
-description: Set or clear the long-running goal for this John session. Pinned into the system prompt by the SessionStart hook so it survives context compaction and stays visible across long ralph-loop runs. Use this command when the user says "let's run this in endurance mode", "set the endurance goal to ...", "/endurance ...", or starts any long-running shakedown / pipeline / build that should hold a finish line across many compactions.
+description: Set or clear the long-running goal for this John session. Pinned into the system prompt by the SessionStart hook so it survives context compaction and stays visible across long ralph-loop runs. Use this command when the user says "let's run this in endurance mode", "set the endurance goal to ...", "/john:endurance ...", or starts any long-running shakedown / pipeline / build that should hold a finish line across many compactions.
 argument-hint: "[goal-text] [--clear]"
 ---
 
 When this command fires:
 
-1. Parse the user's argument. Everything after `/endurance` (joined into one string) is the endurance goal — a short, concrete statement of what the long run is trying to produce. The `--clear` flag (if present, alone) clears the active endurance goal.
+1. Parse the user's argument. Everything after `/john:endurance` (joined into one string) is the endurance goal — a short, concrete statement of what the long run is trying to produce. The `--clear` flag (if present, alone) clears the active endurance goal.
 
 2. Invoke the script via Bash:
 

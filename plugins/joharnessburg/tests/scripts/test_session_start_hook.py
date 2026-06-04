@@ -87,7 +87,7 @@ class TestSessionStartHook(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertIn("additionalContext", out)
             # Should fall back to a helpful placeholder
-            self.assertIn("/endurance", out["additionalContext"])
+            self.assertIn("/john:endurance", out["additionalContext"])
 
     def test_truncates_long_plan_md(self):
         with tempfile.TemporaryDirectory() as td:

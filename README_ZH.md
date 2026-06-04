@@ -34,7 +34,7 @@ claude plugin list
 
 - `/john:status` —— 当前 phase + 进度
 - `/john:archive` —— 归档已完成的 workspace
-- `/endurance` —— 如果会话长时间空闲，重新进入耐久模式
+- `/john:endurance` —— 如果会话长时间空闲，重新进入耐久模式
 
 ## 用 dynamic workflows 运行 John
 
