@@ -44,9 +44,10 @@ John's vertical axis — fanning out hundreds-to-thousands of per-entry subagent
 
 **Recommended session config** (these are your moves — John reads them, it can't set them for you):
 
-1. **Turn off the workflow keyword trigger.** In `/config`, switch off **Workflow keyword trigger**. Otherwise the mere word "workflow" — common in John's own prose and your messages — fires a workflow you didn't intend. Turning it off makes workflow use deliberate.
-2. **Turn on ultracode.** Run `/effort ultracode` at the start of the session. This is what lets Claude *author* a workflow autonomously (no keyword needed); John's skills then steer it to the heavy fan-out phases and keep small/coupled/interactive work inline. Ultracode is **per-session** — it resets when you start a new session, so set it each time (it needs a model that supports `xhigh` effort).
-3. **Pre-seed your permission allowlist.** Workflow subagents inherit your tool allowlist; un-allowlisted Bash/web/MCP calls still prompt mid-run and will stall an unattended pipeline. Add the tools John's agents call (Read/Write/Grep/Glob/Bash + your workerLLM and ppx client calls) to your allowlist before a long run.
+1. **Turn on ultracode.** Run `/effort ultracode` at the start of the session. This is what lets Claude *author* a workflow autonomously; John's skills then steer it to the heavy fan-out phases and keep small/coupled/interactive work inline. Ultracode is **per-session** — it resets when you start a new session, so set it each time (it needs a model that supports `xhigh` effort).
+2. **Pre-seed your permission allowlist.** Workflow subagents inherit your tool allowlist; un-allowlisted Bash/web/MCP calls still prompt mid-run and will stall an unattended pipeline. Add the tools John's agents call (Read/Write/Grep/Glob/Bash + your workerLLM and ppx client calls) to your allowlist before a long run.
+
+> **On the keyword trigger — nothing to turn off.** Claude Code's per-prompt workflow trigger is now the word **`ultracode`** (it changed from `workflow` in a mid-2026 update, with Claude using judgment so an incidental mention no longer hijacks a run). John's skills and your messages say "workflow" constantly and that no longer starts a run — so `/effort ultracode` for the session is all you need; type `ultracode` in a prompt only when you want a one-off run.
 
 **Fallback:** none of this is required. If workflows aren't available (older Claude Code, feature off, not in ultracode), John runs the *same* fan-out as inline subagents — same events, same reducer, same `PLAN.md`, same output. Nothing below the execution line changes; you just don't get the off-context scale and the built-in cross-check.
 

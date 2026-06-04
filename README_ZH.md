@@ -44,9 +44,10 @@ John 的纵轴——把成百上千的单条目 subagent 扇出（抽取每个 c
 
 **推荐的会话配置**（这些是你的操作——John 会读取它们，但无法替你设置）：
 
-1. **关掉 workflow 关键词触发。** 在 `/config` 里关掉 **Workflow keyword trigger**。否则光是出现 "workflow" 这个词——它在 John 自己的文案和你的消息里很常见——就会触发一个你并不想要的 workflow。关掉它，让 workflow 的使用变成有意为之。
-2. **打开 ultracode。** 会话开始时运行 `/effort ultracode`。这才是让 Claude 自主**编写** workflow（不需要关键词）的开关；之后 John 的 skills 会把它引导到重型扇出 phase，并把小规模/强耦合/需交互的工作留在内联处理。ultracode 是**单会话**的——新开会话会重置，所以每次都要重设（需要支持 `xhigh` effort 的模型）。
-3. **预置你的权限白名单。** workflow 的 subagent 继承你的工具白名单；不在白名单里的 Bash/web/MCP 调用仍会在运行中弹出确认，会卡住无人值守的流水线。长跑前，把 John 的 agent 会用到的工具（Read/Write/Grep/Glob/Bash + 你的 workerLLM 和 ppx 客户端调用）加进白名单。
+1. **打开 ultracode。** 会话开始时运行 `/effort ultracode`。这才是让 Claude 自主**编写** workflow 的开关；之后 John 的 skills 会把它引导到重型扇出 phase，并把小规模/强耦合/需交互的工作留在内联处理。ultracode 是**单会话**的——新开会话会重置，所以每次都要重设（需要支持 `xhigh` effort 的模型）。
+2. **预置你的权限白名单。** workflow 的 subagent 继承你的工具白名单；不在白名单里的 Bash/web/MCP 调用仍会在运行中弹出确认，会卡住无人值守的流水线。长跑前，把 John 的 agent 会用到的工具（Read/Write/Grep/Glob/Bash + 你的 workerLLM 和 ppx 客户端调用）加进白名单。
+
+> **关于关键词触发——无需关闭任何东西。** Claude Code 的单条 prompt workflow 触发词现在是 **`ultracode`**（2026 年中的一次更新把它从 `workflow` 改了过来，并让 Claude 自行判断，偶然提到不再会误触发一次运行）。John 的 skills 和你的消息里频繁出现 "workflow"，这不再会启动运行——所以会话层面只需 `/effort ultracode` 即可；只有当你想要一次性运行时，才在 prompt 里打 `ultracode`。
 
 **降级回退：** 以上都不是必需的。如果 workflows 不可用（较旧的 Claude Code、功能未开、不在 ultracode），John 会用内联 subagent 跑**同样的**扇出——同样的 events、同样的 reducer、同样的 `PLAN.md`、同样的产出。执行层以下什么都不变；你只是拿不到脱离上下文的规模和内建的交叉校验。
 
