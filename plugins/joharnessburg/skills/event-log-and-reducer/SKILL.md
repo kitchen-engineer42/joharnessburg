@@ -81,6 +81,15 @@ The reducer is a script (Python — John ships `scripts/reduce_events.py`) that:
 
 Idempotency matters because the reducer may be invoked multiple times during a phase (e.g., after each wave of subagents) without state corruption.
 
+## Phase-boundary checks: count gate + disk reconciliation
+
+`reduce_events.py` ships two deterministic checks for the end of a phase — zero tokens, pure file walking:
+
+- **Count gate** — `--expect-entries N` or `--expect-entries MIN-MAX`. Counts unique entry ids claimed in the phase's events (`payload.entry_id` / `payload.entry_ids`, deduplicated, so corrective re-emits don't inflate it) against the expectation from PLAN.md. The *caller* supplies the number — the script never parses PLAN.md. Below ~90% of the minimum → **exit 3**: do not advance the phase. Small drift or overage → warning, exit 0. The checkpoint is still written on failure — the gate blocks *advancement*, not state derivation. Always prints actual-vs-expected so the number lands in the transcript.
+- **Disk reconciliation** — `--verify-knowledge [--knowledge-dir PATH]`. Cross-checks knowledge entries on disk against claimed entry ids: **orphans** (on disk, no claiming event) and **missing-on-disk** (claimed, no entry dir). Strictly report-only — it warns and never mutates or deletes. The orphan policy is *warn, never fix*: a hand-added entry is legitimate; flag it, let a human decide. And missing-on-disk after the rewrite phase is often legitimate dedup, not corruption — the warning says so.
+
+Why a deterministic floor when [[vertical-workflows]] already has LLM cross-check agents: the failures these catch are *infrastructure* failures — a session killed mid-write, a worker whose events never landed, 16 concurrent writers, a full disk. No amount of model intelligence prevents those, and an LLM auditor can sincerely report a truncated phase as complete. Run both checks together at every phase boundary (one disk walk serves both); [[ralph-loop]] shows the invocation.
+
 ## Failure handling
 
 A subagent crashed mid-write? Its event file is partial or absent. Options for the reducer:

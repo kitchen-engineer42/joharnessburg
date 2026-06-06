@@ -23,7 +23,7 @@ You are layer-2 Claude designing phases for your user's project. The phases will
 A phase is a unit of work with three properties:
 
 1. **An intent.** One sentence. "Extract all rules from the regulation corpus." "Build the runtime UI shell." If you can't say the intent in a sentence, the phase is too big or too unclear.
-2. **Disk-verifiable done criteria.** Specific paths/files that must exist, with optional content checks. Not "feels done." Not "the agent says it's done." See [[workspace-discipline]].
+2. **Disk-verifiable done criteria.** Specific paths/files that must exist, with optional content checks. Not "feels done." Not "the agent says it's done." See [[workspace-discipline]]. For fan-out phases that produce knowledge entries, the done criteria should name an **expected entry count or range** (derived from the corpus survey, recorded in PLAN.md) — that number feeds the reducer's deterministic count gate (`reduce_events.py --expect-entries`, see [[event-log-and-reducer]]), which refuses phase advancement on a large shortfall.
 3. **A clean compaction point.** When you finish a phase, the world is in a state where context could compact (or the session could restart) and the next iteration could pick up cleanly from disk.
 
 Phases that don't have all three are not phases — they're tasks within a phase, or arbitrary stopping points, or something else.

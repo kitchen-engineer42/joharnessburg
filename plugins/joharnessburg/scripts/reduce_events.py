@@ -14,14 +14,31 @@ ship their own reducer that calls this one or replaces it entirely.
 
 This script runs in **layer-2 sessions** inside the user's project.
 
+Phase-boundary checks (v0.2.0):
+  --expect-entries N | MIN-MAX   deterministic count gate. Compares the number
+      of unique entry ids claimed in this phase's events against the expected
+      count/range from PLAN.md (the CALLER supplies the number; this script
+      never parses PLAN.md). Far short (< 90% of min) -> exit 3: do NOT
+      advance the phase. Small drift / overage -> warning, exit 0. The
+      checkpoint is still written either way — the gate blocks phase
+      advancement, not state derivation.
+  --verify-knowledge             report-only disk reconciliation. Walks the
+      knowledge dir and cross-checks against claimed entry ids: entries on
+      disk with no claiming event ("orphans") and claimed ids missing on disk.
+      Warns, NEVER mutates. Note: rewrite-phase dedup legitimately merges
+      entries, so "missing on disk" after a rewrite is not necessarily
+      corruption.
+
 Exit codes:
-  0  success
+  0  success (includes drift/overage/reconciliation warnings)
   1  expected failure (no .john/, no events for phase)
-  2  unexpected exception
+  2  unexpected exception / invalid --expect-entries spec
+  3  count gate far short — calling skill must not advance the phase
 """
 
 import argparse
 import json
+import math
 import sys
 import traceback
 from datetime import datetime, timezone
@@ -147,6 +164,68 @@ def _check_chunk_completeness(events: list[dict]) -> dict:
     }
 
 
+def _parse_expect(spec: str):
+    """Parse an --expect-entries spec: 'N' or 'MIN-MAX'. Returns (min, max)."""
+    try:
+        if "-" in spec:
+            lo_s, hi_s = spec.split("-", 1)
+            lo, hi = int(lo_s), int(hi_s)
+        else:
+            lo = hi = int(spec)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"invalid --expect-entries spec {spec!r}: use 'N' or 'MIN-MAX' (e.g. '40' or '35-50')"
+        )
+    if lo < 0 or hi < lo:
+        raise argparse.ArgumentTypeError(
+            f"invalid --expect-entries spec {spec!r}: need 0 <= MIN <= MAX"
+        )
+    return lo, hi
+
+
+def _claimed_entry_ids(events: list) -> set:
+    """Unique entry ids claimed across the phase's folded events.
+
+    Accepts both documented event shapes: `payload.entry_id` (one entry per
+    event) and `payload.entry_ids` (a list), plus top-level `entry_id` /
+    `entry_ids` for robustness. Uniqueness keeps the count idempotent —
+    re-emitted or corrective events don't inflate it.
+    """
+    ids: set = set()
+    for e in events:
+        if not isinstance(e, dict):
+            continue
+        payload = e.get("payload") if isinstance(e.get("payload"), dict) else {}
+        for container in (payload, e):
+            one = container.get("entry_id")
+            if isinstance(one, str) and one:
+                ids.add(one)
+            many = container.get("entry_ids")
+            if isinstance(many, list):
+                ids.update(x for x in many if isinstance(x, str) and x)
+    return ids
+
+
+def _disk_entry_ids(knowledge_dir: Path) -> set:
+    """Entry ids present on disk: any directory under knowledge_dir that
+    directly contains at least one regular file. Entry id = directory
+    basename. Covers flat and category-nested layouts. Skips hidden dirs and
+    `_quarantine/`. Returns empty set when the dir is missing (graceful).
+    """
+    ids: set = set()
+    if not knowledge_dir.is_dir():
+        return ids
+    for d in knowledge_dir.rglob("*"):
+        if not d.is_dir():
+            continue
+        parts = d.relative_to(knowledge_dir).parts
+        if any(p.startswith(".") or p == "_quarantine" for p in parts):
+            continue
+        if any(child.is_file() for child in d.iterdir()):
+            ids.add(d.name)
+    return ids
+
+
 def reduce_phase(phase_dir: Path, project_root: Path, *, quarantine: bool = True):
     """Read all events under phase_dir, sort deterministically, return canonical state dict.
 
@@ -213,6 +292,29 @@ def main():
         action="store_true",
         help="Compute and print state to stdout but do not write the checkpoint file.",
     )
+    parser.add_argument(
+        "--expect-entries",
+        type=_parse_expect,
+        default=None,
+        metavar="N|MIN-MAX",
+        help=(
+            "Deterministic count gate: expected unique entry ids for this phase "
+            "(number comes from PLAN.md; supplied by the caller). Far short -> exit 3."
+        ),
+    )
+    parser.add_argument(
+        "--verify-knowledge",
+        action="store_true",
+        help=(
+            "Report-only reconciliation: cross-check knowledge entries on disk "
+            "against claimed entry ids in the event log. Warns, never mutates."
+        ),
+    )
+    parser.add_argument(
+        "--knowledge-dir",
+        default=".john/knowledge",
+        help="Knowledge dir for --verify-knowledge (default: .john/knowledge).",
+    )
     args = parser.parse_args()
 
     cwd = Path.cwd()
@@ -258,6 +360,80 @@ def main():
             f"chunk_complete events. See state.json's incomplete_chunks field.\n"
         )
 
+    # ---- phase-boundary checks (count gate + disk reconciliation) ----
+    gate = None
+    verify = None
+    exit_code = 0
+    claimed = None
+    if args.expect_entries is not None or args.verify_knowledge:
+        claimed = _claimed_entry_ids(state["events"])
+
+    if args.expect_entries is not None:
+        lo, hi = args.expect_entries
+        actual = len(claimed)
+        floor = math.ceil(0.9 * lo)
+        if actual >= lo:
+            status = "pass"
+            if actual > hi:
+                sys.stderr.write(
+                    f"GATE: {actual} entries claimed vs expected {lo}-{hi} — OVERAGE "
+                    f"(passes; check for duplicate extraction)\n"
+                )
+            else:
+                sys.stderr.write(
+                    f"GATE: {actual} entries claimed vs expected {lo}-{hi} — OK\n"
+                )
+        elif actual >= floor:
+            status = "drift"
+            sys.stderr.write(
+                f"GATE: {actual} entries claimed vs expected {lo}-{hi} — SMALL DRIFT "
+                f"(passes; worth a look)\n"
+            )
+        else:
+            status = "fail"
+            exit_code = 3
+            extra = ""
+            if actual == 0 and state["event_count"] > 0:
+                extra = (
+                    " No entry ids found in any event — the gate matches "
+                    "payload.entry_id / payload.entry_ids; check the event shape."
+                )
+            sys.stderr.write(
+                f"GATE: {actual} entries claimed vs expected {lo}-{hi} — FAR SHORT "
+                f"(do not advance phase).{extra}\n"
+            )
+        gate = {
+            "expected_min": lo,
+            "expected_max": hi,
+            "actual": actual,
+            "status": status,
+        }
+
+    if args.verify_knowledge:
+        kdir = Path(args.knowledge_dir)
+        if not kdir.is_absolute():
+            kdir = cwd / kdir
+        on_disk = _disk_entry_ids(kdir)
+        orphans = sorted(on_disk - claimed)
+        missing = sorted(claimed - on_disk)
+        if orphans:
+            sys.stderr.write(
+                f"WARN: {len(orphans)} knowledge entr(ies) on disk with no "
+                f"corresponding event (orphans). Report-only — nothing was changed.\n"
+            )
+        if missing:
+            sys.stderr.write(
+                f"WARN: {len(missing)} claimed entr(ies) missing on disk. "
+                f"Rewrite-phase dedup legitimately merges entries — verify before "
+                f"treating this as corruption. Report-only.\n"
+            )
+        verify = {
+            "knowledge_dir": str(kdir.relative_to(cwd)) if kdir.is_relative_to(cwd) else str(kdir),
+            "entries_on_disk": len(on_disk),
+            "orphans": orphans,
+            "missing_on_disk": missing,
+        }
+
     emit(
         {
             "phase": args.phase,
@@ -268,7 +444,12 @@ def main():
             "quarantine_dir": str((phase_dir / "_quarantine").relative_to(cwd)) if quarantined else None,
             "state_file": str(state_file.relative_to(cwd)) if not args.dry_run else None,
             "dry_run": args.dry_run,
-        }
+            "entries_claimed": len(claimed) if claimed is not None else None,
+            "gate": gate,
+            "verify": verify,
+        },
+        success=(exit_code == 0),
+        exit_code=exit_code,
     )
 
 

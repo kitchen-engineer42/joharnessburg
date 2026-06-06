@@ -75,13 +75,13 @@ Don't model-shop chunk by chunk; pick a tier for the phase and stick with it unl
 
 ## When the extraction phase is done
 
-Per [[ralph-loop]] step 4-5 (the run-reducer-and-update-PLAN cycle), the main agent runs the reducer at the end of the fan-out wave by invoking:
+Per [[ralph-loop]] step 4-5 (the run-reducer-and-update-PLAN cycle), the main agent runs the reducer at the end of the fan-out wave — **gated**, with the expected entry count/range from PLAN.md's extract-phase done criteria:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py" extract
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py" extract --expect-entries 35-50 --verify-knowledge
 ```
 
-Then verifies:
+Exit 3 = far short of the expected count: the phase is not done; find and re-dispatch the missing work before anything else. Then verifies:
 
 - All chunks have at least one event in `events/extract/<chunk-id>/`.
 - The reducer ran without errors and produced `checkpoints/extract/state.json`.

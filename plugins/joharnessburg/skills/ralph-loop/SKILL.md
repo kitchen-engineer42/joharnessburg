@@ -66,6 +66,16 @@ When the fan-out is large and uniform (dozens-to-thousands of units), the right 
 
 The loop is **engine-agnostic** below this line: whether the units were dispatched by a workflow or inline, you still run the reducer and read the checkpoint — that's truth, not the workflow's return value. If the session isn't workflow-capable, dispatch inline; everything else is identical. The mechanics and the John-shaped stages are in [[vertical-workflows]].
 
+### The phase-boundary gate
+
+At the end of any fan-out phase that produces knowledge entries, run the reducer **gated** — pass the phase's expected entry count (or range) from PLAN.md:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py" extract --expect-entries 35-50 --verify-knowledge
+```
+
+Exit code 3 means **far short** (under ~90% of the expected minimum): the phase is NOT done, no matter how complete the work *feels*. Don't mark it done — surface the actual-vs-expected delta in PLAN.md's Log, find what was missed (crashed subagents? skipped chunks? a workflow agent whose events never landed?), and re-dispatch. This gate is deterministic — it exists precisely because both you and an LLM auditor can sincerely believe a truncated phase is complete. `--verify-knowledge` warnings (orphans / missing-on-disk) are report-only; read them before advancing, but they don't block.
+
 ## Surviving context compaction
 
 When Claude Code compacts your context mid-session:
