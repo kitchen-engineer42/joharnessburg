@@ -24,7 +24,7 @@ The one decision left to the project is the **severity controlled vocabulary** â
 
 - It's not picking from a menu of formats. The format is **rules + glossary**, period.
 - It's not designing schema fields from the corpus up. The fields below are pre-fixed.
-- It's not a taste call. Layer-3 Claude executes; doesn't deliberate.
+- It's not a taste call. Layer-2 Claude executes; doesn't deliberate.
 
 ## Knowledge format
 
@@ -90,7 +90,7 @@ In Phase 0 the user (or layer-2 Claude on the user's behalf, with sign-off) pick
 - Contract review: `material / non-material` (binary)
 - Custom domain: whatever the user picks
 
-Once declared, every extracted rule's `severity` field MUST take a value from that list. Layer-3 Claude validates during extraction (Phase 2) and surfaces violations as `incomplete_rule` events.
+Once declared, every extracted rule's `severity` field MUST take a value from that list. Layer-2 Claude validates during extraction (Phase 2) and surfaces violations as `incomplete_rule` events.
 
 The dashboard skill ([[dashboard-reporting]]) reads the declared vocab to color-code violations.
 

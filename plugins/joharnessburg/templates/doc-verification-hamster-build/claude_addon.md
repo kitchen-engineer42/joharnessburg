@@ -24,7 +24,7 @@ The template is a John-idiom translation of KC's 7-phase methodology (KC: a sibl
 
 That means: rule descriptions, source quotes, glossary definitions, `check_R<id>.py` prompt strings, decision-tree prose, dashboard labels, violation messages — **all in the same language as the rule corpus**. Don't mix English and Chinese (or any two languages) within a project. The schema field *names* stay language-agnostic (`source_ref`, not 出处); the field *contents* speak the corpus language.
 
-Layer-3 Claude detects the language during the bootstrap phase reading sample regulation chunks. Capture the choice in PLAN.md's "Project intent" section. From that point on, all subagent briefings, all generated content, all dashboards speak that language.
+Layer-2 Claude detects the language during the bootstrap phase reading sample regulation chunks. Capture the choice in PLAN.md's "Project intent" section. From that point on, all subagent briefings, all generated content, all dashboards speak that language.
 
 The skills themselves (the meta-skills layer-2 Claude reads to know what to do) stay in English — they're internal guidance, not user-facing artifacts.
 
@@ -34,7 +34,7 @@ Even though distillation is required by default, layer-2 Claude should know: a f
 
 ### Severity vocabulary is project-defined
 
-The schema accepts `severity` as a controlled vocabulary, but the values are NOT fixed by the template. Pick the values in Phase 0, declare them in PLAN.md's "Project intent" section (e.g., `severity values: critical / high / medium / low / advisory` for financial regulation; `severity values: blocker / warning / info` for code-style checks). Layer-3 Claude uses the declared list for every extracted rule's severity field. The dashboard's color-coding maps to whatever vocab the project picks.
+The schema accepts `severity` as a controlled vocabulary, but the values are NOT fixed by the template. Pick the values in Phase 0, declare them in PLAN.md's "Project intent" section (e.g., `severity values: critical / high / medium / low / advisory` for financial regulation; `severity values: blocker / warning / info` for code-style checks). Layer-2 Claude uses the declared list for every extracted rule's severity field. The dashboard's color-coding maps to whatever vocab the project picks.
 
 ### Avoid scope creep
 

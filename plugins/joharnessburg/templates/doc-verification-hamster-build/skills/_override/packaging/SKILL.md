@@ -172,7 +172,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/scaffold_release_bundle.py \
   --workflows <project>/workflows
 ```
 
-The script copies templated source files from `${CLAUDE_PLUGIN_ROOT}/scripts/release_bundle_assets/` into the project, populates `manifest.json`, and writes a project-specific `README.md`. Layer-3 Claude then reviews the scaffolded bundle and customizes dashboard fields (see [[dashboard-reporting]]) for the project's domain.
+The script copies templated source files from `${CLAUDE_PLUGIN_ROOT}/scripts/release_bundle_assets/` into the project, populates `manifest.json`, and writes a project-specific `README.md`. Layer-2 Claude then reviews the scaffolded bundle and customizes dashboard fields (see [[dashboard-reporting]]) for the project's domain.
 
 ### Bundle is self-contained
 
