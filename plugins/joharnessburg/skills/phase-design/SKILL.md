@@ -46,7 +46,7 @@ These are starting points, not requirements. The user or the active template ove
 | 2 | survey | Read the corpus shape before designing anything. | Tiny corpus where you can read all of it in one pass. |
 | 3 | schema-design | Decide knowledge format/schema. | Active template has already fixed the schema. |
 | 4 | chunk | Break large docs into tree of progressive-disclosure chunks. | Short-file-set corpus needs onion-*wrapper* (assemble) instead — see [[chunking]]. |
-| 5 | extract | Sweep chunks for knowledge entries. Subagent fan-out. | Knowledge IS the corpus (e.g., already-structured data). |
+| 5 | extract | Sweep chunks for knowledge entries. Subagent fan-out. Open with a **schema pilot** (diverse 10–20 chunk sample against the draft schema, per [[schema-design]]) before committing the full fan-out; for large corpora the pilot can be its own thin phase. | Knowledge IS the corpus (e.g., already-structured data). |
 | 6 | rewrite + cross-link | Progressive disclosure, dedup, cross-link. | Single-entry corpus. |
 | 7 | package | Emit SKILL.md to `<project>/.claude/skills/`. | Knowledge goes somewhere else (e.g., a database). |
 

@@ -79,7 +79,7 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 
 **Knowledge inventory.** Initially just a pointer + one-line profile of the corpus: "10 PDFs, ~2000 pages total, financial regulations in Chinese." Don't speculate about what'll come out yet. After the knowledge phases ship, this becomes a pointer to the produced skills.
 
-**App-type definition.** Knowledge format / knowledge schema / app mechanism / build pipeline are a **cascade** — each constrains the next. [[schema-design]] teaches the cascade methodology in depth (and the corpus-survey step that grounds it); your job in this section is to *apply* the cascade, not re-explain it. Sketch each structure for *this* project with the user, and explicitly mark each "may evolve."
+**App-type definition.** Knowledge format / knowledge schema / app mechanism / build pipeline are a **cascade** — each constrains the next. [[schema-design]] teaches the cascade methodology in depth (and the corpus-survey step that grounds it); your job in this section is to *apply* the cascade, not re-explain it. Sketch each structure for *this* project with the user, and explicitly mark each "may evolve." Two cheap commitments worth writing in here from day one: the extraction phase opens with a **schema pilot** (diverse sample before mass extraction — [[schema-design]]), and entries carry a **`schema_version`** field so later schema changes stay detectable and migratable.
 
 This section is the user's project taste applied. Wide tunnel — sketch loose, iterate as the corpus reveals itself. The cascade's order matters: settle format first, derive schema, derive runtime, derive pipeline. Reversing the order over-fits.
 

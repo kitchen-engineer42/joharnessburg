@@ -81,6 +81,17 @@ Every entry, regardless of format, gets a two-tier structure:
 
 This is **not a schema choice** — it's a universal practice applied on top of whichever schema you design. The schema defines what fields the *body* has; the header is always present, always one-line + classification + refs. Enforced during [[knowledge-rewrite]]. Design the schema with this split assumed.
 
+## The schema pilot — test before mass production
+
+A schema that is only *designed* but never *tested* is a hypothesis, and betting hundreds of extractions on a hypothesis is how you discover a structural mismatch at the most expensive possible moment. Before the full fan-out, run a **schema pilot**:
+
+1. Pick a **deliberately diverse 10–20 chunk sample** — and chase the corpus's *edge cases*, not its average. A pilot of typical chunks proves nothing; the chunks that looked weird in the survey (the table-heavy chapter, the appendix, the one document in a different genre) are exactly the ones that break schemas.
+2. Extract the sample against the draft schema (the [[knowledge-extraction]] mechanics in miniature, or the `schema-designer` agent's iteration loop).
+3. Check fit: did every pilot chunk's content land in the schema without forcing? Did any field stay always-empty (over-design) or overflow into free text (under-design)?
+4. Iterate the schema on what the pilot showed, *then* commit to the full extraction. Schema changes before bulk extraction are nearly free; after it, every change carries a migration bill.
+
+Record the pilot's outcome (sample size, what changed) in PLAN.md's Log. [[phase-design]] treats the pilot as a natural early step of the extraction phase (or a thin phase of its own for large corpora).
+
 ## When to iterate the schema
 
 You will. Plan for it.
@@ -90,6 +101,12 @@ You will. Plan for it.
 - During app design: the runtime needs a field the schema doesn't carry (e.g., "the game runtime needs character motivations as first-class objects").
 
 When iteration happens, **update PLAN.md's app-type definition section + the schema-design notes**. Log the change. Re-emit affected entries via corrective events ([[event-log-and-reducer]]) rather than rewriting the canonical state in place.
+
+Three lines of discipline for mid-pipeline schema changes:
+
+- **Give entries a `schema_version` field** (an integer is fine). It makes a mixed population *detectable from disk* — without it, "did we re-align everything after the change?" is unanswerable, which collides with disk-is-truth.
+- **Adapt already-produced assets to the change** — never leave a silent mixed population; downstream phases assume uniformity.
+- **Realign economically**: migrate the stale entries (reuse and modify what exists) rather than re-extracting everything from source, whenever the change permits it. `schema_version` is what tells you which entries are stale.
 
 ## Locking too early — the single-SKU regression
 
