@@ -61,7 +61,7 @@ Required:
 }
 ```
 
-`name` must match the directory name. `requires_john` is informational today (apply_template.py doesn't enforce it).
+`name` must match the directory name. `requires_john` is checked at apply time (v0.2.0+): `>=X.Y.Z` (at-least) or bare `X.Y.Z` (exact) is compared against the installed John version, and a mismatch prints a prominent warning — **warn-only, the apply still proceeds**. Hamster's packager stamps it automatically; if you author by hand, pin the John version you actually built against.
 
 ## Apply mechanics (precise)
 
@@ -71,7 +71,7 @@ When `apply_template.py` runs for your template:
 |---|---|
 | `skills/<new-name>/` (new dir, name NOT in core skills) | Copied into the merged plugin as a new skill. |
 | `skills/_override/<core-name>/` | Deletes the existing `<core-name>/` from the merged plugin, replaces with this directory. The override file must stand on its own (full frontmatter + body + references/ as needed). Not a partial overlay. |
-| `skills/_delete` (newline-delimited core skill names; `#` comments ok) | Each named core skill dir is removed from the merged plugin. |
+| `skills/_delete` (newline-delimited core skill names; full-line `#` comments and same-line `name # reason` comments ok) | Each named core skill dir is removed from the merged plugin. Deleting one of John's **load-bearing core skills** (using-john, ralph-loop, event-log-and-reducer, workspace-discipline, context-management, subagent-dispatch) is allowed but loud: state the why as a same-line comment (`ralph-loop # replaced by template loop`) or the apply prints an extra-loud warning. The warning also lists the remaining skills that still reference the deleted one. Warn-only — deliberate trim-downs (e.g. a minimal static-page template) go through, with a paper trail. |
 | `scripts/<name>.py` | Copied into the merged plugin's `scripts/`. NOT-OVERRIDE: shadowing a core script name is a warning + skip. Use different names. |
 | `commands/<name>.md` | Same NOT-OVERRIDE rule. |
 | `agents/<name>.md` | Same NOT-OVERRIDE rule. |

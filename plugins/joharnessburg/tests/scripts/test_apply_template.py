@@ -408,5 +408,168 @@ class TestApplyTemplate(unittest.TestCase):
             self.assertTrue((applied_parent / "canonical-name-from-json").is_dir())
 
 
+class TestVersionPinAndCoreDeleteGuard(unittest.TestCase):
+    """v0.2.0 — warn-only requires_john check + loud core-skill delete guard."""
+
+    def _apply(self, td, template_mutator=None, john_mutator=None):
+        tdp = Path(td)
+        john = tdp / "fake-john"
+        template = tdp / "fake-template"
+        applied = tdp / "applied"
+        _build_fake_john(john)
+        _build_fake_template(template)
+        if john_mutator:
+            john_mutator(john)
+        if template_mutator:
+            template_mutator(template)
+        rc, out, err = run_apply(
+            "--template-root", str(template),
+            "--john-install", str(john),
+            output_parent_override=applied,
+        )
+        return rc, out, err, applied
+
+    # ---- version pin ----
+
+    def test_version_pin_warns_when_unsatisfied(self):
+        with tempfile.TemporaryDirectory() as td:
+            def mut(t):
+                tj = json.loads((t / "template.json").read_text())
+                tj["requires_john"] = ">=0.2.0"
+                (t / "template.json").write_text(json.dumps(tj))
+            rc, out, err, applied = self._apply(td, template_mutator=mut)
+            self.assertEqual(rc, 0)  # warn-only: apply still succeeds
+            self.assertIn("VERSION PIN WARNING", err)
+            self.assertIn(">=0.2.0", err)
+            self.assertIn("0.1.7", err)
+            self.assertFalse(out["version_check"]["satisfied"])
+            self.assertTrue((applied / "fake-template").is_dir())
+
+    def test_version_pin_silent_when_satisfied(self):
+        with tempfile.TemporaryDirectory() as td:
+            def mut(t):
+                tj = json.loads((t / "template.json").read_text())
+                tj["requires_john"] = ">=0.1.0"
+                (t / "template.json").write_text(json.dumps(tj))
+            rc, out, err, _ = self._apply(td, template_mutator=mut)
+            self.assertEqual(rc, 0)
+            self.assertNotIn("VERSION PIN WARNING", err)
+            self.assertTrue(out["version_check"]["satisfied"])
+
+    def test_version_pin_skipped_when_field_absent(self):
+        # Backward-compat regression guard: templates predating requires_john
+        # apply with no version warning at all.
+        with tempfile.TemporaryDirectory() as td:
+            rc, out, err, _ = self._apply(td)
+            self.assertEqual(rc, 0)
+            self.assertNotIn("requires_john", err)
+            self.assertIsNone(out["version_check"])
+
+    def test_version_pin_unparseable_spec_warns_and_proceeds(self):
+        with tempfile.TemporaryDirectory() as td:
+            def mut(t):
+                tj = json.loads((t / "template.json").read_text())
+                tj["requires_john"] = "~>1.0"
+                (t / "template.json").write_text(json.dumps(tj))
+            rc, out, err, _ = self._apply(td, template_mutator=mut)
+            self.assertEqual(rc, 0)
+            self.assertIn("cannot parse requires_john", err)
+            self.assertFalse(out["version_check"]["checked"])
+
+    def test_version_pin_handles_missing_installed_version(self):
+        with tempfile.TemporaryDirectory() as td:
+            def jmut(j):
+                (j / ".claude-plugin" / "plugin.json").write_text(
+                    json.dumps({"name": "joharnessburg"})  # no version field
+                )
+            def tmut(t):
+                tj = json.loads((t / "template.json").read_text())
+                tj["requires_john"] = ">=0.2.0"
+                (t / "template.json").write_text(json.dumps(tj))
+            rc, out, err, _ = self._apply(td, template_mutator=tmut, john_mutator=jmut)
+            self.assertEqual(rc, 0)
+            self.assertIn("could not determine the installed John version", err)
+            self.assertFalse(out["version_check"]["checked"])
+
+    # ---- core-skill delete guard ----
+
+    def test_core_skill_delete_with_reason_is_loud_but_proceeds(self):
+        with tempfile.TemporaryDirectory() as td:
+            def jmut(j):
+                (j / "skills" / "ralph-loop").mkdir()
+                (j / "skills" / "ralph-loop" / "SKILL.md").write_text(
+                    "---\nname: ralph-loop\n---\n# the loop\n"
+                )
+            def tmut(t):
+                (t / "skills" / "_delete").write_text(
+                    "to-be-deleted\nralph-loop # replaced by template-specific loop\n"
+                )
+            rc, out, err, applied = self._apply(td, template_mutator=tmut, john_mutator=jmut)
+            self.assertEqual(rc, 0)  # warn-don't-block
+            self.assertIn("CORE SKILL DELETED", err)
+            self.assertIn("ralph-loop", err)
+            self.assertIn("replaced by template-specific loop", err)
+            self.assertFalse((applied / "fake-template" / "skills" / "ralph-loop").exists())
+            core = out["core_skill_deletions"]
+            self.assertEqual(len(core), 1)
+            self.assertEqual(core[0]["skill"], "ralph-loop")
+            self.assertEqual(core[0]["reason"], "replaced by template-specific loop")
+            # metadata carries it too
+            meta = json.loads(
+                (applied / "fake-template" / ".applied-metadata.json").read_text()
+            )
+            self.assertEqual(len(meta["core_skill_deletions"]), 1)
+
+    def test_core_skill_delete_without_reason_is_extra_loud(self):
+        with tempfile.TemporaryDirectory() as td:
+            def jmut(j):
+                (j / "skills" / "ralph-loop").mkdir()
+                (j / "skills" / "ralph-loop" / "SKILL.md").write_text("# loop\n")
+            def tmut(t):
+                (t / "skills" / "_delete").write_text("ralph-loop\n")
+            rc, out, err, applied = self._apply(td, template_mutator=tmut, john_mutator=jmut)
+            self.assertEqual(rc, 0)
+            self.assertIn("NO REASON STATED", err)
+            self.assertIn("ralph-loop #", err)  # tells the author the syntax
+            self.assertFalse((applied / "fake-template" / "skills" / "ralph-loop").exists())
+            self.assertIsNone(out["core_skill_deletions"][0]["reason"])
+
+    def test_core_delete_warning_names_referrers(self):
+        with tempfile.TemporaryDirectory() as td:
+            def jmut(j):
+                (j / "skills" / "ralph-loop").mkdir()
+                (j / "skills" / "ralph-loop" / "SKILL.md").write_text("# loop\n")
+                # chunking references ralph-loop and survives the deletion
+                (j / "skills" / "chunking" / "SKILL.md").write_text(
+                    "---\nname: chunking\n---\nSee [[ralph-loop]] for iteration.\n"
+                )
+            def tmut(t):
+                (t / "skills" / "_delete").write_text("ralph-loop # trimmed\n")
+            rc, out, err, _ = self._apply(td, template_mutator=tmut, john_mutator=jmut)
+            self.assertEqual(rc, 0)
+            self.assertIn("Still referenced by remaining skills", err)
+            self.assertIn("chunking", err)
+            self.assertIn("chunking", out["core_skill_deletions"][0]["referenced_by"])
+
+    def test_non_core_delete_unchanged_and_comment_parsing(self):
+        # `name # comment` now parses for non-core skills too (this also fixes
+        # the latent bug where a same-line comment broke the name lookup),
+        # with no core warning.
+        with tempfile.TemporaryDirectory() as td:
+            def tmut(t):
+                (t / "skills" / "_delete").write_text(
+                    "# full-line comment is still skipped\n"
+                    "to-be-deleted # cleanup\n"
+                )
+            rc, out, err, applied = self._apply(td, template_mutator=tmut)
+            self.assertEqual(rc, 0)
+            self.assertIn("to-be-deleted", out["skills_deleted"])
+            self.assertEqual(out["core_skill_deletions"], [])
+            self.assertNotIn("CORE SKILL DELETED", err)
+            self.assertFalse(
+                (applied / "fake-template" / "skills" / "to-be-deleted").exists()
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

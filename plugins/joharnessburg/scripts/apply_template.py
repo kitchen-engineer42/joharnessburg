@@ -33,6 +33,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+# Core skills that are load-bearing for John itself (not domain skills that
+# templates legitimately replace). Deleting one is allowed — warn-don't-block —
+# but it must be loud and carry a stated reason in the _delete file.
+# NOTE: hamster's package_template.py keeps an annotated copy of these names;
+# this dict is authoritative.
+CORE_SKILLS = {
+    "using-john": "top-level orientation; pinned by the SessionStart hook",
+    "ralph-loop": "the iteration engine the whole session runs on",
+    "event-log-and-reducer": "the subagent coordination contract; reduce_events.py's documentation",
+    "workspace-discipline": "the disk-is-truth operating contract",
+    "context-management": "compaction survival for long sessions",
+    "subagent-dispatch": "the vertical-axis fan-out mechanism",
+}
+
+
 def resolve_output_parent(override: str = None) -> Path:
     """Where applied-template merged dirs live.
 
@@ -117,6 +132,85 @@ def load_template_json(template_root: Path) -> dict:
         return {}
 
 
+def _parse_version(s: str) -> tuple | None:
+    """'0.2.0' -> (0, 2, 0). None when not a dotted-numeric version."""
+    try:
+        return tuple(int(part) for part in s.strip().split("."))
+    except (ValueError, AttributeError):
+        return None
+
+
+def check_version_pin(template_meta: dict, john_install: Path) -> dict | None:
+    """Warn-only check of template.json's `requires_john` against the installed
+    John version (from <john_install>/.claude-plugin/plugin.json).
+
+    Spec grammar (deliberately minimal): `>=X.Y.Z` (at-least) or bare `X.Y.Z`
+    (exact). Absent field -> None (silent skip; templates predating the field
+    stay valid). Unparseable spec or undeterminable installed version -> soft
+    warning, proceed. Unsatisfied -> prominent warning, STILL proceed.
+    """
+    spec = template_meta.get("requires_john")
+    if not spec:
+        return None
+
+    installed = None
+    pj = john_install / ".claude-plugin" / "plugin.json"
+    try:
+        installed = json.loads(pj.read_text()).get("version")
+    except (OSError, json.JSONDecodeError):
+        pass
+    if not installed:
+        sys.stderr.write(
+            f"WARN: could not determine the installed John version (no readable "
+            f"{pj}); skipping the requires_john check.\n"
+        )
+        return {"checked": False, "requires_john": spec, "installed": None, "satisfied": None}
+
+    spec_str = str(spec).strip()
+    if spec_str.startswith(">="):
+        wanted = _parse_version(spec_str[2:])
+        op = ">="
+    else:
+        wanted = _parse_version(spec_str)
+        op = "=="
+    got = _parse_version(installed)
+    if wanted is None or got is None:
+        sys.stderr.write(
+            f"WARN: cannot parse requires_john {spec_str!r} against installed "
+            f"version {installed!r}; skipping the check.\n"
+        )
+        return {"checked": False, "requires_john": spec_str, "installed": installed, "satisfied": None}
+
+    satisfied = (got >= wanted) if op == ">=" else (got == wanted)
+    if not satisfied:
+        sys.stderr.write(
+            "\n"
+            "================ VERSION PIN WARNING ================\n"
+            f"This template declares requires_john: {spec_str}\n"
+            f"but the installed John is version {installed}.\n"
+            "The template was built against a different John layout and may\n"
+            "misbehave. Proceeding anyway (warn-only).\n"
+            "=====================================================\n\n"
+        )
+    return {"checked": True, "requires_john": spec_str, "installed": installed, "satisfied": satisfied}
+
+
+def _skill_referrers(output_root: Path, skill_name: str) -> list[str]:
+    """Remaining skills whose SKILL.md links [[skill_name]] — computed, not hardcoded."""
+    needle = f"[[{skill_name}]]"
+    referrers = []
+    skills_dir = output_root / "skills"
+    if not skills_dir.is_dir():
+        return referrers
+    for skill_md in sorted(skills_dir.glob("*/SKILL.md")):
+        try:
+            if needle in skill_md.read_text(encoding="utf-8"):
+                referrers.append(skill_md.parent.name)
+        except OSError:
+            continue
+    return referrers
+
+
 def copy_tree_overlay(src: Path, dst: Path, mode: str = "replace") -> tuple[list[str], list[str]]:
     """Copy src/* over dst/*.
 
@@ -177,23 +271,65 @@ def apply_overrides(output_root: Path, template_root: Path) -> list[str]:
     return overridden
 
 
-def apply_deletes(output_root: Path, template_root: Path) -> list[str]:
-    """skills/_delete (newline-delimited core skill names) → rm output/skills/<name>/."""
+def apply_deletes(output_root: Path, template_root: Path) -> tuple[list[str], list[dict]]:
+    """skills/_delete → rm output/skills/<name>/.
+
+    Line format: `<skill-name>` or `<skill-name> # <reason>`. Full-line `#`
+    comments are skipped. Deleting a CORE_SKILLS member is allowed but loud:
+    it requires a stated same-line reason and the warning names the skill's
+    load-bearing role plus the remaining skills that still reference it.
+    Warn-don't-block, by design — deliberate trim-downs are legitimate.
+
+    Returns (deleted_names, core_deletions) where each core deletion is
+    {"skill", "reason", "referenced_by"}.
+    """
     deleted: list[str] = []
+    core_deletions: list[dict] = []
     delete_file = template_root / "skills" / "_delete"
     if not delete_file.exists():
-        return deleted
+        return deleted, core_deletions
     for line in delete_file.read_text().splitlines():
-        name = line.strip()
-        if not name or name.startswith("#"):
-            continue
+        name, _, comment = line.partition("#")
+        name = name.strip()
+        reason = comment.strip() or None
+        if not name:
+            continue  # blank line or full-line comment
         target = output_root / "skills" / name
-        if target.is_dir():
-            shutil.rmtree(target)
-            deleted.append(name)
-        else:
+        if not target.is_dir():
             sys.stderr.write(f"WARN: _delete entry '{name}' not found in core skills; skipping.\n")
-    return deleted
+            continue
+        shutil.rmtree(target)
+        deleted.append(name)
+        if name in CORE_SKILLS:
+            referrers = _skill_referrers(output_root, name)
+            lines = [
+                "",
+                "############ CORE SKILL DELETED ############",
+                f"Template deletes core skill '{name}'.",
+                f"  Load-bearing role: {CORE_SKILLS[name]}",
+            ]
+            if reason:
+                lines.append(f"  Template's stated reason: {reason}")
+            else:
+                lines += [
+                    "  NO REASON STATED. Core deletions should say why —",
+                    f"  add a same-line comment in skills/_delete:",
+                    f"      {name} # <why this template removes it>",
+                ]
+            if referrers:
+                lines.append(
+                    f"  Still referenced by remaining skills: {', '.join(referrers)}"
+                )
+            lines += [
+                "Proceeding (warn-only) — verify the template replaces what this skill provided.",
+                "############################################",
+                "",
+            ]
+            sys.stderr.write("\n".join(lines))
+            core_deletions.append(
+                {"skill": name, "reason": reason, "referenced_by": referrers}
+            )
+    return deleted, core_deletions
 
 
 def apply_additive_skills(output_root: Path, template_root: Path) -> list[str]:
@@ -308,6 +444,9 @@ def main(argv: list[str] | None = None):
         )
         return
 
+    # Warn-only version pin (template.json requires_john vs installed version)
+    version_check = check_version_pin(template_meta, john_install)
+
     # Resolve output
     output_parent = resolve_output_parent()
     output_root = (
@@ -368,7 +507,7 @@ def main(argv: list[str] | None = None):
     shutil.copytree(john_install, output_root, symlinks=True)
 
     # 2. Apply diff
-    deleted = apply_deletes(output_root, template_root)
+    deleted, core_deletions = apply_deletes(output_root, template_root)
     overridden = apply_overrides(output_root, template_root)
     added = apply_additive_skills(output_root, template_root)
 
@@ -398,11 +537,13 @@ def main(argv: list[str] | None = None):
         "applied_at": datetime.now(timezone.utc).isoformat(),
         "overrides_applied": overridden,
         "skills_deleted": deleted,
+        "core_skill_deletions": core_deletions,
         "skills_added": added,
         "additive_dirs_copied": additive_dirs_copied,
         "additive_collisions": additive_collisions,
         "template_files_copied": template_metadata,
         "workflows_copied": workflows_copied,
+        "version_check": version_check,
     }
     (output_root / ".applied-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
 
@@ -422,9 +563,11 @@ def main(argv: list[str] | None = None):
             "output_dir": str(output_root),
             "overrides_applied": overridden,
             "skills_deleted": deleted,
+            "core_skill_deletions": core_deletions,
             "skills_added": added,
             "additive_collisions": additive_collisions,
             "workflows_copied": workflows_copied,
+            "version_check": version_check,
             "launch_command": launch_command,
         }
     )
