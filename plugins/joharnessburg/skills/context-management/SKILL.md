@@ -28,6 +28,8 @@ What this gives you: even after compaction wipes most of conversation history, t
 
 If no endurance goal is set, the project's intent from PLAN.md's top section serves the same role — read it as step 1 of every loop iteration.
 
+An endurance goal also changes one default: **assume the session is workflow-configured** (`/effort ultracode`, dynamic workflows available) and don't pause a long run to re-confirm config — see [[vertical-workflows]]. The user who set an endurance goal prepared the session; interrupting hours of autonomy to ask about a setting defeats the mode. If the Workflow tool is genuinely absent, fall back to inline dispatch and log it in PLAN.md instead of stopping.
+
 ### 2. Filesystem offload for large tool results
 
 When a tool returns a result that feels heavy (multi-KB parsed data, verbose error trace, raw PDF text), don't keep it in conversation context. Write it to `<project>/.john/trace/<id>.txt` and reference the path; leave a head+tail digest in your context. John's PostToolUse hook auto-wires this for results past a size threshold; do it manually for anything the hook doesn't catch but that still feels large.

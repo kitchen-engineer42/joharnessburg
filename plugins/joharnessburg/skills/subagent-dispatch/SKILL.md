@@ -27,7 +27,7 @@ thousands                                         → batched workflow runs per 
 
 A **dynamic workflow** is a script you write (with your Workflow tool) that fans out the *same* subagents at scale, keeps their results off your context, adversarially cross-checks them, and returns only a summary. It's the right engine once a fan-out is large and uniform — exactly John's per-entry vertical axis. The mechanics, the John-shaped stages, and the event wiring are in [[vertical-workflows]]; this skill covers the inline tier and the briefing discipline that *both* tiers share (a workflow's workers need the same full briefing).
 
-If the session isn't workflow-capable (no `ultracode`, feature disabled, older Claude Code), the upper tiers fall back to inline dispatch — same events, same reducer, same PLAN.md. The rest of this skill is that inline mechanism and the briefing rules.
+If the session isn't workflow-capable (no `ultracode`, feature disabled, older Claude Code), the upper tiers fall back to inline dispatch — same events, same reducer, same PLAN.md. Check this *before* the first fan-out and handle the two cases differently (misconfigured → stop-and-tell; feature-absent → announced fallback; endurance mode → assume configured and proceed): [[vertical-workflows]] has the rubric. Record the engine choice in PLAN.md either way. The rest of this skill is the inline mechanism and the briefing rules.
 
 ## When to spawn a subagent
 

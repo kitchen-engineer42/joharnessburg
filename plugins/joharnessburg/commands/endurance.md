@@ -25,3 +25,5 @@ When this command fires:
 5. On `success: false` with "No .john/workspace.json found", tell the user to run `/john:init` first — endurance goals attach to a John workspace.
 
 Endurance mode pairs with the `ralph-loop` and `context-management` skills — the goal is what survives compaction and what you re-align to after each iteration.
+
+One behavioral consequence (see `vertical-workflows`): with an endurance goal set, John **assumes the session is workflow-configured** (`/effort ultracode`, dynamic workflows available) and will not pause a long run to ask the user to confirm config. If the Workflow tool is genuinely absent, John falls back to inline dispatch and notes it in PLAN.md rather than stopping. Users starting an endurance run should set up the session per the README's "Running John with dynamic workflows" recipe first.

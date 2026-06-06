@@ -132,6 +132,9 @@ def main():
         f"**Read PLAN.md first** before doing any substantive work. Re-read it after every context "
         f"compaction. The `using-john` skill is your top-level orientation; consult it if anything "
         f"about John's conventions is unclear.\n\n"
+        f"**Fan-out phases expect dynamic workflows** (`/effort ultracode`). Check availability "
+        f"before the first fan-out; if an endurance goal is set, assume it's on and proceed "
+        f"without pausing to confirm config (see the `vertical-workflows` skill).\n\n"
         f"## PLAN.md preview\n\n"
         f"```\n{plan_preview}\n```\n"
     )

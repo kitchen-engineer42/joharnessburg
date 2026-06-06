@@ -95,9 +95,16 @@ You are back in the main session ([[ralph-loop]]). Do not report the phase done 
 4. Re-dispatch any missing/failed units (a small follow-up workflow or inline) if coverage is short.
 5. Then mark the phase done and advance.
 
-## Fallback — when workflows aren't available
+## Detect before the first fan-out — and the two unavailability cases
 
-Workflows need Claude Code ≥ the version that ships them, a paid plan, and the feature enabled; the README documents the session setup the user is expected to have done. If you are **not** in a workflow-capable session (no ultracode, feature disabled, older Claude Code), do not block — **fall back to inline dispatch** per [[subagent-dispatch]]: fan out subagents in waves, have them write the same events, run the same reducer. Same events, same checkpoint, same PLAN.md. The execution engine changes; nothing below it does. Don't fork John's behavior on availability — just pick the engine you have.
+Workflows need Claude Code ≥ the version that ships them, a paid plan, and the feature enabled; the README documents the session setup the user is expected to have done. **Before the first fan-out phase, check what you actually have** (is the Workflow tool present? is ultracode active?) — never discover mid-phase that you're on the wrong engine. Two distinct cases, two different responses:
+
+- **Misconfigured** — the feature exists but isn't on (ultracode not set, keyword trigger state unknown). **Stop and tell the user** the README's config recipe (`/effort ultracode` + the permission pre-seeding) before starting the fan-out. Don't silently degrade — a fan-out phase run on the wrong engine is slower and that's not what the user installed John for.
+- **Feature-absent** — older Claude Code, a different agent runtime, no Workflow tool at all. **Fall back to inline dispatch** per [[subagent-dispatch]], *announced, not silent*: fan out subagents in waves, have them write the same events, run the same reducer. Same events, same checkpoint, same PLAN.md. The execution engine changes; nothing below it does.
+
+**Endurance-mode exception**: when an endurance goal is set (`/john:endurance`), assume the user prepared the session — ultracode on, workflows available — and **proceed without pausing to confirm config**. Stopping a long autonomous run to re-ask about settings defeats endurance mode. If the Workflow tool turns out to be genuinely absent mid-run, fall back inline and note it in PLAN.md's Log; don't wait for permission.
+
+Either way, **record the engine choice in PLAN.md** (the Subagent matrix already has a slot for it: workflow vs inline per phase) — runs must be auditable after the fact. Don't fork John's behavior on availability beyond this; pick the engine you have and move.
 
 ## A worked sketch
 

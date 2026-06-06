@@ -69,6 +69,9 @@ class TestSessionStartHook(unittest.TestCase):
             self.assertIn("slides-from-textbook", ctx)
             self.assertIn("extract", ctx)
             self.assertIn("PLAN.md", ctx)
+            # v0.2.0: workflow expectation + endurance assumption line
+            self.assertIn("dynamic workflows", ctx)
+            self.assertIn("assume it's on", ctx)
             self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "SessionStart")
 
     def test_handles_missing_endurance_goal(self):
