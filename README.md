@@ -1,8 +1,10 @@
 # joharnessburg
 
-**John** — a Claude Code plugin that wraps Claude Code in skills, hooks, slash commands, and a small toolkit so it can take unstructured input (books, regulations, mixed docs) through knowledge engineering and app building in one long-running session.
+**John** is the plugin (slash commands `/john:init`, `/john:status`, …); **joharnessburg** is the marketplace/repo it ships from — pronounced "jo-harness-burg" (the harness is in the middle), or "jo-hannesburg" if you prefer the city pun. Hence `claude plugin install john@joharnessburg`.
 
-Plugin name: `john` (so its slash commands are `/john:init`, `/john:status`, etc.). It's distributed through the `joharnessburg` marketplace — pronounced "jo-harness-burg" (the harness is in the middle), or "jo-hannesburg" if you prefer the city pun. Hence `claude plugin install john@joharnessburg`.
+John wraps Claude Code in skills, hooks, slash commands, and a small toolkit so it can take unstructured input (books, regulations, mixed docs) through the **knowledge phases** (knowledge engineering) and the **app phases** (app building) in one long-running session — and produce a working **knowledge-dense app**: an app that runs a fixed mechanism over many uniform knowledge entries, where the entries come from your corpus. Produced apps **run standalone by default** (locally, `.env`-configured, no external platform assumed); templates can add platform integration.
+
+The project's canonical vocabulary lives in [`CONTEXT.md`](CONTEXT.md); a handful of design decisions are recorded in [`docs/adr/`](docs/adr/).
 
 > 中文版: [`README_ZH.md`](README_ZH.md)
 
@@ -34,7 +36,7 @@ Other slash commands available after install:
 
 - `/john:status` — current phase + progress
 - `/john:archive` — archive a finished workspace
-- `/john:endurance` — re-enter long-running mode if the session has gone idle
+- `/john:endurance` — set/clear the long-running goal (pinned into the system prompt; survives context compaction)
 
 ## Running John with dynamic workflows
 
@@ -49,7 +51,9 @@ John's vertical axis — fanning out hundreds-to-thousands of per-entry subagent
 
 > **On the keyword trigger — nothing to turn off.** Claude Code's per-prompt workflow trigger is now the word **`ultracode`** (it changed from `workflow` in a mid-2026 update, with Claude using judgment so an incidental mention no longer hijacks a run). John's skills and your messages say "workflow" constantly and that no longer starts a run — so `/effort ultracode` for the session is all you need; type `ultracode` in a prompt only when you want a one-off run.
 
-**Fallback:** none of this is required. If workflows aren't available (older Claude Code, feature off, not in ultracode), John runs the *same* fan-out as inline subagents — same events, same reducer, same `PLAN.md`, same output. Nothing below the execution line changes; you just don't get the off-context scale and the built-in cross-check.
+**Fallback:** none of this is required. If workflows aren't available (older Claude Code, feature off, not in ultracode), John runs the *same* fan-out as inline subagents — same events, same reducer, same `PLAN.md`, same output. Nothing below the execution line changes; you just don't get the off-context scale and the built-in cross-check. John checks availability before its first fan-out phase and tells you the recipe above if the session isn't configured.
+
+**Endurance mode note:** if you set an endurance goal (`/john:endurance <goal>`), John assumes you've done the config above and will *not* pause a long run to re-confirm it — set up the session first, then start the run.
 
 ## Upgrade
 
@@ -189,6 +193,8 @@ plugins/
     scripts/                    # Small Python toolkit (ppx wrapper, event reducer, apply_template, etc.)
     agents/                     # Subagent role definitions
     templates/                  # Universal apply.sh + authoring guide (templates/README.md); plus any promoted templates
+CONTEXT.md                      # The project glossary — canonical vocabulary
+docs/adr/                       # Architecture decision records (short)
 README.md                       # This file
 README_ZH.md                    # 中文版
 LICENSE                         # MIT

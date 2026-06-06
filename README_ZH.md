@@ -1,8 +1,10 @@
 # joharnessburg
 
-**John** —— 一个 Claude Code 插件，通过 skills、hooks、slash commands 和一套小工具包装 Claude Code，让它能在一个长时间运行的会话中完成从非结构化输入（书籍、法规、混合文档）到知识工程再到应用构建的全流程。
+**John** 是插件名（slash commands 为 `/john:init`、`/john:status` 等）；**joharnessburg** 是它的分发 marketplace / 仓库名——读作 "jo-harness-burg"（harness 在中间），或者按城市谐音读 "jo-hannesburg" 也行。所以安装命令是 `claude plugin install john@joharnessburg`。
 
-插件 slug：`joharnessburg`。读作 "jo-harness-burg"（harness 在中间），或者按城市谐音读 "jo-hannesburg" 也行。
+John 通过 skills、hooks、slash commands 和一套小工具包装 Claude Code，让它能在一个长时间运行的会话中完成从非结构化输入（书籍、法规、混合文档）经 **knowledge phases（知识工程）** 到 **app phases（应用构建）** 的全流程，最终产出一个 **knowledge-dense app**：一个用固定机制（mechanism）运行大量均匀知识条目（entries）的应用——条目来自你的语料。产出的应用**默认独立运行**（本地启动、`.env` 配置、不假设任何外部平台）；模板可以叠加平台集成。
+
+项目的规范词汇表在 [`CONTEXT.md`](CONTEXT.md)；若干设计决策记录在 [`docs/adr/`](docs/adr/)。
 
 > English README: [`README.md`](README.md)
 
@@ -34,7 +36,7 @@ claude plugin list
 
 - `/john:status` —— 当前 phase + 进度
 - `/john:archive` —— 归档已完成的 workspace
-- `/john:endurance` —— 如果会话长时间空闲，重新进入耐久模式
+- `/john:endurance` —— 设置/清除长跑目标（注入 system prompt，跨上下文压缩存活）
 
 ## 用 dynamic workflows 运行 John
 
@@ -49,7 +51,9 @@ John 的纵轴——把成百上千的单条目 subagent 扇出（抽取每个 c
 
 > **关于关键词触发——无需关闭任何东西。** Claude Code 的单条 prompt workflow 触发词现在是 **`ultracode`**（2026 年中的一次更新把它从 `workflow` 改了过来，并让 Claude 自行判断，偶然提到不再会误触发一次运行）。John 的 skills 和你的消息里频繁出现 "workflow"，这不再会启动运行——所以会话层面只需 `/effort ultracode` 即可；只有当你想要一次性运行时，才在 prompt 里打 `ultracode`。
 
-**降级回退：** 以上都不是必需的。如果 workflows 不可用（较旧的 Claude Code、功能未开、不在 ultracode），John 会用内联 subagent 跑**同样的**扇出——同样的 events、同样的 reducer、同样的 `PLAN.md`、同样的产出。执行层以下什么都不变；你只是拿不到脱离上下文的规模和内建的交叉校验。
+**降级回退：** 以上都不是必需的。如果 workflows 不可用（较旧的 Claude Code、功能未开、不在 ultracode），John 会用内联 subagent 跑**同样的**扇出——同样的 events、同样的 reducer、同样的 `PLAN.md`、同样的产出。执行层以下什么都不变；你只是拿不到脱离上下文的规模和内建的交叉校验。John 会在第一个扇出 phase 之前检查可用性；如果会话没配置好，它会把上面的配置步骤告诉你。
+
+**耐久模式注意：** 如果你设置了耐久目标（`/john:endurance <goal>`），John 会**假设你已经完成了上面的配置**，长跑过程中不会停下来再次确认——先配置会话，再启动长跑。
 
 ## 升级
 
@@ -105,7 +109,7 @@ claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 - `$JOHN_LLM_CLIENT_URL`（默认 `http://localhost:8500`）—— workerLLM 客户端（当前封装 SiliconFlow + DeepSeek）。
 - `$JOHN_PPX_CLIENT_URL`（默认 `http://localhost:8501`）—— PDF 解析客户端（封装 `memect-ppx`，即 `ppx` 解析引擎，仓库在 [github.com/kitchen-engineer42/ppx](https://github.com/kitchen-engineer42/ppx)）。
 
-等技术团队上自己的生产服务器（on-prem 或别的 provider），把这两个环境变量换掉就行——John 内部不需要任何改动。
+想换成你自己的生产服务器（on-prem 或别的 provider）？只要 HTTP 契约一致，把这两个环境变量换掉就行——John 内部不需要任何改动。
 
 ### 一次性安装（每台机器一次）
 
@@ -190,6 +194,8 @@ plugins/
     scripts/                    # 小型 Python 工具包（ppx 包装、事件 reducer、apply_template 等）
     agents/                     # Subagent 角色定义
     templates/                  # 通用 apply.sh + 撰写指南（templates/README.md）；以及已收录的模板
+CONTEXT.md                      # 项目词汇表——规范用语
+docs/adr/                       # 架构决策记录（简短）
 README.md                       # 英文版
 README_ZH.md                    # 本文件
 LICENSE                         # MIT
