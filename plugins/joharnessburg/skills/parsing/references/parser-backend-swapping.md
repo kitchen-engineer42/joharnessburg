@@ -1,8 +1,8 @@
-# production-parser-future — what changes when John goes to production
+# parser-backend-swapping — the URL is the contract
 
 Layer-2 Claude doesn't need to think about this often, but it's worth knowing it exists.
 
-## Today (local dev)
+## Today (local default)
 
 `ppx_parse.py` is a thin HTTP client that POSTs to a local **ppx-client server** (FastAPI). The server wraps `memect-ppx` (the `ppx` parser engine) and runs at `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`).
 
@@ -10,21 +10,16 @@ The server lives outside the plugin (workspace tooling, not shipped with John) a
 
 > *Terminology note*: `ppx` is the parser engine; `jyppx` is a separate builder project (at `github.com/memect/jyppx`) that uses ppx as a library to produce tailored parsers per corpus. John's `ppx_parse.py` talks to ppx (via the local client), not to jyppx.
 
-## Tomorrow (production migration)
+## Swapping the backend
 
-In production, the tech team will swap the URL `JOHN_PPX_CLIENT_URL` to point at an internal `PDF_PARSE_SERVER` — a hosted service with proper queuing, retries, and cache. Same script name, same CLI surface, same HTTP contract, different backend. The local-client server already mimics the production server's HTTP shape, so the swap is just an env-var change.
+Any hosted parse service that speaks the same HTTP contract can replace the local server — point `$JOHN_PPX_CLIENT_URL` at it and restart Claude. Same script name, same CLI surface, same JSON output shape, different backend (a production deployment would typically add queuing, retries, and caching behind the same contract). No code change in John.
 
 ## Implications for layer-2 Claude
 
 **None, mostly.** The script's CLI signature and JSON output shape are the contract; the internals are not. Don't write extraction logic that depends on:
 
-- Specific timing (`elapsed_seconds`). Production may return faster (cache hit) or slower (queue depth) than local.
-- Local file paths in the `metadata.json` (production may use object-storage paths).
-- Specific backend names beyond `default` (production may have its own backend roster).
+- Specific timing (`elapsed_seconds`). A hosted backend may return faster (cache hit) or slower (queue depth) than local.
+- Local file paths in the `metadata.json` (a hosted backend may use object-storage paths).
+- Specific backend names beyond `default` (a hosted deployment may have its own backend roster).
 
 If you find yourself caring about these, you're probably over-fitting to local-dev behavior.
-
-## Source
-
-- In-process ppx for now. The company has a server designated to run ppx in large batches; the tech team will re-route to that server when John goes to production.
-- `to-skills-backend/app/pipeline/stages/doc_converter.py` is roughly the shape the future RPC client will take.

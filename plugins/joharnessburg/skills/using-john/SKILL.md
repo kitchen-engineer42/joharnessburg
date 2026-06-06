@@ -20,6 +20,8 @@ The shape John imposes is a **two-axis matrix**:
 
 The two halves are nicknamed **2skills** and **2app**. Same session, same memory, one PLAN.md spanning both.
 
+**Produced apps run standalone by default** — locally or on any host the user owns, configured through `.env`, with no external auth/billing/telemetry platform assumed. Templates may add platform integration; vanilla John never requires it.
+
 ## The user's working state — where to look
 
 Everything John writes lives in the **user's project directory** (the current working directory when this session was started). You write here, not into John's plugin install location.

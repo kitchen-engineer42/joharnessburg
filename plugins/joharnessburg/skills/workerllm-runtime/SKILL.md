@@ -21,8 +21,8 @@ When you're authoring a produced app that needs to call an LLM at runtime — NO
 ## When to use this (vs alternatives)
 
 - **Use this skill** for standalone produced apps that need workerLLMs at runtime. Examples: a doc-verification rule's `check_R<id>.py` that asks a model for a judgment call; a slide-renderer that asks for a one-sentence summary; a chatbot's main loop.
-- **Use [[platform-llm-proxy]]** instead when the produced app is destined to run INSIDE the team's hosted platform (with Bearer tokens, lock/settle/cancel credits, central key backend). That skill teaches the proxy-mediated pattern; this skill teaches the direct-API pattern. **Same OpenAI-compatible API on the wire**, so swapping is just changing `base_url`.
-- **Don't use either** for in-Claude-session subagent dispatch. That's [[subagent-dispatch]] — uses the Agent tool, not LLM APIs.
+- **Hosted-platform deployments are template territory.** If the produced app is destined to run inside a hosted multi-tenant platform (proxy-mediated keys, metered billing), the platform's template supplies that pattern. Because this skill's call shape is plain OpenAI-compatible, migrating is just changing `base_url` — design the app so that's the only thing that moves.
+- **Don't use this** for in-Claude-session subagent dispatch. That's [[subagent-dispatch]] — uses the Agent tool, not LLM APIs.
 
 ## The call shape
 
@@ -54,14 +54,16 @@ Same shape in JavaScript with the OpenAI SDK; just point `baseURL` at the same e
 
 ## Model selection
 
-| Task | Recommended | Why |
-|---|---|---|
-| Cheap bulk classification, simple Q&A | `deepseek-v4-flash` | Cheapest tier; fast |
-| Judgment-heavy reasoning (rule verification with subtle cases) | `deepseek-v4-pro` | Strong reasoning at modest cost |
-| Long-context synthesis, complex multi-step | `Qwen/Qwen3.5-397B-A17B` | MoE — large parameter count, reasonable cost |
-| Vision / OCR / image understanding | `PaddlePaddle/PaddleOCR-VL-1.5` | Trained for layout + text extraction |
+Whatever endpoint `$JOHN_LLM_CLIENT_URL` points at decides which model names exist — probe it (`GET /v1/models`) rather than assuming. The selection *principle* is stable: **pick the cheapest tier that's good enough for the task, and escalate only when the cheap tier produces wrong outputs on labeled samples.** As a shape, expect roughly four tiers:
 
-When a rule-skill / app needs a workerLLM call, pick the cheapest tier that's good enough. Default to `deepseek-v4-flash` for high-volume judgment calls; escalate to `-pro` only when the cheap tier produces wrong verdicts on labeled samples.
+| Task | Tier shape | Example (the bundled local client's defaults) |
+|---|---|---|
+| Cheap bulk classification, simple Q&A | cheapest/fastest | `deepseek-v4-flash` |
+| Judgment-heavy reasoning (rule verification with subtle cases) | strong-reasoning mid-tier | `deepseek-v4-pro` |
+| Long-context synthesis, complex multi-step | large-context heavyweight | `Qwen/Qwen3.5-397B-A17B` |
+| Vision / OCR / image understanding | vision-specialized | `PaddlePaddle/PaddleOCR-VL-1.5` |
+
+The example column is just what John's bundled local client routes by default — substitute whatever your endpoint serves. Templates may pin their own tier policy.
 
 ## Error patterns
 
@@ -79,10 +81,7 @@ When a rule-skill / app needs a workerLLM call, pick the cheapest tier that's go
 ## References
 
 - `references/call-shape.md` — concrete snippets for the common patterns (one-shot reasoning, batch classification, vision, structured JSON output).
-- `references/migration-from-platform-llm-proxy.md` — how a produced app upgrades from this skill's pattern to platform-llm-proxy's pattern when it gets deployed to the team's platform.
 
 ## Cross-references
 
-- [[platform-llm-proxy]] — production proxy pattern (same OpenAI-compat API; different deployment).
-- [[platform-model-config]] — T1-T4 tier policy + canonical env var names.
 - [[subagent-dispatch]] — for layer-2 Claude session work, not produced-app runtime.

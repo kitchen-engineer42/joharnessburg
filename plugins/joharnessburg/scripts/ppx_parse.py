@@ -5,8 +5,9 @@ Thin HTTP client. POSTs to `$JOHN_PPX_CLIENT_URL` (default
 `http://localhost:8501`) `/parse` endpoint. The server wraps the
 `memect-ppx` parser engine.
 
-When a production PDF_PARSE_SERVER is available, swap `JOHN_PPX_CLIENT_URL`
-to point at it; this script keeps working without code changes.
+Any hosted parse server speaking the same HTTP contract can replace the
+local one: swap `JOHN_PPX_CLIENT_URL` to point at it; this script keeps
+working without code changes.
 
 Terminology: `ppx` (memect-ppx) is the parser engine. This script talks to
 it via the local client server.

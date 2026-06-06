@@ -52,6 +52,10 @@ Common pipeline patterns (see `references/phase-design-for-2app.md`):
 
 Not every project needs every phase. Use the rubric in [[phase-design]] to decide; this list is a starting point, not a checklist.
 
+## Deployment posture — standalone by default
+
+Vanilla John designs produced apps to **run standalone**: launch locally or on any host the user owns, configuration through `.env`, no assumptions about an external auth/billing/telemetry platform being present. If the project is destined for a hosted multi-tenant platform, a template supplies those integration patterns — don't invent platform coupling in a vanilla project.
+
 ## The reverse direction — runtime informs schema
 
 Sometimes app-design-thinking reveals that the produced knowledge isn't quite shaped right for the runtime you want. (E.g., "this rule-shaped schema doesn't carry the severity field the runtime needs to color-code violations.") When that happens, [[plan-md-evolution]] takes over: append to PLAN.md's Log, surface the gap as an Open Decision, decide whether to extend the schema and re-emit affected entries, OR adapt the runtime to what the schema gives. Cascade iteration is normal; the cascade is not a one-way pipe.

@@ -42,6 +42,6 @@ That's it for default usage. Backend `default`, OCR `auto`, table `auto`, formul
 
 jyppx is a separate builder project. See `readme-local-ppx.md` for the full CLI surface. The Python API used by our wrapper is `memect.pdf.parser.Parser` + `memect.pdf.base.KDocumentFactory`.
 
-## Production future
+## Swapping the backend
 
-In production, the tech team will swap `ppx_parse.py` for a thin RPC client to the internal `PDF_PARSE_SERVER`. Layer-2 Claude doesn't see the swap — the script signature stays the same, only the backend changes. Don't design around the in-process detail.
+Any hosted parse service speaking the same HTTP contract can replace the local ppx client server — point `$JOHN_PPX_CLIENT_URL` at it. Layer-2 Claude doesn't see the swap — the script signature stays the same, only the backend changes. Don't design around the in-process detail. See `parser-backend-swapping.md`.
