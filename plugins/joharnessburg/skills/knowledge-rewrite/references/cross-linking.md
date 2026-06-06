@@ -7,7 +7,7 @@ Single entries are individually useful. Cross-linked entries are collectively us
 Three kinds of links matter:
 
 1. **Same-entity links**: two entries that talk about the same entity (a person, a regulation, a concept). Surface in both entries' headers: `mentions: [entity-id]` or `references: [entity-id]`.
-2. **Schema-typed links**: relationships the format-of-knowledge defines explicitly. A2O has 13 types (`is-a`, `has-a`, `causes`, etc.). KC's rules have `depends_on` and `glossary_refs`. Use the schema's vocabulary, not a free-form string.
+2. **Schema-typed links**: relationships the knowledge-format defines explicitly. One research predecessor defined 13 types (`is-a`, `has-a`, `causes`, etc.). KC's rules have `depends_on` and `glossary_refs`. Use the schema's vocabulary, not a free-form string.
 3. **Glossary cross-links**: when an entry uses a term that's defined in the glossary, link to the glossary entry. Bidirectional — the glossary entry should also list which entries use the term.
 
 ## How to populate cross-links
@@ -45,6 +45,6 @@ Glossary is especially valuable when:
 
 ## Source
 
-- A2O's `LabelTree` and `RelationType` define typed relationships and a hierarchical taxonomy.
+- A research predecessor's `LabelTree` and `RelationType` defined typed relationships and a hierarchical taxonomy.
 - KC's rule files reference each other via `related_rules` and `glossary_refs`.
 - Mystery-detective-game's GameData type uses cross-references heavily for character-to-clue-to-scene navigation.

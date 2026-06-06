@@ -1,31 +1,31 @@
 ---
 name: app-design-thinking
-description: Design the runtime structure and production pipeline for the produced app — the 2app analog of [[schema-design]]. Use this skill whenever the 2skills half is complete (or nearly so), when the user mentions building the app / runtime / UX / production / deploy, when the four-structures section of PLAN.md needs its runtime + pipeline rows settled, or when [[ralph-loop]] advances out of packaging into 2app. The shape of the produced app gets decided here; downstream phases follow.
+description: Design the app mechanism and build pipeline for the produced app — the app-phase analog of [[schema-design]]. Use this skill whenever the knowledge phases are complete (or nearly so), when the user mentions building the app / runtime / UX / production / deploy, when the app-type definition section of PLAN.md needs its runtime + pipeline rows settled, or when [[ralph-loop]] advances out of packaging into the app phases. The shape of the produced app gets decided here; downstream phases follow.
 metadata:
   triggers:
     - design the app
     - app design thinking
-    - runtime structure
-    - production pipeline
+    - app mechanism
+    - build pipeline
     - how should the app work
-    - design the 2app phases
+    - design the app phases
     - what kind of app
     - app shape
 ---
 
 # app-design-thinking
 
-The 2skills half produced a knowledge inventory at `<project>/.claude/skills/`. Now the question is: **what app do we build with it, and how do we build it?** That's the third and fourth links of the four-structures cascade — runtime structure (how the produced app works for end-users) and production pipeline (phases that build it). This skill teaches how to settle those two structures from the knowledge already extracted.
+The knowledge phases produced a knowledge inventory at `<project>/.claude/skills/`. Now the question is: **what app do we build with it, and how do we build it?** That's the third and fourth links of the app-type definition cascade — app mechanism (how the produced app works for end-users) and build pipeline (phases that build it). This skill teaches how to settle those two decisions from the knowledge already extracted.
 
-[[schema-design]] is this skill's twin in the 2skills half — same methodology, different links in the cascade. Both teach taste, neither prescribes.
+[[schema-design]] is this skill's twin in the knowledge phases — same methodology, different links in the cascade. Both teach taste, neither prescribes.
 
 ## What this skill is NOT
 
-- **It's not picking from a closed menu of app archetypes.** The 5 subsites are examples for pattern-matching, not a catalog. Every John project should invent its own runtime + pipeline shape; templates may ship common shapes as starting points, but users always override. If the project's runtime doesn't resemble any of the 5, that's normal — invent it.
+- **It's not picking from a closed menu of app archetypes.** The 5 reference apps are examples for pattern-matching, not a catalog. Every John project should invent its own runtime + pipeline shape; templates may ship common shapes as starting points, but users always override. If the project's runtime doesn't resemble any of the 5, that's normal — invent it.
 - It's not one-shot. Runtime and pipeline iterate as the produced skills reveal what the app naturally wants to be.
 - It's not an alternative to the user's intent. They own the project's *what*; this skill teaches you how to translate it into *how*.
 
-## The third structure — runtime
+## The third decision — app mechanism
 
 The runtime is how the produced app works for end-users. Pin it down by asking:
 
@@ -35,13 +35,13 @@ The runtime is how the produced app works for end-users. Pin it down by asking:
 - **Is there an LLM at runtime, or only at build time?** (a static slide deck has no runtime LLM; a chat-based study companion calls a workerLLM on every user turn.) See `references/runtime-vs-buildtime-llm.md`.
 - **Is the runtime stateful?** (does it remember the user across sessions? track progress? store uploads?)
 
-Sketch the runtime in PLAN.md's four-structures section. Like schema-design's schema sketch, mark it "may evolve."
+Sketch the runtime in PLAN.md's app-type definition section. Like schema-design's schema sketch, mark it "may evolve."
 
-## The fourth structure — production pipeline
+## The fourth decision — build pipeline
 
-The production pipeline is the phases that turn the packaged skills (and any other input) into the runtime. Derive it backward from the runtime: what does the runtime need, and what phases produce each piece?
+The build pipeline is the phases that turn the packaged skills (and any other input) into the runtime. Derive it backward from the runtime: what does the runtime need, and what phases produce each piece?
 
-Common pipeline patterns (see `references/phase-design-for-2app.md`):
+Common pipeline patterns (see `references/app-phase-design.md`):
 
 - **Scaffold** — set up the app's basic structure (framework choice, project layout, dependencies).
 - **Wire core mechanics** — implement the app's central loop (rule application, game logic, slide rendering).
@@ -82,7 +82,7 @@ Practical conversation flow:
 
 ## Reference archetypes
 
-`references/app-archetypes.md` summarizes the 5 subsites we explored — portfolio builder, mystery detective game, lesson2slides, mathlab, voteforyourapp. Each is a different combination of runtime structure + production pipeline. They're reference shapes for pattern-matching new projects against, NOT a closed menu. Templates and projects invent their own as needed.
+`references/app-archetypes.md` summarizes the 5 reference apps we studied — portfolio builder, mystery detective game, lesson2slides, mathlab, voteforyourapp. Each is a different combination of app mechanism + build pipeline. They're reference shapes for pattern-matching new projects against, NOT a closed menu. Templates and projects invent their own as needed.
 
 ## When to iterate
 
@@ -97,9 +97,9 @@ The runtime and pipeline decisions will evolve as the project reveals itself —
 ## Cross-references
 
 - [[schema-design]] — settles format + schema (the first two cascade links); this skill picks up where that ends
-- [[plan-md-authoring]] — where the four-structures section first appears
+- [[plan-md-authoring]] — where the app-type definition section first appears
 - [[plan-md-evolution]] — how to revise runtime/pipeline mid-flight
-- [[phase-design]] — decision rubric for phases (applies to 2app phases too)
+- [[phase-design]] — decision rubric for phases (applies to app phases too)
 - [[code-quality-guardrails]] — quality discipline for produced app code
-- [[ralph-loop]] — advances through the 2app phases this skill helps design
-- See `references/` for: 5-subsite archetype summaries, runtime-vs-buildtime LLM patterns, common 2app phase shapes
+- [[ralph-loop]] — advances through the app phases this skill helps design
+- See `references/` for: 5 reference-app archetype summaries, runtime-vs-buildtime LLM patterns, common app-phase shapes

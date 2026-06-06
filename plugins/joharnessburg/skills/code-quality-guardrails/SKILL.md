@@ -16,7 +16,7 @@ metadata:
 
 # code-quality-guardrails
 
-The produced app is the deliverable. The user trusts it not to leak credentials, not to ship debug noise, not to crash on the first run. This skill is the discipline that makes that trust possible — adapted from skills2app's production quality patterns: inherit those methods, but skill-ify them rather than hardcoding a pipeline.
+The produced app is the deliverable. The user trusts it not to leak credentials, not to ship debug noise, not to crash on the first run. This skill is the discipline that makes that trust possible — adapted from a production app-builder's quality patterns: inherit the methods, but skill-ify them rather than hardcoding a pipeline.
 
 The principle: **deterministic checks first, LLM repair second.**
 
@@ -83,7 +83,7 @@ Some issues require judgment:
 - "The form has no loading state; on slow connections it looks broken."
 - "The first paragraph repeats the title."
 
-These are real bugs that grep won't catch. The **cross-validation pattern** (from skills2app's design): a separate reviewer subagent reads the produced code + design intent + a few key files, returns a flagged-issues list. Opt-in via a flag (skills2app gates it behind `AGENT_REVIEW_ENABLED`); slows the pipeline but catches what guardrails miss.
+These are real bugs that grep won't catch. The **cross-validation pattern** (from a production app-builder's design): a separate reviewer subagent reads the produced code + design intent + a few key files, returns a flagged-issues list. Opt-in via a flag; slows the pipeline but catches what guardrails miss.
 
 See `references/cross-validation-pattern.md` for the briefing and integration.
 

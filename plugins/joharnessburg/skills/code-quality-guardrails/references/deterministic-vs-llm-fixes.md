@@ -1,6 +1,6 @@
 # deterministic-vs-llm-fixes — when to use which
 
-skills2app shipped ~15 deterministic guardrails plus a cross-validation flow. The split between them was load-bearing — using LLM judgment where a grep would do is wasteful, and trying to grep for issues that need judgment is wishful thinking. Get the split right.
+A production app-builder shipped ~15 deterministic guardrails plus a cross-validation flow. The split between them was load-bearing — using LLM judgment where a grep would do is wasteful, and trying to grep for issues that need judgment is wishful thinking. Get the split right.
 
 ## When deterministic wins
 
@@ -42,9 +42,9 @@ Even when a guardrail fires, you have two options:
 
 Default to flag-for-user when in doubt. Auto-fixing the wrong thing is worse than not fixing at all.
 
-## Costs from skills2app's experience
+## Costs from production experience
 
-Production skills2app's pattern (per `to-skills-backend/docs-internal/` and `skills2app/utils/`):
+The production pattern, as measured in practice:
 
 - Build + smoke test on every produced app: always-on, ~30s per cycle. Catches 60-70% of issues.
 - Optional cross-validation: 1-3 minutes per app, ~$0.10-$0.30 in tokens. Catches another 20%.
@@ -54,4 +54,4 @@ John inherits this shape but doesn't enforce specific costs — templates decide
 
 ## Source
 
-skills2app's `utils/agent_backends/claude.py` (the cross-validation agent definition) + its `utils/prompts/review.py` (the review prompt template) hold these inherited patterns.
+A production app-builder's cross-validation agent definition + review prompt template hold these inherited patterns.

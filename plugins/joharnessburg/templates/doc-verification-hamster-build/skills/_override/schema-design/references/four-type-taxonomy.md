@@ -1,6 +1,6 @@
-# a2o-four-types — the research-grade 4-type taxonomy
+# four-type-taxonomy — the research-grade 4-type taxonomy
 
-The Anything2Ontology research project modeled knowledge as four distinct types. This was a stronger design than production's single-SKU collapse (see `to-skills-backend-sku-regression.md`).
+A research-stage predecessor pipeline modeled knowledge as four distinct types. This was a stronger design than the later single-SKU collapse (see `sku-regression-case-study.md`).
 
 ## The four types
 
@@ -39,10 +39,10 @@ These are orthogonal — a fact, a relation, a procedure, and a meta-note are no
 
 If the project is encyclopedic or knowledge-base-shaped, this taxonomy is a **strong starting point** — richer than production's single-SKU collapse, with clear cognitive boundaries. But it's a starting point that needs validation against your actual corpus, per [[schema-design]]'s corpus-survey step. Don't default to it without that check.
 
-If the project is something else, **let format-of-knowledge drive the schema** rather than forcing the four-type model. Storylines, screenplays, custom domain schemas — they don't fit this taxonomy, and shouldn't.
+If the project is something else, **let knowledge-format drive the schema** rather than forcing the four-type model. Storylines, screenplays, custom domain schemas — they don't fit this taxonomy, and shouldn't.
 
 Practical wiring when this taxonomy fits: each type gets its own subdir under `<project>/.john/knowledge/{factual,relational,procedural,meta}/`. The reducer at end-of-extract emits canonical state per type.
 
 ## Source
 
-`Anything2Ontology/src/chunks2skus/schemas/sku.py` defines `SKUType` (an enum: FACTUAL, RELATIONAL, PROCEDURAL, META) plus the `LabelTree`, `RelationType`, etc. The pipeline that uses these types is in `Anything2Ontology/src/chunks2skus/extractors/`.
+The predecessor defined `SKUType` (an enum: FACTUAL, RELATIONAL, PROCEDURAL, META) plus a `LabelTree`, `RelationType`, etc., consumed by its extractor stage.

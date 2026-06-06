@@ -24,7 +24,7 @@ Doc-verification findings aren't binary. A rule's verdict on a doc carries a **c
 confidence = method_prior  ×  source_presence  ×  historical_accuracy  ×  (1 − corner_proximity)
 ```
 
-Each factor in [0, 1]. The product is the per-finding confidence. From kc_cli, with light naming changes.
+Each factor in [0, 1]. The product is the per-finding confidence. From KC, with light naming changes.
 
 ### Factor 1: method_prior
 
@@ -93,7 +93,7 @@ The composite confidence is a real number in [0, 1]. The dashboard + [[productio
 | mid | 0.6 − 0.9 | yellow | 50% (substantive review) |
 | low | < 0.6 | red | 100% (every finding reviewed) |
 
-Bin boundaries are tunable per project (PLAN.md Open Decisions). Defaults are kc_cli's. Tighter boundaries (e.g., high ≥ 0.95) push more findings into review at the cost of reviewer time; looser boundaries (high ≥ 0.8) ship faster but risk under-review of imperfect findings.
+Bin boundaries are tunable per project (PLAN.md Open Decisions). Defaults are KC's. Tighter boundaries (e.g., high ≥ 0.95) push more findings into review at the cost of reviewer time; looser boundaries (high ≥ 0.8) ship faster but risk under-review of imperfect findings.
 
 ## Per-rule confidence floor + ceiling
 

@@ -1,18 +1,18 @@
 ---
 name: packaging
-description: Emit each rule as a Claude Code skill at <project>/.claude/skills/rule-R<id>/ (per-rule mode, Phase 3) AND emit the produced app's release bundle at <project>/release/v1/ (release-bundle mode, Phase 8). Use this skill whenever the per-rule authoring phase fires, when the user says "package the rules" / "ship the verifier" / "build the release bundle", or when [[ralph-loop]] signals packaging is next. This overrides John core's general packaging with kc_cli's two-mode shape — DO NOT default to generic per-entry skill emission.
+description: Emit each rule as a Claude Code skill at <project>/.claude/skills/rule-R<id>/ (per-rule mode, Phase 3) AND emit the produced app's release bundle at <project>/release/v1/ (release-bundle mode, Phase 8). Use this skill whenever the per-rule authoring phase fires, when the user says "package the rules" / "ship the verifier" / "build the release bundle", or when [[ralph-loop]] signals packaging is next. This overrides John core's general packaging with KC's two-mode shape — DO NOT default to generic per-entry skill emission.
 metadata:
   triggers:
     - package the rules
     - emit rule skills
     - ship the rules
-    - finalize 2skills
+    - finalize knowledge phases
     - per-rule skill emission
     - package the verifier
     - build the release bundle
     - emit release bundle
     - packaging phase
-    - ready for 2app
+    - ready for app phases
 ---
 
 # packaging (doc-verification override)
@@ -22,7 +22,7 @@ For doc-verification projects packaging runs in TWO modes at different phases:
 - **Per-rule mode** (Phase 3): emit each extracted rule as a Claude Code skill at `<project>/.claude/skills/rule-R<id>/`.
 - **Release-bundle mode** (Phase 8): emit a deployable bundle at `<project>/release/v1/` that runs the verifier without John installed.
 
-Both modes are kc_cli-derived. John core's generic "knowledge entry → skill" emission is the wrong shape here — DO NOT use it. The per-rule shape was chosen because each rule needs its own checker, samples, and references; bundling rules into category skills loses the runtime's per-rule fan-out.
+Both modes are KC-derived. John core's generic "knowledge entry → skill" emission is the wrong shape here — DO NOT use it. The per-rule shape was chosen because each rule needs its own checker, samples, and references; bundling rules into category skills loses the runtime's per-rule fan-out.
 
 ## Per-rule mode (Phase 3)
 
@@ -220,9 +220,9 @@ Does NOT ship:
 - Event logs — captured separately by `/john:archive` if the user wants them.
 - Sample inputs from `<project>/.john/input/samples/` — those are dev-time, not runtime. Fixtures in the release bundle are a curated subset.
 
-## The handoff to 2app
+## The handoff to the app phases
 
-After Phase 3, PLAN.md's Knowledge inventory section transitions from "pointer to `.john/input/`" to "pointer to `.claude/skills/rule-R*/`" — the 2app phases (Phase 4 onward, and ultimately Phase 8's release bundle) have a real per-rule deliverable to consume.
+After Phase 3, PLAN.md's Knowledge inventory section transitions from "pointer to `.john/input/`" to "pointer to `.claude/skills/rule-R*/`" — the app phases (Phase 4 onward, and ultimately Phase 8's release bundle) have a real per-rule deliverable to consume.
 
 After Phase 8, the project is shippable: the user moves `<project>/release/v1/` to wherever the team runs verifiers.
 

@@ -75,4 +75,4 @@ Edge cases: what counts as a business day depends on jurisdiction. See
 
 ## Source
 
-KC is the kc_cli project. The packaged rule skills produced by KC live in each project's `rule_skills/` directory after the skill-authoring phase. KC's `skill-authoring` skill (at `template/skills/en/skill-authoring/`) documents the authoring process.
+KC is a sibling verification harness. Its packaged rule skills live in each project's `rule_skills/` directory after its skill-authoring phase.

@@ -1,6 +1,6 @@
-# app-archetypes — 5 reference shapes from our subsites
+# app-archetypes — 5 reference app shapes
 
-Five apps the team built manually before John existed. Each is one combination of runtime structure + production pipeline. They're reference shapes — patterns to pattern-match new projects against — not a closed menu. Wide tunnel: templates and projects invent their own when these don't fit.
+Five reference apps built manually before John existed. Each is one combination of app mechanism + build pipeline. They're reference shapes — patterns to pattern-match new projects against — not a closed menu. Wide tunnel: templates and projects invent their own when these don't fit.
 
 ## 1. Portfolio builder (create-any-portfolio)
 
@@ -54,4 +54,4 @@ Invent. The 5 above are precedents, not categories. Real projects often combine 
 
 ## Source
 
-The 5 reference subsites each have their own README and design docs with deeper analysis. The production `skills2app` service builds apps like these via Celery — that's the system John eventually replaces.
+Each reference app has deeper design history behind it; the shapes above are the durable, reusable part.

@@ -118,7 +118,7 @@ def main():
         "trace_files": count_files(john_dir / "trace"),
     }
 
-    # Produced skills (the 2skills deliverable)
+    # Produced skills (the knowledge phases' deliverable)
     skills_dir = cwd / ".claude" / "skills"
     inventory["produced_skills"] = len(list_dirs(skills_dir)) if skills_dir.exists() else 0
 

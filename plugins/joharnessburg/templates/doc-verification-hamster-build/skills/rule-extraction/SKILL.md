@@ -1,6 +1,6 @@
 ---
 name: rule-extraction
-description: Source-first sweep of regulation documents to extract atomic, falsifiable, testable rules + glossary terms — the Phase 2 extraction step for doc-verification projects. Use this skill whenever the extract phase fires in a doc-verification project, when the user says "extract the rules" / "sweep the regulations" / "find rules" / "extract from regulation". The source-first principle (sweep regulations BEFORE looking at samples) is MANDATORY — kc_cli learned this the hard way.
+description: Source-first sweep of regulation documents to extract atomic, falsifiable, testable rules + glossary terms — the Phase 2 extraction step for doc-verification projects. Use this skill whenever the extract phase fires in a doc-verification project, when the user says "extract the rules" / "sweep the regulations" / "find rules" / "extract from regulation". The source-first principle (sweep regulations BEFORE looking at samples) is MANDATORY — KC learned this the hard way.
 metadata:
   triggers:
     - extract rules
@@ -26,7 +26,7 @@ This skill specializes John core's [[knowledge-extraction]] for the rule format.
 
 Why: regulations contain rules whether or not your samples violate them. If you start with samples, you only find rules that have visible violations. Comprehensive coverage requires reading the regulations exhaustively.
 
-This is kc_cli's hard-won lesson — in one project, sample-first extraction missed 30% of the rules. Don't repeat. If you find yourself tempted to "just glance at one sample to see what rules look like in context," resist; you've already started biasing toward sample-visible rules.
+This is KC's hard-won lesson — in one project, sample-first extraction missed 30% of the rules. Don't repeat. If you find yourself tempted to "just glance at one sample to see what rules look like in context," resist; you've already started biasing toward sample-visible rules.
 
 ## Phase shape
 
@@ -88,7 +88,7 @@ After fan-out completes and [[event-log-and-reducer]] runs:
 
 2. **Collectively Exhaustive**: every regulation chapter / article that should have rules does.
    - Spot-check 5 random chapters; if any has zero rules AND the chapter clearly contains prescriptive language ("应当" / "must" / "shall" / "不得" / "must not"), re-extract that chapter.
-   - Specifically check: chapters with definitions (definitional rules + glossary terms), chapters with quantitative thresholds (quantitative rules), chapters with prohibition lists (prohibitive rules — kc_cli noticed these get under-extracted because they're often itemized lists buried in prose).
+   - Specifically check: chapters with definitions (definitional rules + glossary terms), chapters with quantitative thresholds (quantitative rules), chapters with prohibition lists (prohibitive rules — KC noticed these get under-extracted because they're often itemized lists buried in prose).
 
 3. **Open Decisions surfacing**: incomplete rules surface as a list in PLAN.md's Open Decisions. The user resolves each:
    - Extend the rule schema to handle the case (uncommon — the schema is locked; usually means picking a different template).

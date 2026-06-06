@@ -1,13 +1,13 @@
 # cross-validation-pattern — the opt-in LLM reviewer
 
-When deterministic guardrails have run and the residual issues need judgment, dispatch a cross-validation subagent. Borrowed from skills2app's `AGENT_REVIEW_ENABLED` flow.
+When deterministic guardrails have run and the residual issues need judgment, dispatch a cross-validation subagent. Borrowed from a production app-builder's opt-in review flow.
 
 ## The shape
 
 A separate subagent reads:
 
 - The produced-app code (or a curated subset — most relevant files).
-- PLAN.md's project intent + the runtime structure from the four-structures section.
+- PLAN.md's project intent + the app mechanism from the app-type definition section.
 - (Optional) Any prior cross-validation feedback (so improvements compound).
 
 The subagent returns a flagged-issues list — short, specific, actionable.
@@ -23,8 +23,8 @@ mismatches between code behavior and stated intent).
 ## Project intent
 <one paragraph from PLAN.md top>
 
-## Runtime structure (the produced app)
-<one paragraph from PLAN.md four-structures section>
+## App mechanism (the produced app)
+<one paragraph from PLAN.md app-type definition section>
 
 ## Code to review
 <file paths to read; you can use Read tool>
@@ -77,4 +77,4 @@ Cross-validation fires near the end of a polish or pre-deploy phase. Step 5 of [
 
 ## Source
 
-skills2app's `utils/prompts/review.py` + `utils/agent_backends/claude.py` (the `AGENT_REVIEW_ENABLED` codepath). The retry-on-issues loop (review → if fail, dispatch back to coder with feedback → re-review) is also there; John could adopt it later but v1 stops at "surface to user."
+A production app-builder's review-prompt template + reviewer-agent definition (an opt-in review codepath). Its retry-on-issues loop (review → if fail, dispatch back to coder with feedback → re-review) is a possible later adoption; John v1 stops at "surface to user."

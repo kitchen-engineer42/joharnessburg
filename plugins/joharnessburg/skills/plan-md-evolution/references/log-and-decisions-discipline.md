@@ -83,4 +83,4 @@ The archive must be append-only too. Don't edit archived entries.
 
 ## Source
 
-Discipline distilled from kc_cli's `events.jsonl` pattern + an append-only, most-recent-first dev journal practice + Trellis's per-developer journals.
+Discipline distilled from KC's `events.jsonl` pattern (KC: a sibling verification harness) + an append-only, most-recent-first dev journal practice + Trellis's per-developer journals.

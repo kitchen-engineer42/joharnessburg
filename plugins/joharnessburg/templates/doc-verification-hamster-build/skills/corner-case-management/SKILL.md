@@ -16,7 +16,7 @@ metadata:
 
 # corner-case-management
 
-kc_cli's hard-won lesson, kept as discipline: **NEVER patch the main rule logic with corner-case fixes.**
+KC's hard-won lesson, kept as discipline: **NEVER patch the main rule logic with corner-case fixes.**
 
 When a rule fails on samples and the failure rate is < 10% AND failures don't share a common pattern, those failures are corner cases. The temptation is to add a special-case branch to the rule's SKILL.md / `check_R<id>.py` to handle each one. **Resist.** Workflows that absorb corner-cases this way accumulate dozens of ad-hoc patches and become unmaintainable. After a year of patches, no one can read the rule's logic anymore — it's a maze of special cases.
 
@@ -139,7 +139,7 @@ def check(doc):
     return verdict_if_disclosure_late(doc.disclosure_date, doc.quarter_end_date, 15)
 ```
 
-No one can read this. No one can fix bugs in it. The original rule's intent is buried. kc_cli watched this happen — and built the corner-case registry pattern in response.
+No one can read this. No one can fix bugs in it. The original rule's intent is buried. KC watched this happen — and built the corner-case registry pattern in response.
 
 **Keep the rule clean. Stash exceptions in the registry. The runtime handles the augmentation.**
 

@@ -35,7 +35,7 @@ For each rule-skill at `<project>/.claude/skills/rule-R<id>/`:
    - **Systemic** (failure rate ≥ 10% AND failures share a common pattern): rewrite the rule's SKILL.md body or `check_R<id>.py` logic. The rule itself is wrong — too narrow, too broad, mis-specified judgment. Re-run after rewriting.
    - **Corner case** (failure rate < 10% OR failures are scattered idiosyncratic cases): DO NOT patch the main rule logic. Move the failing pattern to `<rule-id>/assets/corner-cases.json` per [[corner-case-management]]. The main rule stays clean; the runtime checks the registry at step 7 of the runtime pipeline.
 
-   **This split is the kc_cli evolution-loop's key insight.** Without it, rule-skills accumulate hundreds of ad-hoc patches and become unmaintainable. With it, the main logic stays sharp and the registry holds the exceptions.
+   **This split is the KC evolution-loop's key insight.** Without it, rule-skills accumulate hundreds of ad-hoc patches and become unmaintainable. With it, the main logic stays sharp and the registry holds the exceptions.
 
 6. **Max 3 iteration rounds per rule.** If a rule can't reach its threshold after 3 systemic rewrites, surface for human review (see "When a rule consistently fails" below).
 
@@ -78,7 +78,7 @@ Defaults (project can override in PLAN.md Open Decisions):
 |---|---|---|
 | critical | ≥99% | False negatives are unacceptable; better to over-fire and flag for human review |
 | high | ≥95% | Strong-but-not-perfect; acceptable for most regulatory work |
-| medium | ≥90% | kc_cli's default; balances accuracy and dev cost |
+| medium | ≥90% | KC's default; balances accuracy and dev cost |
 | low | ≥85% | Style-ish rules; some noise tolerable |
 | advisory | ≥75% | Recommendations, not requirements; high recall preferred over high precision |
 

@@ -96,7 +96,7 @@ Caveats — this is a research-preview surface, so keep it optional and graceful
 ## Authoring workflow
 
 1. **Reference an example template** — they live in [Hamster](https://github.com/kitchen-engineer42/hamster) under `examples/{slides-from-textbook,doc-verification}/` (not in this plugin — see the rationale below in the History section). Both are functional demonstrators of the diff format. For a methodical, Claude-guided build, use Hamster's full workflow.
-2. **Settle the four structures** for your domain (format of knowledge / schema / runtime / pipeline). Capture in `plan_md_template.md`.
+2. **Settle the app-type definition** for your domain (knowledge format / knowledge schema / app mechanism / build pipeline). Capture in `plan_md_template.md`.
 3. **Decide what to override vs add**:
    - John's `chunking` skill is generic — if your domain needs slide-shape or rule-shape chunking, override it.
    - Add new skills for steps John doesn't anticipate (slide-rendering, rule-extraction, etc.).

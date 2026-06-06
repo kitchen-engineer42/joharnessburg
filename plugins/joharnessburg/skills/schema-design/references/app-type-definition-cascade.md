@@ -1,13 +1,13 @@
-# four-structures-cascade — how format constrains everything downstream
+# app-type-definition-cascade — how format constrains everything downstream
 
 John works with four interlocking structures. They form a cascade: each constrains the next. Getting the order right means the project's shape is internally consistent.
 
 ## The four
 
-1. **Format of knowledge**: what *kinds* of knowledge exist in this project (facts? rules? stories? wiki? mixed?).
-2. **Schema of knowledge**: what *shape* an entry has — fields, types, relationships, header/body split.
-3. **Runtime structure**: how the produced app *works* for end-users — the main flow from input to output.
-4. **Production pipeline**: how the app is *built* — phases that turn raw input into deliverable.
+1. **Knowledge format**: what *kinds* of knowledge exist in this project (facts? rules? stories? wiki? mixed?).
+2. **Knowledge schema**: what *shape* an entry has — fields, types, relationships, header/body split.
+3. **App mechanism**: how the produced app *works* for end-users — the main flow from input to output.
+4. **Build pipeline**: how the app is *built* — phases that turn raw input into deliverable.
 
 ## The cascade
 
@@ -50,4 +50,4 @@ Iteration is fine. Locking too early is what's costly.
 
 ## Source
 
-Plan-md-authoring covers the four structures at the surface; this note dives deeper into the cascade itself.
+Plan-md-authoring covers the app-type definition at the surface; this note dives deeper into the cascade itself.

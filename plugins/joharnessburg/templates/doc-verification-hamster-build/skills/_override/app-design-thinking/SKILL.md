@@ -1,14 +1,14 @@
 ---
 name: app-design-thinking
-description: Runtime structure for doc-verification projects is LOCKED — the produced app is a verifier with a fixed pipeline (parse → chunk → classify → apply → cross-doc → confidence → corner-case → output). Use this skill when the user mentions runtime / UX / production / deploy / "what kind of app", or when [[ralph-loop]] advances from per-rule packaging toward release. The shape is fixed; per-project customization is in dashboard fields, severity color-coding, UI labels — NOT in the pipeline shape.
+description: App mechanism for doc-verification projects is LOCKED — the produced app is a verifier with a fixed pipeline (parse → chunk → classify → apply → cross-doc → confidence → corner-case → output). Use this skill when the user mentions runtime / UX / production / deploy / "what kind of app", or when [[ralph-loop]] advances from per-rule packaging toward release. The shape is fixed; per-project customization is in dashboard fields, severity color-coding, UI labels — NOT in the pipeline shape.
 metadata:
   triggers:
     - design the app
     - app design thinking
-    - runtime structure
-    - production pipeline
+    - app mechanism
+    - build pipeline
     - how should the app work
-    - design the 2app phases
+    - design the app phases
     - what kind of app
     - app shape
     - verifier runtime
@@ -17,14 +17,14 @@ metadata:
 
 # app-design-thinking (doc-verification override)
 
-For doc-verification projects the runtime shape is locked. John core's `app-design-thinking` is co-authored, taste-driven, open-ended; this template narrows it because the kc_cli methodology only ships one product archetype: a doc-verifier with the pipeline below. Per-project customization happens **within the locked pipeline**, not at the pipeline shape.
+For doc-verification projects the runtime shape is locked. John core's `app-design-thinking` is co-authored, taste-driven, open-ended; this template narrows it because the KC methodology only ships one product archetype: a doc-verifier with the pipeline below. Per-project customization happens **within the locked pipeline**, not at the pipeline shape.
 
 If the user wants a fundamentally different runtime (chat app, slide builder, recommendation engine), they need a different template. Surface as Open Decision in PLAN.md; don't drift the runtime here.
 
 ## What this skill is NOT (in this template)
 
 - It's not picking a runtime archetype. The archetype is "doc-verifier with confidence-stratified dashboard."
-- It's not designing the production pipeline from scratch. The pipeline is the 8 phases in `plan_md_template.md`.
+- It's not designing the build pipeline from scratch. The pipeline is the 8 phases in `plan_md_template.md`.
 - It's not asking the user "what kind of app?" — that's already decided by picking this template.
 
 ## The locked runtime — what the produced app does
@@ -99,7 +99,7 @@ The reverse-flow ("runtime informs schema") that John core's app-design-thinking
 
 ## Reference archetype — the ONLY archetype this template ships
 
-Verifier + auditor dashboard, kc_cli-style. The 5 reference archetypes in John core's `references/app-archetypes.md` (portfolio, detective game, lesson2slides, mathlab, voteyourapp) don't apply. If a project's runtime starts to resemble one of those, it doesn't belong in this template.
+Verifier + auditor dashboard, KC-style. The 5 reference archetypes in John core's `references/app-archetypes.md` (portfolio, detective game, lesson2slides, mathlab, voteyourapp) don't apply. If a project's runtime starts to resemble one of those, it doesn't belong in this template.
 
 ## What the user customizes vs. what's locked
 

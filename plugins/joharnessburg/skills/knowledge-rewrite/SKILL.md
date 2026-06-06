@@ -46,15 +46,15 @@ Extraction is fan-out; rewrite is consolidation. The raw event log from [[knowle
 - Detailed elaboration (multi-paragraph if needed)
 - Optional: examples, edge cases, glossary expansions
 
-The split is universal — applies regardless of format-of-knowledge. Facts, rules, stories, skills, all get header+body.
+The split is universal — applies regardless of knowledge-format. Facts, rules, stories, skills, all get header+body.
 
 ## Cross-linking
 
 The reducer's canonical state has a flat list of entries. Rewrite enriches with relationships:
 
 - **By name match**: entries that mention the same proper noun likely have a connection. Surface the relationship explicitly in both entries' headers (`related_to: [entry-id-1, entry-id-2]`).
-- **By topic clustering**: bucketing (per [[event-log-and-reducer]]'s reducer or per the A2O bucketing pattern in `references/two-tier-dedup.md`) groups entries by similarity. Use the buckets to decide who deserves a cross-link.
-- **By schema-defined edges**: if the format-of-knowledge has typed relationships (e.g., A2O's `is-a`, `causes`, etc.), populate those explicitly.
+- **By topic clustering**: bucketing (per [[event-log-and-reducer]]'s reducer or per the bucketing pattern in `references/two-tier-dedup.md`) groups entries by similarity. Use the buckets to decide who deserves a cross-link.
+- **By schema-defined edges**: if the knowledge-format has typed relationships (e.g., typed links like `is-a`, `causes`), populate those explicitly.
 
 Glossary entries deserve special treatment: a single entry per term, with all uses cross-linked back. KC's pattern (see `references/cross-linking.md`).
 
@@ -66,7 +66,7 @@ Three-fold reason dedup is hard:
 2. A fact and its rephrasing-with-different-context look similar but aren't duplicates.
 3. Two entries that look different but describe the same thing in different vocabulary ARE duplicates.
 
-A2O's two-tier dedup handles this without false positives or false negatives at scale:
+The two-tier dedup pattern handles this without false positives or false negatives at scale:
 
 - **Tier 1 (cheap)**: a small/cheap model (Haiku, or a workerLLM) does a quick-scan over header pairs from the same bucket. Asks: "Are these two entries describing the same thing?" Outputs yes/no/maybe.
 - **Tier 2 (expensive)**: for everything in tier-1's "maybe" or "yes" pile, a SOTA model (Claude Sonnet/Opus) does a deep-read over both bodies and decides definitively.

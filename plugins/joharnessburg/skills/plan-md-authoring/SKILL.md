@@ -1,6 +1,6 @@
 ---
 name: plan-md-authoring
-description: How to write the initial PLAN.md at the start of a John project. Use this skill whenever the user has just run /john:init, when there is no PLAN.md yet, or when the user says "let's start a new project" / "design the plan" / "what should we build." PLAN.md is the durable contract that spans 2skills knowledge engineering and 2app app building in ONE session — get it right at the top or every phase pays for it.
+description: How to write the initial PLAN.md at the start of a John project. Use this skill whenever the user has just run /john:init, when there is no PLAN.md yet, or when the user says "let's start a new project" / "design the plan" / "what should we build." PLAN.md is the durable contract that spans knowledge engineering (knowledge phases) and app building (app phases) in ONE session — get it right at the top or every phase pays for it.
 metadata:
   triggers:
     - write PLAN.md
@@ -11,7 +11,7 @@ metadata:
     - start a new project
     - no plan yet
     - what should we build
-    - design the four structures
+    - design the app-type definition
 ---
 
 # plan-md-authoring
@@ -36,15 +36,15 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 ## Project intent
 <what the produced app does, who uses it, what it consumes, what success looks like>
 
-## Knowledge inventory (from 2skills)
+## Knowledge inventory (from the knowledge phases)
 <initial: pointer to .john/input/ and a one-line corpus profile
- over time: pointer to <project>/.claude/skills/ once the 2skills half ships>
+ over time: pointer to <project>/.claude/skills/ once the knowledge phases ship>
 
-## Four structures
-- Format of knowledge: <facts? rules? stories? wiki? mixed? — initial guess, may evolve>
-- Schema of knowledge: <starter sketch; expect to iterate>
-- Runtime structure: <how the produced app works for end-users>
-- Production pipeline: <the rest of this doc — phases that build the app>
+## App-type definition
+- Knowledge format: <facts? rules? stories? wiki? mixed? — initial guess, may evolve>
+- Knowledge schema: <starter sketch; expect to iterate>
+- App mechanism: <how the produced app works for end-users>
+- Build pipeline: <the rest of this doc — phases that build the app>
 
 ## Phases
 ### Phase 1: <name>
@@ -75,15 +75,15 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 
 ## What goes in each section — the taste calls
 
-**Project intent.** Specific enough to disambiguate ("a study companion that quizzes the user on chapter content"), wide enough not to overfit ("a study companion" alone is fine; "a Next.js SPA with React 19 and Tailwind 4" is too narrow at intent-time — that's a runtime decision). The intent should still make sense if you change runtime structure later.
+**Project intent.** Specific enough to disambiguate ("a study companion that quizzes the user on chapter content"), wide enough not to overfit ("a study companion" alone is fine; "a Next.js SPA with React 19 and Tailwind 4" is too narrow at intent-time — that's a runtime decision). The intent should still make sense if you change app mechanism later.
 
-**Knowledge inventory.** Initially just a pointer + one-line profile of the corpus: "10 PDFs, ~2000 pages total, financial regulations in Chinese." Don't speculate about what'll come out yet. After 2skills half ships, this becomes a pointer to the produced skills.
+**Knowledge inventory.** Initially just a pointer + one-line profile of the corpus: "10 PDFs, ~2000 pages total, financial regulations in Chinese." Don't speculate about what'll come out yet. After the knowledge phases ship, this becomes a pointer to the produced skills.
 
-**Four structures.** Format / schema / runtime / production-pipeline are a **cascade** — each constrains the next. [[schema-design]] teaches the cascade methodology in depth (and the corpus-survey step that grounds it); your job in this section is to *apply* the cascade, not re-explain it. Sketch each structure for *this* project with the user, and explicitly mark each "may evolve."
+**App-type definition.** Knowledge format / knowledge schema / app mechanism / build pipeline are a **cascade** — each constrains the next. [[schema-design]] teaches the cascade methodology in depth (and the corpus-survey step that grounds it); your job in this section is to *apply* the cascade, not re-explain it. Sketch each structure for *this* project with the user, and explicitly mark each "may evolve."
 
 This section is the user's project taste applied. Wide tunnel — sketch loose, iterate as the corpus reveals itself. The cascade's order matters: settle format first, derive schema, derive runtime, derive pipeline. Reversing the order over-fits.
 
-**Phases.** This is the production pipeline. For 2skills, John suggests a starter (parse → survey → schema-design → chunk → extract → rewrite → package, see [[phase-design]]) but the user or active template can override. For 2app, phases come from your conversation about the runtime structure. Don't try to nail every phase at start — leave the last few as "TBD: decide after phase N" if you genuinely don't know yet.
+**Phases.** This is the build pipeline. For the knowledge phases, John suggests a starter (parse → survey → schema-design → chunk → extract → rewrite → package, see [[phase-design]]) but the user or active template can override. For the app phases, they come from your conversation about the app mechanism. Don't try to nail every phase at start — leave the last few as "TBD: decide after phase N" if you genuinely don't know yet.
 
 **Subagent matrix.** Often empty at PLAN.md authoring time. Fills in when a phase hits fan-out. For a large uniform fan-out, note whether the phase runs as a dynamic workflow ([[vertical-workflows]]) or inline dispatch ([[subagent-dispatch]]) — the work units and event paths are the same either way.
 
@@ -101,8 +101,8 @@ If your initial PLAN.md is under 100 lines, you probably haven't asked enough qu
 
 - **Filling in everything without asking.** PLAN.md is a co-authored doc. The first draft can be your sketch, but the user must approve before phases start running.
 - **Locking down phases that depend on extracted knowledge.** You don't know yet what the corpus contains. Write the early phases concretely; mark later phases as TBD or sketch-only.
-- **Specifying runtime details before the four-structures conversation has settled.** Choosing React vs vanilla before deciding format-of-knowledge is putting the cart before the horse.
-- **Copying KC's 7 phases or pdf2skills's 5 stages verbatim into PLAN.md.** They were designed for specific app types. John is general. Take the pattern (a small number of named phases with clear done-criteria), drop the specifics.
+- **Specifying runtime details before the app-type definition conversation has settled.** Choosing React vs vanilla before deciding knowledge-format is putting the cart before the horse.
+- **Copying KC's 7 phases or a predecessor's 5 stages verbatim into PLAN.md.** They were designed for specific app types. John is general. Take the pattern (a small number of named phases with clear done-criteria), drop the specifics.
 - **Omitting "Done criteria."** Without observable conditions, you can't tell when a phase is done. Disk-verifiable artifacts are the gold standard ([[workspace-discipline]]).
 
 ## The conversation with the user
@@ -113,15 +113,15 @@ A workable conversation flow (adapt freely):
 
 1. **Confirm project intent.** Echo back what you understood from `/john:init` and the user's framing. If anything's ambiguous, ask before sketching.
 2. **Check for an active template.** A template is active if the session launched with `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/` — its parent dir being `joharnessburg-applied/` is the signal. If so, `$CLAUDE_PLUGIN_ROOT/templates-active/plan_md_template.md` (if shipped by the template) is your skeleton; `/john:init` automatically uses it on workspace scaffold. Otherwise, you're sketching from scratch — confirm with the user.
-3. **Drive the four-structures conversation.** For 2app especially: ask about the runtime shape (what's the produced app, who uses it, how do they interact?) — that drives schema and format decisions backward, and pipeline decisions forward.
-4. **Sketch phases.** For 2skills the suggested pipeline ([[phase-design]] documents it) is a decent default; for 2app, phases emerge from the runtime decision.
-5. **Show the draft, ask for taste corrections.** Don't commit to disk until the user has read and approved the four-structures section and the first 2-3 phases.
+3. **Drive the app-type definition conversation.** For the app phases especially: ask about the runtime shape (what's the produced app, who uses it, how do they interact?) — that drives schema and format decisions backward, and pipeline decisions forward.
+4. **Sketch phases.** For the knowledge phases the suggested pipeline ([[phase-design]] documents it) is a decent default; for the app phases, phases emerge from the mechanism decision.
+5. **Show the draft, ask for taste corrections.** Don't commit to disk until the user has read and approved the app-type definition section and the first 2-3 phases.
 
 After the first PLAN.md write, [[plan-md-evolution]] takes over — keep PLAN.md current as work proceeds.
 
-## The 2skills → 2app boundary within one PLAN.md
+## The knowledge → app boundary within one PLAN.md
 
-PLAN.md spans both halves of John in one document. Phases 1-N typically handle knowledge engineering (producing artifacts in `<project>/.claude/skills/`); phases N+1 to M typically handle app building (producing the deliverable app). The boundary is natural — it's where the *Knowledge inventory* section transitions from "pointer to .john/input/" to "pointer to .claude/skills/". Keep the Knowledge inventory live: update it when the 2skills half ships, so 2app phases inherit the produced skills as their starting context.
+PLAN.md spans both halves of John in one document. Phases 1-N typically handle knowledge engineering (producing artifacts in `<project>/.claude/skills/`); phases N+1 to M typically handle app building (producing the deliverable app). The boundary is natural — it's where the *Knowledge inventory* section transitions from "pointer to .john/input/" to "pointer to .claude/skills/". Keep the Knowledge inventory live: update it when the knowledge phases ship, so the app phases inherit the produced skills as their starting context.
 
 ## After this skill ends
 

@@ -1,6 +1,6 @@
-# phase-design-for-2app — common patterns
+# app-phase-design — common patterns
 
-The 2app half doesn't have a default phase pipeline (the way 2skills has a parse → survey → schema-design → chunk → extract → rewrite → package suggestion). Production pipelines for apps are too varied. But there are recurring shapes.
+The app phases don't have a default pipeline (the way the knowledge phases have a parse → survey → schema-design → chunk → extract → rewrite → package suggestion). Build pipelines for apps are too varied. But there are recurring shapes.
 
 ## Shape 1: Static-output app
 
@@ -60,9 +60,9 @@ Phases are closer to phases-as-skills, but leave room for a template to overwrit
 
 Don't write rigid phase definitions. Write phase intents + done criteria; let layer-2 Claude (and the user) judge when each is satisfied. See [[phase-design]] for the general rubric and [[workspace-discipline]]'s "verify done criteria" pattern.
 
-## Subagent fan-out for 2app
+## Subagent fan-out in the app phases
 
-Not every 2app phase fans out, but some can:
+Not every app phase fans out, but some can:
 
 - **Content seeding** (Shape 1 step 2, Shape 2 step 4): if each skill maps to one piece of content, fan out per skill. Each subagent transforms one skill entry into the runtime's data shape.
 - **Per-feature implementation**: for apps with many independent features, fan out per feature. Each subagent implements one feature in isolation; reducer assembles.
@@ -72,8 +72,8 @@ See [[subagent-dispatch]] for the briefing pattern and [[event-log-and-reducer]]
 
 ## When phases reveal schema gaps
 
-A 2app phase might surface that the schema from the 2skills half doesn't carry a field the runtime needs. Don't silently work around it — emit a `schema_observation` event (same pattern as [[knowledge-extraction]]), update PLAN.md's Open Decisions, decide with the user whether to extend the schema and re-emit affected entries, or adapt the runtime to what the schema gives. The cascade goes both ways.
+An app phase might surface that the schema from the knowledge phases doesn't carry a field the runtime needs. Don't silently work around it — emit a `schema_observation` event (same pattern as [[knowledge-extraction]]), update PLAN.md's Open Decisions, decide with the user whether to extend the schema and re-emit affected entries, or adapt the runtime to what the schema gives. The cascade goes both ways.
 
 ## Source
 
-Shapes synthesized from the 5 subsites' pipelines (see `app-archetypes.md`) plus the production `skills2app` 8-stage Celery pipeline (init → coding → review → build → run → health → deploy → success) defined in skills2app's `apps/projects/tasks.py`.
+Shapes synthesized from the 5 reference apps' pipelines (see `app-archetypes.md`) plus a production app-builder's 8-stage pipeline (init → coding → review → build → run → health → deploy → success).

@@ -6,7 +6,7 @@ A central design decision for any John-produced app: does the LLM run at **build
 
 The LLM runs while John is producing the app. Each invocation is **one-off** — happens once during the pipeline, never repeats per user.
 
-**Examples from the subsites:**
+**Examples from the reference apps:**
 
 - lesson2slides: gpt-5.4 generates slide content during build; the deployed slide deck has no runtime LLM.
 - create-any-portfolio: Code Agent generates the Next.js site during build; the published portfolio has no runtime LLM (except an optional chatbot).
@@ -38,7 +38,7 @@ The LLM runs every time the end-user does something. Each invocation is **per-us
 
 ## Choosing
 
-Decide based on the runtime structure (the third of the four structures):
+Decide based on the app mechanism (the third of the four app-type decisions):
 
 - **Static output, no per-user variation** → build-time only. (slide deck, portfolio, vote page.)
 - **Per-user input that's predictable but content-creative** → build-time, with per-input caching. (Generated slide deck *per uploaded textbook* — each is a build, but each build is once.)
@@ -56,4 +56,4 @@ The clean line between them is a design decision. Default: maximize build-time w
 
 ## Source
 
-Pattern synthesized from the 5 reference subsites: matching the worker LLM tier to each task, and the imperative-DSL principle from mathlab.
+Pattern synthesized from the 5 reference apps: matching the worker LLM tier to each task, and the imperative-DSL principle from mathlab.

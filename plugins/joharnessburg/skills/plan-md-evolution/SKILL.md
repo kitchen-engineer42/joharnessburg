@@ -19,7 +19,7 @@ metadata:
 
 [[plan-md-authoring]] bootstraps PLAN.md at project start. This skill takes over for the entire rest of the project lifecycle — every phase advance, every decision, every blocker, every iteration. PLAN.md is the durable contract; evolution is what keeps it durable.
 
-This skill fires every time [[ralph-loop]] step 5 runs ("update PLAN.md after each phase"). It's not optional — drift between PLAN.md and disk truth is what kc_cli's hard-tracking principle was designed to prevent. Disk is truth; PLAN.md is the human-readable summary of the truth.
+This skill fires every time [[ralph-loop]] step 5 runs ("update PLAN.md after each phase"). It's not optional — drift between PLAN.md and disk truth is what KC's hard-tracking principle was designed to prevent (KC: a sibling verification harness). Disk is truth; PLAN.md is the human-readable summary of the truth.
 
 **Soft enforcement.** The six patterns below are John's defaults — suggestions grounded in real project experience. If a template ships its own evolution patterns (different Log format, different renumbering convention, different Open-Decisions schema), follow that instead. The load-bearing principles are: stay auditable (disk is truth, append-only Log), don't silently corrupt PLAN.md, and surface blockers to the user. The specific forms are flexible.
 

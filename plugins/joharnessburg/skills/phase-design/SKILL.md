@@ -30,13 +30,13 @@ Phases that don't have all three are not phases — they're tasks within a phase
 
 ## How many phases
 
-For 2skills (knowledge engineering): typically 4-8 phases. The starter from John (parse → survey → schema-design → chunk → extract → rewrite → package) is 7. You can drop or merge — for example, a corpus that arrives pre-chunked skips "parse" and "chunk."
+For the knowledge phases (knowledge engineering): typically 4-8 phases. The starter from John (parse → survey → schema-design → chunk → extract → rewrite → package) is 7. You can drop or merge — for example, a corpus that arrives pre-chunked skips "parse" and "chunk."
 
-For 2app (app building): depends entirely on what's being built. A static-output app (slides, a wiki, a portfolio) might be 3-4 phases; an interactive runtime (a game, a verifier) might be 6-10. The active template usually suggests phases; if not, design them with the user.
+For the app phases (app building): depends entirely on what's being built. A static-output app (slides, a wiki, a portfolio) might be 3-4 phases; an interactive runtime (a game, a verifier) might be 6-10. The active template usually suggests phases; if not, design them with the user.
 
 Total across both halves: usually 8-15 phases for a moderately ambitious project. Fewer means the matrix isn't decomposed enough; more means you've over-sliced and the iteration overhead dominates.
 
-## Suggested 2skills phases
+## Suggested knowledge phases
 
 These are starting points, not requirements. The user or the active template overrides; treat the list below as a default to adapt, not a fixed sequence.
 
@@ -50,7 +50,7 @@ These are starting points, not requirements. The user or the active template ove
 | 6 | rewrite + cross-link | Progressive disclosure, dedup, cross-link. | Single-entry corpus. |
 | 7 | package | Emit SKILL.md to `<project>/.claude/skills/`. | Knowledge goes somewhere else (e.g., a database). |
 
-When deciding 2skills phases for a specific project, walk this list and ask "does this project need this phase?" Drop or merge accordingly.
+When deciding knowledge phases for a specific project, walk this list and ask "does this project need this phase?" Drop or merge accordingly.
 
 ## Long-docs vs short-file-sets: the onion decision
 
@@ -67,9 +67,9 @@ Quick rubric (decide in the **survey** phase, before chunking starts):
 
 This decision must be visible in PLAN.md's chunk phase (or whatever you name it). Don't defer it to the chunking skill — by the time chunking starts, the phase shape is already locked.
 
-## Suggested 2app phases
+## Suggested app phases
 
-These come from the conversation about runtime structure, not from a fixed list. But common shapes:
+These come from the conversation about app mechanism, not from a fixed list. But common shapes:
 
 - **Static-output apps** (slide deck, portfolio, wiki): scaffold → assemble content per entry (fan-out) → render → preview-iterate → publish.
 - **Interactive runtime apps** (game, quiz, simulator): scaffold → wire core mechanics → seed content from knowledge → wire runtime LLM proxy (if needed) → polish → deploy.

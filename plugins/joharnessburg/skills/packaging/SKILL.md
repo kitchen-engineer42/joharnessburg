@@ -1,27 +1,27 @@
 ---
 name: packaging
-description: Emit the cleaned, cross-linked, deduplicated knowledge from the rewrite phase as Claude Code skills at `<project>/.claude/skills/`. Use this skill whenever the 2skills half wraps, when the user says "package the skills" / "ship the knowledge" / "finalize 2skills" / "we're ready for 2app," or when [[ralph-loop]] signals packaging is next. Make sure to invoke this skill before the 2app phases run — 2app reads the produced skills as its starting context. This is the deliverable boundary between knowledge engineering and app building; getting it wrong means the 2app half operates without a real knowledge source.
+description: Emit the cleaned, cross-linked, deduplicated knowledge from the rewrite phase as Claude Code skills at `<project>/.claude/skills/`. Use this skill whenever the knowledge phases wrap, when the user says "package the skills" / "ship the knowledge" / "finalize the knowledge phases" / "we're ready for the app phases," or when [[ralph-loop]] signals packaging is next. Make sure to invoke this skill before the app phases run — they read the produced skills as their starting context. This is the deliverable boundary between knowledge engineering and app building; getting it wrong means the app phases operate without a real knowledge source.
 metadata:
   triggers:
     - package the skills
     - ship the knowledge
     - emit skills
     - publish to .claude/skills
-    - finalize 2skills
+    - finalize knowledge phases
     - packaging phase
-    - ready for 2app
+    - ready for app phases
 ---
 
 # packaging
 
-The 2skills half ends here. Packaging turns John's working knowledge state (in `<project>/.john/knowledge/`) into the deliverable that the 2app half consumes (in `<project>/.claude/skills/`). After this phase, the produced skills are project-scoped Claude Code skills — auto-discovered by any Claude Code session opened in this project, including the one that will build the app.
+The knowledge phases end here. Packaging turns John's working knowledge state (in `<project>/.john/knowledge/`) into the deliverable that the app phases consume (in `<project>/.claude/skills/`). After this phase, the produced skills are project-scoped Claude Code skills — auto-discovered by any Claude Code session opened in this project, including the one that will build the app.
 
 ## Where the work happens
 
 - **Inputs**: `<project>/.john/knowledge/<entry-id>/{header.md, body.md}` (from [[knowledge-rewrite]])
 - **Outputs**: `<project>/.claude/skills/<skill-name>/SKILL.md` (+ optional `references/`, `scripts/`, `assets/`)
 
-`<project>/.claude/skills/` is Claude Code's project-scoped skill auto-discovery path. Skills emitted here load into any Claude Code session in this project, including future-Claude that builds the 2app runtime. This is the handoff.
+`<project>/.claude/skills/` is Claude Code's project-scoped skill auto-discovery path. Skills emitted here load into any Claude Code session in this project, including future-Claude that builds the app. This is the handoff.
 
 ## What "skill" means here
 
@@ -37,11 +37,11 @@ A skill in Claude Code is one directory with at minimum a `SKILL.md`:
 
 The frontmatter has `name` and `description`. Optionally `metadata.triggers[]` for keyword-based auto-load. Body is markdown — what the agent should do/know.
 
-This is the same skill format John itself ships. Your packaging output is structurally identical to a John meta-skill or phase skill — the difference is who wrote it (humans for John core; layer-2 Claude during a 2skills run for produced knowledge).
+This is the same skill format John itself ships. Your packaging output is structurally identical to a John meta-skill or phase skill — the difference is who wrote it (humans for John core; layer-2 Claude during the knowledge phases for produced knowledge).
 
 ## Mapping knowledge entries → skills
 
-The transformation per entry depends on the entry's format-of-knowledge:
+The transformation per entry depends on the entry's knowledge-format:
 
 - **Procedural** entries (skill-shaped knowledge) → emit as SKILL.md directly. `header.md` content becomes the description; `body.md` content becomes the body.
 - **Factual** entries → can be packaged as a single "facts skill" with all facts in the body, OR as one skill per fact (rare; only for hugely important facts). Usually facts go into a single browsable skill with cross-links.
@@ -99,17 +99,17 @@ If the user wants to ship the working state too (for transparency, reproducibili
 4. **No leaked workspace paths.** Skills shouldn't reference `<project>/.john/` (working state) or the user's input source paths — those don't matter to the runtime.
 5. **The skills-analytics dashboard (if installed) shows the new skills as discoverable.** Optional check, valuable when shaking down a fresh run.
 
-## The handoff to 2app
+## The handoff to the app phases
 
-After packaging completes, PLAN.md's Knowledge inventory section transitions from "pointer to `.john/input/`" to "pointer to `.claude/skills/`" — the 2app phases now have a *real* knowledge source to consume, not raw input. Update PLAN.md's Log section accordingly.
+After packaging completes, PLAN.md's Knowledge inventory section transitions from "pointer to `.john/input/`" to "pointer to `.claude/skills/`" — the app phases now have a *real* knowledge source to consume, not raw input. Update PLAN.md's Log section accordingly.
 
-The 2app half (the app-building phase skills) reads from `.claude/skills/` as its starting context. The two halves of John meet at this directory.
+The app phases (the app-building phase skills) read from `.claude/skills/` as its starting context. The two halves of John meet at this directory.
 
 ## Cross-references
 
 - [[knowledge-rewrite]] — the prior phase, where the knowledge is cleaned
 - [[schema-design]] — what determines the per-entry-to-skill mapping
 - [[plan-md-authoring]] — the Knowledge inventory section that gets updated
-- [[ralph-loop]] — advances out of packaging into 2app
-- [[app-design-thinking]] — the next phase reads what packaging emits; settles the runtime + production-pipeline links of the four-structures cascade
+- [[ralph-loop]] — advances out of packaging into the app phases
+- [[app-design-thinking]] — the next phase reads what packaging emits; settles the runtime + production-pipeline links of the app-type definition cascade
 - See `references/` for: Claude Code's skill format, skill-creator's description-pushiness advice, KC's rule-skill shape

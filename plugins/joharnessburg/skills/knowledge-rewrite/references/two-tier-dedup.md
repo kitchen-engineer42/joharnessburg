@@ -1,6 +1,6 @@
-# two-tier-dedup — A2O's pattern, generalized
+# two-tier-dedup — a research predecessor's pattern, generalized
 
-Naive dedup compares every entry to every other entry. At 1000 entries, that's 500,000 comparisons; at 10,000, it's 50,000,000. Not feasible. A2O's two-tier dedup is the structure that makes dedup tractable at scale.
+Naive dedup compares every entry to every other entry. At 1000 entries, that's 500,000 comparisons; at 10,000, it's 50,000,000. Not feasible. Two-tier dedup is the structure that makes dedup tractable at scale (inherited from a research predecessor).
 
 ## Stage 1 — bucketing (free, deterministic)
 
@@ -75,5 +75,5 @@ The rewrite phase's reducer folds these events into the canonical knowledge stat
 
 ## Source
 
-- A2O's `chunks2skus/postprocessors/bucketing.py` + `dedup.py` implement this pattern with concrete numbers.
+- A research predecessor implemented this pattern (bucketing + dedup postprocessors) with concrete numbers.
 - The pattern's lineage: standard information-retrieval bucketing, adapted for LLM-driven decision-making.

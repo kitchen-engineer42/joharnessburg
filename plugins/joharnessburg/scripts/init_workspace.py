@@ -41,7 +41,7 @@ SUBDIRS = [
 PLAN_TEMPLATE = """\
 # PLAN.md — {project_name}
 
-*Created by `/john:init` on {date}. Edit freely; this is your living plan and the durable contract that spans 2skills (knowledge engineering) and 2app (app building) in one session.*
+*Created by `/john:init` on {date}. Edit freely; this is your living plan and the durable contract that spans the knowledge phases (knowledge engineering) and the app phases (app building) in one session.*
 
 ## Project intent
 
@@ -50,29 +50,29 @@ PLAN_TEMPLATE = """\
 ## Knowledge inventory
 
 - Initial input: `.john/input/` (populated at scaffold time)
-- Produced skills (after the 2skills half ships): `.claude/skills/`
+- Produced skills (after the knowledge phases ship): `.claude/skills/`
 
-## Four structures (per John's spec §4)
+## App-type definition
 
-These four constrain each other in a cascade — format determines schema, schema constrains runtime, runtime drives the production pipeline. See the `plan-md-authoring` and `schema-design` skills for the methodology.
+The four decisions that define this app type, in two pairs (format = what it is / how it works; schema = what it has / how it is built). They constrain each other in a cascade — knowledge format determines knowledge schema, schema constrains the app mechanism, mechanism drives the build pipeline. See the `plan-md-authoring` and `schema-design` skills for the methodology.
 
-- **Format of knowledge**: <facts? rules? stories? wiki? mixed? — initial sketch, may evolve>
-- **Schema of knowledge**: <starter shape per entry — fields, header/body, MECE>
-- **Runtime structure**: <how the produced app works for end-users>
-- **Production pipeline**: <the phases below>
+- **Knowledge format**: <facts? rules? stories? wiki? mixed? — initial sketch, may evolve>
+- **Knowledge schema**: <starter shape per entry — fields, header/body, MECE>
+- **App mechanism**: <how the produced app works for end-users>
+- **Build pipeline**: <the phases below>
 
 ## Phases
 
 ### Phase 1: bootstrap
 
-- Intent: confirm project intent + four-structures sketch with the user; settle the project's shape.
+- Intent: confirm project intent + app-type-definition sketch with the user; settle the project's shape.
 - Skills to invoke: `plan-md-authoring`, `phase-design`
-- Required artifacts: this PLAN.md filled in with intent + initial four-structures section
-- Done criteria: user has read and approved the four-structures section + the first 2-3 phases
+- Required artifacts: this PLAN.md filled in with intent + initial app-type definition section
+- Done criteria: user has read and approved the app-type definition section + the first 2-3 phases
 
 ### Phase 2: TBD
 
-*Design phases 2+ once the four-structures sketch is settled. The `phase-design` skill teaches how. Wide tunnel — don't over-specify too early.*
+*Design phases 2+ once the app-type definition sketch is settled. The `phase-design` skill teaches how. Wide tunnel — don't over-specify too early.*
 
 ## Subagent matrix
 

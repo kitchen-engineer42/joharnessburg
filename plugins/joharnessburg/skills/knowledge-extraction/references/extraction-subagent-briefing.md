@@ -16,7 +16,7 @@ This run, you process exactly one chunk: <chunk-id>.
 <full chunk content OR the path to the chunk file>
 
 ## Schema for entries
-<schema definition from PLAN.md's four-structures section, e.g.:
+<schema definition from PLAN.md's app-type definition section, e.g.:
 "Each entry is a {id, claim, sources[], confidence, related_facts[]}.
  Header (one-liner + classification + cross-links) and body (full claim
  with citation) progressive disclosure.">
@@ -73,7 +73,7 @@ Do NOT include raw entry content in your return. Those are in the event log.
 
 - **Project intent** is the only universally-needed customization; copy from PLAN.md top.
 - **Sweep mode** depends on the project's runtime needs (see `sweep-strategy.md`).
-- **Schema** comes from PLAN.md four-structures section.
+- **Schema** comes from PLAN.md app-type definition section.
 
 ## What this template doesn't cover
 
@@ -85,6 +85,6 @@ Do NOT include raw entry content in your return. Those are in the event log.
 
 Pattern synthesized from:
 
-- A2O's `chunks2skus/extractors/` extraction prompts
+- a research predecessor's extraction prompts
 - The working-agreement principle of briefing subagents with full context
 - mathlab's self-correction echo

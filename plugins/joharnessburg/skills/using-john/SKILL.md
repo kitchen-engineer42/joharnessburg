@@ -1,6 +1,6 @@
 ---
 name: using-john
-description: Top-level orientation for John (joharnessburg). Read this skill at the start of every John session and re-read it after every context compaction. Use it whenever the user mentions John, joharnessburg, ralph-loop, 2skills, 2app, knowledge engineering, or asks you to do knowledge-dense app building. It tells you what John is, the shape of the user's working state, where to look, and what to do at each phase of work — without it, you'll likely under-trigger the other John skills.
+description: Top-level orientation for John (joharnessburg). Read this skill at the start of every John session and re-read it after every context compaction. Use it whenever the user mentions John, joharnessburg, ralph-loop, knowledge phases, app phases (or their legacy nicknames 2skills/2app), knowledge engineering, or asks you to do knowledge-dense app building. It tells you what John is, the shape of the user's working state, where to look, and what to do at each phase of work — without it, you'll likely under-trigger the other John skills.
 ---
 
 # using-john
@@ -15,10 +15,10 @@ A thin layer of skills, hooks, and a small toolkit on top of Claude Code. It doe
 
 The shape John imposes is a **two-axis matrix**:
 
-- **Horizontal axis** (phases): the work moves left-to-right through a small number of phases, one at a time. Knowledge engineering (2skills) on the left half; app building (2app) on the right. You advance one phase before starting the next.
+- **Horizontal axis** (phases): the work moves left-to-right through a small number of phases, one at a time. The **knowledge phases** (knowledge engineering) on the left half; the **app phases** (app building) on the right. You advance one phase before starting the next.
 - **Vertical axis** (parallel knowledge entries): within most phases there are many similar units of work — hundreds of chunks to extract, dozens of skills to author, etc. You fan these out to subagents in parallel, not handle them serially in your own context.
 
-The two halves are nicknamed **2skills** and **2app**. Same session, same memory, one PLAN.md spanning both.
+Older projects and team shorthand may call the two halves by their legacy nicknames *2skills* and *2app* — same things. Same session, same memory, one PLAN.md spanning both halves.
 
 **Produced apps run standalone by default** — locally or on any host the user owns, configured through `.env`, with no external auth/billing/telemetry platform assumed. Templates may add platform integration; vanilla John never requires it.
 
@@ -26,10 +26,10 @@ The two halves are nicknamed **2skills** and **2app**. Same session, same memory
 
 Everything John writes lives in the **user's project directory** (the current working directory when this session was started). You write here, not into John's plugin install location.
 
-- `<project>/PLAN.md` — the durable plan. Read this first. Has phases, subagent assignments, the four-structures section, open decisions, an append-only log. It is the source of truth across context compactions.
+- `<project>/PLAN.md` — the durable plan. Read this first. Has phases, subagent assignments, the app-type definition section, open decisions, an append-only log. It is the source of truth across context compactions.
 - `<project>/CLAUDE.md` — project memory. If absent, John's `/john:init` creates a starter; if present, read it for project-specific conventions.
 - `<project>/.john/` — working state. Hidden, ephemeral-ish. Contains `workspace.json` (active template + current phase), `input/` (user materials), `parsed/`, `chunks/`, `knowledge/`, `events/` (append-only logs), `checkpoints/`, `trace/` (offloaded large tool results).
-- `<project>/.claude/skills/` — the *deliverable* skills produced by the 2skills half (Claude Code's project-scoped auto-discovery path). The 2app half consumes these.
+- `<project>/.claude/skills/` — the *deliverable* skills produced by the knowledge phases (Claude Code's project-scoped auto-discovery path). The app phases consume these.
 
 If none of this exists yet, John hasn't been initialized for this project. Suggest the user run `/john:init <path-to-input>` to scaffold.
 
@@ -57,7 +57,7 @@ Set the goal with `/john:endurance <goal>`; inspect or clear via `/john:enduranc
 - Don't write canonical state from a subagent directly — use the event log. See [[event-log-and-reducer]].
 - Don't assume the user wants you to advance autonomously without checkpoints. Pause at phase boundaries unless they've said "run to completion."
 - Don't reference any files outside `<project>/` and the plugin's `${CLAUDE_PLUGIN_ROOT}/` — those are the only two places that exist for you.
-- Don't write a separate `spec.md` for handoff between halves. PLAN.md is the durable contract across 2skills + 2app in one session — no second contract needed. If you encounter a `spec.md` in a project, it's vestigial — incorporate its content into PLAN.md and stop reading it.
+- Don't write a separate `spec.md` for handoff between halves. PLAN.md is the durable contract across the knowledge and app phases in one session — no second contract needed. If you encounter a `spec.md` in a project, it's vestigial — incorporate its content into PLAN.md and stop reading it.
 
 ## Cross-references
 

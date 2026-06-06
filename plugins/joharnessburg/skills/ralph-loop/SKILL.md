@@ -48,7 +48,7 @@ Three reasons it works for John:
 
 ## Subagent fan-out inside an iteration
 
-Many phases (especially in the 2skills half) have hundreds of similar work units — one per chunk, one per knowledge entry. Don't loop on these serially. Within step 3-4 of the main loop:
+Many phases (especially in the knowledge phases) have hundreds of similar work units — one per chunk, one per knowledge entry. Don't loop on these serially. Within step 3-4 of the main loop:
 
 - Decide the work units (e.g., the list of chunks).
 - Fan out to subagents — one per unit, or batched if units are tiny. See [[subagent-dispatch]].

@@ -52,7 +52,7 @@ This is the most common failure mode in John sessions: under-briefing.
 A subagent is a fresh Claude with no idea about your project. It does NOT inherit:
 - Your conversation with the user
 - PLAN.md content (unless you tell it about it)
-- The four-structures decisions you made
+- The app-type definition decisions you made
 - Previous extraction results
 - Project taste / conventions / glossary
 

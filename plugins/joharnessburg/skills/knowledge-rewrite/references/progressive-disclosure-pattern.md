@@ -51,7 +51,7 @@ When [[packaging]] emits to `<project>/.claude/skills/<skill-name>/`, the SKILL.
 
 The pattern is canonical across our prior projects:
 
-- pdf2skills / Anything2Ontology: `header.md` + `content.md` per SKU.
+- A predecessor pipeline: `header.md` + `content.md` per entry.
 - KC's rule format: rule metadata file + rule body file.
 - Claude Code skills: SKILL.md frontmatter + body.
 

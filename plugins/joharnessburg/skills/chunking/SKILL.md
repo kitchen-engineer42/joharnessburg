@@ -36,10 +36,10 @@ Brief mode reminders so you don't have to context-switch:
 1. Read the parsed `doc.md`.
 2. Extract the header hierarchy (H1/H2/H3...) with line numbers.
 3. Walk top-down, splitting at the highest-level boundary that produces chunks within the token budget. Don't pre-decide a level; let content drive it.
-4. If a section is still too large after H1/H2/H3 splits, fall back to **LLM-wedge chunking** (see `references/a2o-wedge-chunker.md`): ask an LLM to suggest cut points within the running window, fuzzy-match the suggestions back to the source via Levenshtein, slide forward.
+4. If a section is still too large after H1/H2/H3 splits, fall back to **LLM-wedge chunking** (see `references/llm-wedge-chunker.md`): ask an LLM to suggest cut points within the running window, fuzzy-match the suggestions back to the source via Levenshtein, slide forward.
 5. Emit each chunk with frontmatter linking parent/source. Build `chunks_index.json` as a tree.
 
-Tunable: `MAX_TOKEN_LENGTH` per chunk. Default ~100K tokens (large; we want bigger chunks where possible — "bigger chunks > smaller chunks. Only chunk when necessary, never over-chunk" per A2O's pipeline_spec.md). Drop if the extraction phase struggles.
+Tunable: `MAX_TOKEN_LENGTH` per chunk. Default ~100K tokens (large; we want bigger chunks where possible — "bigger chunks > smaller chunks. Only chunk when necessary, never over-chunk" per the predecessor's pipeline spec). Drop if the extraction phase struggles.
 
 ## The wrapper algorithm
 
@@ -85,4 +85,4 @@ Each chunk is itself eventually a candidate for further progressive disclosure w
 - [[schema-design]] — chunk size is informed by what schema we're extracting toward
 - [[knowledge-extraction]] — the next phase, which sweeps chunks
 - [[phase-design]] — the onion-peeler / wrapper decision rubric (this skill is the *how*)
-- See `references/` for: onion-peeler design, onion-wrapper assembly, A2O wedge fallback
+- See `references/` for: onion-peeler design, onion-wrapper assembly, LLM-wedge fallback

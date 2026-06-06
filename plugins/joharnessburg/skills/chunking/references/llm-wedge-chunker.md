@@ -1,6 +1,6 @@
-# a2o-wedge-chunker — the LLM-wedge fallback
+# llm-wedge-chunker — the LLM-wedge fallback
 
-When a document has no header hierarchy to peel along (long flowing prose, a single huge paragraph, transcription output), the header-based algorithm can't find natural cut points. Anything2Ontology's `markdown2chunks/chunkers/llm_chunker.py` solves this with a wedge-based fallback.
+When a document has no header hierarchy to peel along (long flowing prose, a single huge paragraph, transcription output), the header-based algorithm can't find natural cut points. A research predecessor's LLM chunker solves this with a wedge-based fallback.
 
 ## The idea
 
@@ -30,4 +30,4 @@ LLMs are bad at counting and at absolute positions. Asking "what character shoul
 
 ## Source
 
-`Anything2Ontology/src/markdown2chunks/chunkers/llm_chunker.py`. The Levenshtein library and rolling-window logic are vanilla; the prompt + wedge schema are the design contribution.
+A research predecessor's LLM chunker implemented this. The Levenshtein library and rolling-window logic are vanilla; the prompt + wedge schema are the design contribution.

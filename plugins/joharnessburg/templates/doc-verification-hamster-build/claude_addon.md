@@ -1,20 +1,20 @@
-## Active template: doc-verification (kc_cli-derived, 8-phase)
+## Active template: doc-verification (KC-derived, 8-phase)
 
 This is a **doc-verification project**. The produced app verifies one or more *docs-under-test* against a *rule corpus* (regulations, internal policy, contract templates, compliance handbooks). The runtime parses + chunks both, applies each rule to the relevant chapters of each doc-under-test, and surfaces violations with source references, severities, and confidence.
 
-The template is a John-idiom translation of kc_cli's 7-phase methodology, with an explicit Phase 0 added for scenario bootstrap and Phase 5 for cross-document rules. Read `plan_md_template.md` for the phase shape.
+The template is a John-idiom translation of KC's 7-phase methodology (KC: a sibling verification harness), with an explicit Phase 0 added for scenario bootstrap and Phase 5 for cross-document rules. Read `plan_md_template.md` for the phase shape.
 
 ### Hard constraints (do not relax without surfacing as Open Decision)
 
 **Knowledge format: rules + glossary, full stop.** Every entry in the knowledge base is either a *rule* or a *glossary term*. No facts, no stories, no wiki entries. If a piece of source content doesn't fit the rule or glossary schema, surface it as an Open Decision — *don't* invent a third format on the fly.
 
-**Source-first principle** (kc_cli's hard-won lesson, kept verbatim): extract rules from the source regulation documents FIRST. Only after a complete first-pass catalog is built do you open sample documents for validation. Reverse the order and you silently drop rules the samples don't exercise. See [[rule-extraction]].
+**Source-first principle** (KC's hard-won lesson, kept verbatim): extract rules from the source regulation documents FIRST. Only after a complete first-pass catalog is built do you open sample documents for validation. Reverse the order and you silently drop rules the samples don't exercise. See [[rule-extraction]].
 
 **Falsifiability is mandatory.** Every rule has a `falsifiability_statement`: the precise condition under which the rule fails on a document. Without it, the rule isn't machine-checkable and the runtime can't apply it. Incomplete rules go in PLAN.md's Open Decisions, not into the live catalog.
 
 **Per-rule packaging.** Each rule produces one Claude Code skill at `<project>/.claude/skills/rule-R<id>/` with `SKILL.md` + `check_R<id>.py` + `references/` + `assets/samples/`. See the overridden [[packaging]] skill. Bundling rules into per-category skills is wrong for this template; if you're tempted, you're working with the wrong template.
 
-**Corner cases stay in a registry — NEVER patch the main rule logic with corner-case fixes.** kc_cli learned this the hard way: workflows accumulate hundreds of ad-hoc patches and become unmaintainable. Use [[corner-case-management]] from Phase 4 onward; the registry loads lazily at runtime when a corner-case pattern matches.
+**Corner cases stay in a registry — NEVER patch the main rule logic with corner-case fixes.** KC learned this the hard way: workflows accumulate hundreds of ad-hoc patches and become unmaintainable. Use [[corner-case-management]] from Phase 4 onward; the registry loads lazily at runtime when a corner-case pattern matches.
 
 **Distillation Phase 6 is required, not optional.** Even when a rule-skill works on SOTA Opus, distill it to a Python + tier-3/4 worker LLM workflow before shipping. Production runs the distilled workflows; rule-skills are intermediate. See [[skill-to-workflow-distillation]].
 
@@ -45,4 +45,4 @@ This template is rules + glossary only. Don't propose adding facts, stories, wik
 
 ### Skill priority
 
-When two skills offer guidance that conflicts: **meta-meta skills override meta skills**. The meta-meta layer (workshop discipline, plan-md mechanics, ralph_loop, subagent-dispatch, the four-structures cascade) is architectural. The meta layer (the specific verification skills like rule-extraction, rule-testing, confidence-system) is methodology. Architecture wins.
+When two skills offer guidance that conflicts: **meta-meta skills override meta skills**. The meta-meta layer (workshop discipline, plan-md mechanics, ralph_loop, subagent-dispatch, the app-type definition cascade) is architectural. The meta layer (the specific verification skills like rule-extraction, rule-testing, confidence-system) is methodology. Architecture wins.

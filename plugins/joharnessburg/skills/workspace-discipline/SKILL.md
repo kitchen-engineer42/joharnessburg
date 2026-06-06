@@ -25,7 +25,7 @@ When you need to know if something is done, **check disk**. Do not trust:
 
 Check disk means: use `ls`, `find`, `cat`, file existence checks. The phase done-criteria in PLAN.md are disk-verifiable for a reason. Verify them.
 
-This rule is the single most important discipline in John. It is the cleanest learned lesson from kc_cli: agents will assert work is done that isn't, and the engine has to verify from filesystem. You ARE the engine here, so the verifying is on you.
+This rule is the single most important discipline in John. It is the cleanest learned lesson from KC, a sibling verification harness: agents will assert work is done that isn't, and the engine has to verify from filesystem. You ARE the engine here, so the verifying is on you.
 
 ## Rule 2: Idempotent operations
 

@@ -12,7 +12,7 @@ metadata:
 
 # event-log-and-reducer
 
-When N subagents are working in parallel on shared state, the naive approach (each subagent writes to a shared catalog file with a lock) is what kc_cli learned the hard way is fragile at scale. John uses **event log + reducer** instead — same shape that React/Redux and event-sourced systems use, ported to filesystem.
+When N subagents are working in parallel on shared state, the naive approach (each subagent writes to a shared catalog file with a lock) is what KC (a sibling verification harness) learned the hard way is fragile at scale. John uses **event log + reducer** instead — same shape that React/Redux and event-sourced systems use, ported to filesystem.
 
 ## The pattern in one diagram
 

@@ -1,6 +1,6 @@
 ---
 name: code-quality-reviewer
-description: Use this agent during the 2app half when produced-app code needs an independent quality review — an opt-in cross-validation pass per the `code-quality-guardrails` skill. Reviews a specified set of files against the four guardrail categories (security, quality, UX, deployment), runs whatever deterministic checks the project has wired (linters, type-checkers, test runners), and returns a findings list with severity.
+description: Use this agent during the app phases when produced-app code needs an independent quality review — an opt-in cross-validation pass per the `code-quality-guardrails` skill. Reviews a specified set of files against the four guardrail categories (security, quality, UX, deployment), runs whatever deterministic checks the project has wired (linters, type-checkers, test runners), and returns a findings list with severity.
 tools: Read, Bash, Grep, Glob
 model: sonnet
 ---

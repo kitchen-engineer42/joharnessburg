@@ -1,6 +1,6 @@
 ---
 name: skill-to-workflow-distillation
-description: REQUIRED Phase 6. Distill expensive SOTA rule-skills (Claude check.py on Opus) into cheap Python + tier-3/4 worker-LLM workflows that preserve accuracy within tolerance. The distilled workflow is the production artifact; the rule-skill is the SOTA reference. Use this skill when Phase 6 fires, when the user mentions distillation / workflow / cheap LLM / production cost, or when [[ralph-loop]] advances out of cross-doc verification. The "method over steps" caveat from kc_cli applies — don't over-specify cheap-LLM prompts.
+description: REQUIRED Phase 6. Distill expensive SOTA rule-skills (Claude check.py on Opus) into cheap Python + tier-3/4 worker-LLM workflows that preserve accuracy within tolerance. The distilled workflow is the production artifact; the rule-skill is the SOTA reference. Use this skill when Phase 6 fires, when the user mentions distillation / workflow / cheap LLM / production cost, or when [[ralph-loop]] advances out of cross-doc verification. The "method over steps" caveat from KC applies — don't over-specify cheap-LLM prompts.
 metadata:
   triggers:
     - distill the rules
@@ -19,7 +19,7 @@ metadata:
 
 After Phases 3 + 4 produce verified per-rule skills that work on SOTA Claude (Opus), Phase 6 distills each into a `<project>/workflows/R<id>/workflow.py` + per-step worker-LLM prompts that run on tier-3/4 cheap models with accuracy within tolerance of the SOTA reference. The distilled workflows are the **production artifact**; the original rule-skills remain as reference + as a fallback.
 
-This phase is **required**, not optional. kc_cli's "skills as production mode" insight (a fully-tested rule-skill on SOTA is already production-viable) is true but expensive — projects ship distilled workflows by default. Skip distillation only as an explicit Open Decision when the cost-per-doc analysis specifically favors SOTA-only.
+This phase is **required**, not optional. KC's "skills as production mode" insight (a fully-tested rule-skill on SOTA is already production-viable) is true but expensive — projects ship distilled workflows by default. Skip distillation only as an explicit Open Decision when the cost-per-doc analysis specifically favors SOTA-only.
 
 ## Why distill at all
 
@@ -77,7 +77,7 @@ For each rule that passed Phase 4 (and Phase 5 if cross-doc):
 
 2. **Write `workflow.py`**: implement the deterministic parts in Python; insert worker-LLM call points for LLM-bounded parts via the platform's [[workerllm-runtime]] helper.
 
-3. **Write the prompts** (`prompt_<step>.txt`). Critical: **method over steps**. kc_cli's caveat — don't write the prompt as a step-by-step recipe. Write it as a methodology + constraints + examples. Cheap LLMs handle methodology better than rigid recipes.
+3. **Write the prompts** (`prompt_<step>.txt`). Critical: **method over steps**. KC's caveat — don't write the prompt as a step-by-step recipe. Write it as a methodology + constraints + examples. Cheap LLMs handle methodology better than rigid recipes.
 
    Good prompt structure:
    ```

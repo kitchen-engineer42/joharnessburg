@@ -8,8 +8,8 @@ metadata:
     - what format
     - knowledge schema
     - what fields
-    - four structures
-    - format of knowledge
+    - app-type definition
+    - knowledge format
     - rule schema
     - glossary schema
 ---
@@ -26,9 +26,9 @@ The one decision left to the project is the **severity controlled vocabulary** �
 - It's not designing schema fields from the corpus up. The fields below are pre-fixed.
 - It's not a taste call. Layer-3 Claude executes; doesn't deliberate.
 
-## Format of knowledge
+## Knowledge format
 
-**Rules + glossary.** Every entry is either a rule or a glossary term. No facts, no stories, no wiki entries, no graphs, no screenplays. This is the kc_cli-derived discipline that produced reliable verifiers in production.
+**Rules + glossary.** Every entry is either a rule or a glossary term. No facts, no stories, no wiki entries, no graphs, no screenplays. This is the KC-derived discipline that produced reliable verifiers in production.
 
 If you encounter source content that doesn't fit either format (e.g., a list of regulator entity names that doesn't act like a glossary term), surface as Open Decision per [[plan-md-evolution]] — usually the right move is to extend the glossary entry schema with optional fields, or treat the content as project metadata in PLAN.md, NOT to invent a third format.
 
@@ -86,7 +86,7 @@ Severity is a controlled vocabulary, but the **values are project-defined**, not
 In Phase 0 the user (or layer-2 Claude on the user's behalf, with sign-off) picks a vocab and declares it in PLAN.md's "Project intent" block. Examples:
 
 - Financial regulation: `critical / high / medium / low / advisory` (5 tiers)
-- Code-style verification: `blocker / warning / info` (3 tiers, kc_cli's default)
+- Code-style verification: `blocker / warning / info` (3 tiers, KC's default)
 - Contract review: `material / non-material` (binary)
 - Custom domain: whatever the user picks
 
@@ -124,5 +124,5 @@ MECE applies WITHIN the rule format. Glossary terms aren't subject to MECE the s
 - [[chunking]] (overridden) — preserves provenance for `source_chunk_ids`
 - [[knowledge-extraction]] — John core; [[rule-extraction]] specializes it
 - [[knowledge-rewrite]] — dedup + cross-link rules before packaging
-- [[plan-md-authoring]] — populates the four-structures section with this template's pre-filled schema
+- [[plan-md-authoring]] — populates the app-type definition section with this template's pre-filled schema
 - [[app-design-thinking]] (overridden) — the runtime that consumes these schemas

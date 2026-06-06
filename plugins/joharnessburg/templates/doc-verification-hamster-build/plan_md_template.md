@@ -1,6 +1,6 @@
 # PLAN.md — {project_name}
 
-*Created by `/john:init` on {date}, using the **doc-verification-hamster-build** template (kc_cli-derived, 8 phases). Edit freely; this is your living plan.*
+*Created by `/john:init` on {date}, using the **doc-verification-hamster-build** template (KC-derived, 8 phases). Edit freely; this is your living plan.*
 
 ## Project intent
 
@@ -25,12 +25,12 @@ Fill in:
 - Distilled workflows: `<project>/workflows/R*/workflow.py` (Phase 6 output)
 - Release bundle: `<project>/release/v1/` (Phase 8 output; standalone, no John runtime needed)
 
-## Four structures (pre-filled for verification — do not re-litigate)
+## App-type definition (pre-filled for verification — do not re-litigate)
 
-- **Format of knowledge**: rules + glossary. Rules are the primary unit; glossary holds the shared vocabulary rules cross-reference. Per `claude_addon.md`'s hard constraints, this is locked — no facts, no stories, no wiki.
-- **Schema of knowledge**: per the overridden [[schema-design]] skill. Rule and glossary schemas are pre-specified; severity vocabulary is project-defined (declare in Project intent above).
-- **Runtime structure**: per the overridden [[app-design-thinking]] skill. Parse → Chunk → Classify(scope) → Apply (per-rule check) → Cross-doc pass → Confidence aggregation → Corner-case lookup → results.json + HTML dashboard + (optional) PDF review dashboard. Locked shape; per-project customization is in dashboard fields and UI labels, not in the pipeline.
-- **Production pipeline**: the 8 phases below, mirroring kc_cli's proven 7-phase shape + Phase 0 bootstrap + Phase 5 cross-doc pass.
+- **Knowledge format**: rules + glossary. Rules are the primary unit; glossary holds the shared vocabulary rules cross-reference. Per `claude_addon.md`'s hard constraints, this is locked — no facts, no stories, no wiki.
+- **Knowledge schema**: per the overridden [[schema-design]] skill. Rule and glossary schemas are pre-specified; severity vocabulary is project-defined (declare in Project intent above).
+- **App mechanism**: per the overridden [[app-design-thinking]] skill. Parse → Chunk → Classify(scope) → Apply (per-rule check) → Cross-doc pass → Confidence aggregation → Corner-case lookup → results.json + HTML dashboard + (optional) PDF review dashboard. Locked shape; per-project customization is in dashboard fields and UI labels, not in the pipeline.
+- **Build pipeline**: the 8 phases below, mirroring KC's proven 7-phase shape + Phase 0 bootstrap + Phase 5 cross-doc pass.
 
 ## Phases
 

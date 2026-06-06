@@ -20,7 +20,7 @@ The phase where chunks become entries. This is where the vertical axis of John's
 ## Where the work happens
 
 - **Inputs**: `<project>/.john/chunks/<chunk-id>.md` + `<project>/.john/chunks/chunks_index.json` (from [[chunking]])
-- **Schema reference**: PLAN.md four-structures section (per [[schema-design]])
+- **Schema reference**: PLAN.md app-type definition section (per [[schema-design]])
 - **Outputs**: subagents emit to `<project>/.john/events/extract/<chunk-id>/<subagent-id>-<ts>.json`; reducer (`${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py extract`) folds to `<project>/.john/checkpoints/extract/state.json`; canonical state then drives [[knowledge-rewrite]].
 
 ## The MECE sweep

@@ -74,7 +74,7 @@ When the rule corpus doesn't fit statute-hierarchy (e.g., a flowing policy docum
 1. Read the parsed `doc.md`.
 2. Extract the header hierarchy with line numbers.
 3. Walk top-down, splitting at the highest-level boundary within the token budget.
-4. If a section is too large, fall back to **LLM-wedge chunking** (see `references/a2o-wedge-chunker.md`).
+4. If a section is too large, fall back to **LLM-wedge chunking** (see `references/llm-wedge-chunker.md`).
 5. Emit with frontmatter linking parent/source.
 
 Same algorithm as core; use the standard 100K token budget when running peeler (regulations without article structure are typically smaller anyway).
@@ -109,7 +109,7 @@ Chunk size for rule corpora is **driven by Phase 2's per-chunk subagent fan-out*
 
 Default: article-sized. Switch to section-sized if (a) articles are too tiny to give meaningful context (< 100 tokens), or (b) rules systematically span articles within a section.
 
-Doc-under-test chunks size for **runtime application**, not build-time extraction. The runtime applies each rule to chunks matching its `applicable_scope`. Chunks too large → wasted LLM tokens on irrelevant content. Chunks too small → loss of context the rule needs. 2-4K per section/chapter is the sweet spot from kc_cli's experience.
+Doc-under-test chunks size for **runtime application**, not build-time extraction. The runtime applies each rule to chunks matching its `applicable_scope`. Chunks too large → wasted LLM tokens on irrelevant content. Chunks too small → loss of context the rule needs. 2-4K per section/chapter is the sweet spot from KC's experience.
 
 ## Provenance — preserving the citation trail
 
@@ -142,4 +142,4 @@ Each chunk is eventually a candidate for further progressive disclosure when rul
 - [[rule-extraction]] — per-chunk subagent fan-out target
 - [[phase-design]] — where the mode decision lives
 - [[knowledge-rewrite]] — rule-level header+body split
-- See `references/` for: onion-peeler design, onion-wrapper assembly, A2O wedge fallback (from John core, still apply when statute-hierarchy isn't the right mode)
+- See `references/` for: onion-peeler design, onion-wrapper assembly, LLM-wedge fallback (from John core, still apply when statute-hierarchy isn't the right mode)

@@ -24,7 +24,7 @@ Goal-directed sweep is cheaper but riskier — if you mis-state the goal, you mi
 
 ## How to choose
 
-Ask the user during schema-design or plan-md-authoring. The four-structures section's *runtime structure* usually answers this:
+Ask the user during schema-design or plan-md-authoring. The app-type definition's *app mechanism* usually answers this:
 
 - Runtime needs broad knowledge → comprehensive.
 - Runtime answers specific kinds of questions → goal-directed, with the goal stated explicitly in PLAN.md.

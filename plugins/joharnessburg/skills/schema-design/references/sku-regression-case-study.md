@@ -1,12 +1,12 @@
-# to-skills-backend-sku-regression — a cautionary tale
+# sku-regression-case-study — a cautionary tale
 
-Production's `to-skills-backend` collapsed the 4-type research taxonomy (see `a2o-four-types.md`) into a single `SKU` shape with five parts: `metadata`, `context`, `trigger`, `core_logic`, `output`, plus a `custom_attributes` dict.
+An earlier production system collapsed the 4-type research taxonomy (see `four-type-taxonomy.md`) into a single `SKU` shape with five parts: `metadata`, `context`, `trigger`, `core_logic`, `output`, plus a `custom_attributes` dict.
 
 This was an over-fitting move for the verification-app domain. For knowledge engineering generally, it lost information richness. Treat this note as a **warning, not a template**.
 
 ## The collapse
 
-In `to-skills-backend/app/pipeline/stages/sku_extractor.py`, every extracted unit gets the same shape:
+In that pipeline's extractor, every extracted unit gets the same shape:
 
 ```python
 @dataclass
@@ -23,8 +23,8 @@ A factual statement, a relational pair, a procedural how-to, and a meta-note all
 
 ## What was lost
 
-- **Relational typing**. The 13 explicit relation types from A2O (`is-a`, `has-a`, `part-of`, `causes`, ...) became free-form strings in `custom_attributes`. Cross-link queries became substring matches.
-- **Meta entries as first-class objects**. The "eureka" / "mapping" / "glossary" categories from A2O don't have a natural home in the SKU schema. They get jammed in.
+- **Relational typing**. The 13 explicit relation types from the research taxonomy (`is-a`, `has-a`, `part-of`, `causes`, ...) became free-form strings in `custom_attributes`. Cross-link queries became substring matches.
+- **Meta entries as first-class objects**. The "eureka" / "mapping" / "glossary" categories from the research taxonomy don't have a natural home in the SKU schema. They get jammed in.
 - **Skill format adherence**. Procedural SKUs claim to be skills but lack the Claude Code SKILL.md frontmatter conventions; they're skill-shaped JSON, not skills.
 
 ## Why it happened
@@ -44,6 +44,5 @@ The trade-off saved engineering effort at the cost of representational power. Fo
 
 ## Source
 
-- `to-skills-backend/app/pipeline/stages/sku_extractor.py` defines the SKU dataclass.
-- `Anything2Ontology/src/chunks2skus/schemas/sku.py` has the richer 4-type model that production departed from.
-- `Anything2Ontology/gaps_analysis.md` records the team's own observation that the collapse cost richness.
+- An earlier production system's extractor defined the single SKU dataclass; its research predecessor had the richer 4-type model it departed from.
+- The team's own gap analysis recorded that the collapse cost richness.

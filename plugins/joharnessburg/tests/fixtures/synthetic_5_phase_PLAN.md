@@ -9,14 +9,14 @@ Build a quiz app from a single chapter of a high-school biology textbook (provid
 ## Knowledge inventory
 
 - Initial input: `.john/input/bio-chapter-3.pdf` (one PDF, ~60 pages)
-- Produced skills (after 2skills half): `.claude/skills/` will contain ~30 fact entries + a glossary
+- Produced skills (after the knowledge phases): `.claude/skills/` will contain ~30 fact entries + a glossary
 
-## Four structures
+## App-type definition
 
-- **Format of knowledge**: facts (atomic biology claims) + glossary (technical terms)
-- **Schema of knowledge**: facts have `{id, claim, citation, difficulty, glossary_refs[]}`; glossary entries have `{term, definition, used_in_facts[]}`. Header (one-liner + difficulty + classification) and body (full claim with citation + 1-paragraph elaboration).
-- **Runtime structure**: single-page web app, served as static HTML + JSON data file. User clicks "Start," answers MCQ questions one at a time, gets immediate feedback. No runtime LLM.
-- **Production pipeline**: phases below.
+- **Knowledge format**: facts (atomic biology claims) + glossary (technical terms)
+- **Knowledge schema**: facts have `{id, claim, citation, difficulty, glossary_refs[]}`; glossary entries have `{term, definition, used_in_facts[]}`. Header (one-liner + difficulty + classification) and body (full claim with citation + 1-paragraph elaboration).
+- **App mechanism**: single-page web app, served as static HTML + JSON data file. User clicks "Start," answers MCQ questions one at a time, gets immediate feedback. No runtime LLM.
+- **Build pipeline**: phases below.
 
 ## Phases
 

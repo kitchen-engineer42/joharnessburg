@@ -82,4 +82,4 @@ These are domain-specific; the four categories above are universal.
 
 ## Source
 
-Categories synthesized from skills2app's existing patterns and its own code-quality reviews, plus create-any-portfolio's 15+ deterministic guardrails documented in its `docs/code-guardrails.md`.
+Categories synthesized from a production app-builder's patterns and its code-quality reviews, plus a reference app's 15+ documented deterministic guardrails.

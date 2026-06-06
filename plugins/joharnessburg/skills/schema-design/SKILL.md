@@ -1,20 +1,20 @@
 ---
 name: schema-design
-description: Decide what shape the knowledge takes in this project — facts, rules, stories, wiki entries, screenplays, custom. Use whenever the user is starting a project, the four-structures section of PLAN.md is unsettled, you're about to enter the extract phase without a clear target schema, or anyone says "what format should we use?". Schema decisions cascade — get this loose enough to iterate but specific enough to write a starter extractor.
+description: Decide what shape the knowledge takes in this project — facts, rules, stories, wiki entries, screenplays, custom. Use whenever the user is starting a project, the app-type definition section of PLAN.md is unsettled, you're about to enter the extract phase without a clear target schema, or anyone says "what format should we use?". Schema decisions cascade — get this loose enough to iterate but specific enough to write a starter extractor.
 metadata:
   triggers:
     - design the schema
     - schema design
     - what format
     - knowledge schema
-    - four structures
-    - format of knowledge
+    - app-type definition
+    - knowledge format
     - structure the knowledge
 ---
 
 # schema-design
 
-This is the most consequential decision in the 2skills half. Get it wrong-or-too-rigid and every downstream phase pays for it (the production `to-skills-backend` is a cautionary tale — see `references/to-skills-backend-sku-regression.md`). Get it right and the rest of the pipeline becomes obvious.
+This is the most consequential decision in the knowledge phases. Get it wrong-or-too-rigid and every downstream phase pays for it (an earlier production system is a cautionary tale — see `references/sku-regression-case-study.md`). Get it right and the rest of the pipeline becomes obvious.
 
 ## What schema-design is NOT
 
@@ -22,9 +22,9 @@ This is the most consequential decision in the 2skills half. Get it wrong-or-too
 - It's not a one-shot decision. The schema **evolves** through the early phases as the corpus reveals itself.
 - It's not a JSON spec for layer-2 Claude to autocomplete. It's a *taste call* the user owns.
 
-## The four-structures cascade
+## The app-type definition cascade
 
-The four-structure cascade — format → schema → runtime → production-pipeline — has each link constrain the next. Schema is the second link in the chain — downstream of *what kind of knowledge* and upstream of *what the app does*. The cascade itself is explained in `references/four-structures-cascade.md` and applied in [[plan-md-authoring]]; this skill is where the *schema link* gets designed.
+The app-type definition cascade — knowledge format → knowledge schema → app mechanism → build pipeline — has each link constrain the next. Schema is the second link in the chain — downstream of *what kind of knowledge* and upstream of *what the app does*. The cascade itself is explained in `references/app-type-definition-cascade.md` and applied in [[plan-md-authoring]]; this skill is where the *schema link* gets designed.
 
 You make schema decisions **only after the format decision is roughly settled**. Reverse the order and you end up over-fitting the schema to the corpus, then re-doing it when the runtime asks for something the schema can't represent.
 
@@ -42,7 +42,7 @@ Practical method:
    - Heavy on *connections between entities* (relational / wiki)?
    - Mixed? Which mix?
 3. **Notice structural features** the corpus already exhibits: causal chains, taxonomies, glossary-shaped terminology, recurring entities, citations, decision flowcharts.
-4. **Cross-reference user intent** from PLAN.md's project intent + runtime structure (the four-structures cascade). A corpus full of facts might suit a quiz app (procedural runtime) OR a wiki (browsable runtime); user intent decides.
+4. **Cross-reference user intent** from PLAN.md's project intent + app mechanism (the app-type definition cascade). A corpus full of facts might suit a quiz app (procedural runtime) OR a wiki (browsable runtime); user intent decides.
 5. **THEN sketch the schema** to fit (corpus shape × user intent), not to fit a default.
 
 Skip this survey and you'll re-do the schema mid-extraction. Cheap to do early; expensive to fix late.
@@ -89,11 +89,11 @@ You will. Plan for it.
 - During extraction: an extractor subagent surfaces a structure that doesn't fit (e.g., "this rule has multi-step prerequisites the schema doesn't represent").
 - During app design: the runtime needs a field the schema doesn't carry (e.g., "the game runtime needs character motivations as first-class objects").
 
-When iteration happens, **update PLAN.md's four-structures section + the schema-design notes**. Log the change. Re-emit affected entries via corrective events ([[event-log-and-reducer]]) rather than rewriting the canonical state in place.
+When iteration happens, **update PLAN.md's app-type definition section + the schema-design notes**. Log the change. Re-emit affected entries via corrective events ([[event-log-and-reducer]]) rather than rewriting the canonical state in place.
 
-## Locking too early — the to-skills-backend regression
+## Locking too early — the single-SKU regression
 
-Production's `to-skills-backend` collapsed the research-grade 4-type schema (factual/relational/procedural/meta) into one 5-part SKU shape (`metadata/context/trigger/core_logic/output`). Easier to implement; lost information richness. The collapse was an over-fitting move for the verification domain; for general knowledge engineering it leaves entries forcibly squeezed into a shape they don't fit. Don't repeat. See `references/to-skills-backend-sku-regression.md`.
+An earlier production system collapsed its research-grade 4-type schema (factual/relational/procedural/meta) into one 5-part SKU shape (`metadata/context/trigger/core_logic/output`). Easier to implement; lost information richness. The collapse was an over-fitting move for the verification domain; for general knowledge engineering it leaves entries forcibly squeezed into a shape they don't fit. Don't repeat. See `references/sku-regression-case-study.md`.
 
 John's stance, in three rules drawn from the regression:
 
@@ -103,13 +103,13 @@ John's stance, in three rules drawn from the regression:
 
 ## Working with the user
 
-Schema-design is **co-authored**. You sketch options, the user picks. Show them the menu + your read of what fits this project; ask them to choose or correct. Capture the chosen schema in PLAN.md's four-structures section before [[knowledge-extraction]] starts. Write any unresolved questions to PLAN.md's Open Decisions section.
+Schema-design is **co-authored**. You sketch options, the user picks. Show them the menu + your read of what fits this project; ask them to choose or correct. Capture the chosen schema in PLAN.md's app-type definition section before [[knowledge-extraction]] starts. Write any unresolved questions to PLAN.md's Open Decisions section.
 
 ## Cross-references
 
-- [[plan-md-authoring]] — where the four-structures section first appears
+- [[plan-md-authoring]] — where the app-type definition section first appears
 - [[phase-design]] — phases the schema dictates
 - [[knowledge-extraction]] — what reads against the schema
 - [[knowledge-rewrite]] — header+body progressive disclosure enforcement
 - [[packaging]] — final emission shape for skills format
-- See `references/` for: four-structures cascade dive, A2O's 4-type taxonomy, to-skills-backend regression, KC's rule schema
+- See `references/` for: app-type definition cascade dive, the research 4-type taxonomy, the single-SKU regression case study, KC's rule schema
