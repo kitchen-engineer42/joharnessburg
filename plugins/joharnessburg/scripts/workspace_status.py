@@ -99,7 +99,7 @@ def main():
         return
 
     try:
-        state = json.loads(workspace_json.read_text())
+        state = json.loads(workspace_json.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         err(f"workspace.json is not valid JSON: {exc}", exit_code=1)
         return

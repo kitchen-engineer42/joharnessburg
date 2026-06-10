@@ -183,6 +183,16 @@ def main():
     cwd = Path.cwd()
     john_dir = cwd / ".john"
 
+    # Pre-flight: validate the input path BEFORE any mutation — a typo'd
+    # path combined with --force must not cost the user their existing
+    # .john/ contents.
+    input_src = None
+    if args.input_path:
+        input_src = Path(args.input_path).expanduser().resolve()
+        if not input_src.exists():
+            err(f"Input path does not exist: {input_src}", exit_code=1)
+            return
+
     # Pre-flight: .john/ existence check
     if john_dir.exists() and not args.force:
         err(
@@ -253,12 +263,13 @@ def main():
     plan_source = "default"
     if not plan_path.exists() or args.force:
         if template_plan_md is not None:
-            try:
-                body = template_plan_md.format(project_name=project_name, date=date)
-            except (KeyError, IndexError):
-                # Template authors may use literal `{...}` strings without
-                # intending format substitution. Fall back to raw content.
-                body = template_plan_md
+            # Targeted substitution, NOT str.format(): template plans
+            # routinely contain literal `{...}` in code snippets, which made
+            # .format() throw and fall back to raw content — shipping a
+            # PLAN.md with unsubstituted {project_name}/{date}.
+            body = template_plan_md.replace(
+                "{project_name}", project_name
+            ).replace("{date}", date)
             plan_path.write_text(body, encoding="utf-8")
             plan_source = "template"
         else:
@@ -311,14 +322,10 @@ def main():
                 shutil.copy2(wf, target)
                 workflows_installed.append(wf.name)
 
-    # Copy input materials (if provided)
+    # Copy input materials (if provided; path validated in pre-flight)
     copied = []
-    if args.input_path:
-        src = Path(args.input_path).expanduser().resolve()
-        if not src.exists():
-            err(f"Input path does not exist: {src}", exit_code=1)
-            return
-        copy_input(src, john_dir / "input", copied, cwd)
+    if input_src is not None:
+        copy_input(input_src, john_dir / "input", copied, cwd)
 
     emit(
         {

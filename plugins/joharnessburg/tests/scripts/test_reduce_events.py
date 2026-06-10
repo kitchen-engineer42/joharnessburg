@@ -1,11 +1,24 @@
 """Tests for scripts/reduce_events.py."""
 
 import json
+import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 from tests._helpers import run_script
+
+
+def _backdate(path: Path, seconds: int = 60):
+    """Age a file's mtime past the reducer's fresh-write grace window.
+
+    v0.2.2: an unparseable event file younger than FRESH_GRACE_SECONDS is
+    treated as a concurrent write in progress (skipped, not quarantined) —
+    tests exercising the quarantine path must use stale files.
+    """
+    t = time.time() - seconds
+    os.utime(path, (t, t))
 
 
 class TestReduceEvents(unittest.TestCase):
@@ -109,6 +122,7 @@ class TestReduceEvents(unittest.TestCase):
                 "payload": {"ok": True},
             }))
             (phase_dir / "bad.json").write_text("not valid json {{")
+            _backdate(phase_dir / "bad.json")
 
             rc, out, err = run_script("reduce_events.py", "extract", cwd=tdp)
             self.assertEqual(rc, 0)
@@ -134,6 +148,43 @@ class TestReduceEvents(unittest.TestCase):
             self.assertEqual(out2["events_folded"], 1)
             self.assertEqual(out2["events_quarantined"], 0)
 
+    # v0.2.2 — concurrent-writer protection: fresh unparseable files are a
+    # write in progress, not corruption. Quarantine is permanent, so racing
+    # a mid-write event would silently lose it.
+    def test_reduce_skips_fresh_malformed_event_without_quarantining(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            phase_dir = tdp / ".john" / "events" / "extract"
+            phase_dir.mkdir()
+            (phase_dir / "good.json").write_text(json.dumps({
+                "timestamp": "2026-05-22T00:00:00Z",
+                "payload": {"ok": True},
+            }))
+            # Freshly written partial file — mtime is "now"
+            (phase_dir / "inflight.json").write_text('{"timestamp": "2026-')
+
+            rc, out, err = run_script("reduce_events.py", "extract", cwd=tdp)
+            self.assertEqual(rc, 0)
+            self.assertEqual(out["events_folded"], 1)
+            self.assertEqual(out["events_quarantined"], 0)
+            self.assertEqual(out["events_skipped_fresh"], 1)
+            self.assertIn("mid-write", err)
+            # File left in place for the next reduce; no quarantine dir
+            self.assertTrue((phase_dir / "inflight.json").is_file())
+            self.assertFalse((phase_dir / "_quarantine").exists())
+
+            # Once the writer finishes (valid JSON now), the next reduce folds it
+            (phase_dir / "inflight.json").write_text(json.dumps({
+                "timestamp": "2026-05-22T00:00:01Z",
+                "payload": {"ok": True},
+            }))
+            rc, out2, _ = run_script("reduce_events.py", "extract", cwd=tdp)
+            self.assertEqual(rc, 0)
+            self.assertEqual(out2["events_folded"], 2)
+            self.assertEqual(out2["events_skipped_fresh"], 0)
+
     def test_reduce_dry_run_leaves_malformed_events_in_place(self):
         # v0.1.9 — Codex #5: --dry-run must be read-only.
         # Malformed events should be detected + counted but NOT moved.
@@ -147,6 +198,7 @@ class TestReduceEvents(unittest.TestCase):
                 "timestamp": "2026-05-22T00:00:00Z", "payload": {"ok": True},
             }))
             (phase_dir / "bad.json").write_text("not valid json {{")
+            _backdate(phase_dir / "bad.json")
 
             rc, out, err = run_script(
                 "reduce_events.py", "extract", "--dry-run", cwd=tdp
@@ -422,6 +474,42 @@ class TestPhaseGateAndVerify(unittest.TestCase):
                 "reduce_events.py", "extract", "--verify-knowledge", cwd=tdp
             )
             self.assertEqual(rc, 0)
+            self.assertEqual(out["verify"]["orphans"], [])
+            self.assertEqual(out["verify"]["missing_on_disk"], [])
+
+    # v0.2.2 — layout-aware disk reconciliation
+    def test_verify_entry_internal_subdirs_are_not_orphans(self):
+        # An entry's own subdirectory (assets/, figures/, ...) is part of the
+        # entry, not a separate entry — must not be reported as an orphan.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            self._setup_phase(tdp, ["e_001"])
+            self._write_knowledge_entry(tdp, "e_001")
+            assets = tdp / ".john" / "knowledge" / "e_001" / "assets"
+            assets.mkdir()
+            (assets / "diagram.txt").write_text("ascii art")
+            rc, out, _ = run_script(
+                "reduce_events.py", "extract", "--verify-knowledge", cwd=tdp
+            )
+            self.assertEqual(rc, 0)
+            self.assertEqual(out["verify"]["orphans"], [])
+            self.assertEqual(out["verify"]["missing_on_disk"], [])
+            self.assertEqual(out["verify"]["entries_on_disk"], 1)
+
+    def test_verify_counts_flat_md_files_as_entries(self):
+        # Flat file-per-entry layout: .john/knowledge/e_001.md
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            self._setup_phase(tdp, ["e_001", "e_002"])
+            kdir = tdp / ".john" / "knowledge"
+            kdir.mkdir(parents=True, exist_ok=True)
+            (kdir / "e_001.md").write_text("# e_001\n")
+            (kdir / "e_002.md").write_text("# e_002\n")
+            rc, out, _ = run_script(
+                "reduce_events.py", "extract", "--verify-knowledge", cwd=tdp
+            )
+            self.assertEqual(rc, 0)
+            self.assertEqual(out["verify"]["entries_on_disk"], 2)
             self.assertEqual(out["verify"]["orphans"], [])
             self.assertEqual(out["verify"]["missing_on_disk"], [])
 

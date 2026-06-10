@@ -91,7 +91,11 @@ class _Stripper(HTMLParser):
             self.skip_depth += 1
             return
         attr_dict = dict(attrs)
-        if tag == "div" and self._is_container(attr_dict):
+        # Only ENTER container mode from outside (depth 0). Real pages nest
+        # matching containers (e.g. TRS_Editor inside UCAP-CONTENT); resetting
+        # the depth there made the inner container's close exit the whole
+        # container, silently dropping everything after it.
+        if tag == "div" and self.depth_inside == 0 and self._is_container(attr_dict):
             self.depth_inside = 1
             return
         if self.depth_inside > 0 and tag == "div":

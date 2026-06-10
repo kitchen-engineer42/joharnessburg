@@ -128,7 +128,7 @@ def main():
         err(
             f"Could not reach ppx-client server at {url}: {exc.reason}. "
             f"Make sure your ppx client server is running and listening at that URL, "
-            f"or set $JOHN_PPX_CLIENT_URL (or --url) to point at a reachable server.",
+            f"or set $JOHN_PPX_CLIENT_URL (or --client-url) to point at a reachable server.",
             exit_code=1,
         )
         return

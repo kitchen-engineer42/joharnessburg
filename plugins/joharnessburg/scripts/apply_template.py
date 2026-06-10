@@ -12,12 +12,14 @@ Template architecture:
 
 Reset: delete the merged dir (or run `reset_john.py`).
 
-Switching templates: refuses unless --reset-all flag passed; user must explicitly
-clear the prior applied template first.
+Multiple templates may be applied side-by-side (one merged dir each); re-applying
+the SAME template refuses without --force. `--reset-all` clears the other applied
+dirs first, for users who want a clean slate.
 
 Exit codes:
   0  success
-  1  expected failure (template missing, john install missing, refuses switch)
+  1  expected failure (template missing, john install missing, refuses rebuild
+     without --force)
   2  unexpected exception
 """
 
@@ -94,7 +96,7 @@ def resolve_john_install() -> Path | None:
     if not registry.exists():
         return None
     try:
-        data = json.loads(registry.read_text())
+        data = json.loads(registry.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return None
     plugins = data.get("plugins", {})
@@ -126,7 +128,7 @@ def load_template_json(template_root: Path) -> dict:
     if not tj.exists():
         return {}
     try:
-        return json.loads(tj.read_text())
+        return json.loads(tj.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         sys.stderr.write(f"WARN: template.json is not valid JSON: {exc}\n")
         return {}
@@ -156,7 +158,7 @@ def check_version_pin(template_meta: dict, john_install: Path) -> dict | None:
     installed = None
     pj = john_install / ".claude-plugin" / "plugin.json"
     try:
-        installed = json.loads(pj.read_text()).get("version")
+        installed = json.loads(pj.read_text(encoding="utf-8")).get("version")
     except (OSError, json.JSONDecodeError):
         pass
     if not installed:
@@ -288,7 +290,7 @@ def apply_deletes(output_root: Path, template_root: Path) -> tuple[list[str], li
     delete_file = template_root / "skills" / "_delete"
     if not delete_file.exists():
         return deleted, core_deletions
-    for line in delete_file.read_text().splitlines():
+    for line in delete_file.read_text(encoding="utf-8").splitlines():
         name, _, comment = line.partition("#")
         name = name.strip()
         reason = comment.strip() or None
@@ -399,7 +401,7 @@ def main(argv: list[str] | None = None):
     parser.add_argument(
         "--template-root",
         required=True,
-        help="Absolute path to the template directory (e.g., ~/.claude/plugins/joharnessburg-templates/doc-verification/).",
+        help="Absolute path to the template directory (e.g., ~/.claude/plugins/joharnessburg-templates/your-template/).",
     )
     parser.add_argument(
         "--output",
@@ -465,6 +467,15 @@ def main(argv: list[str] | None = None):
         existing = list_applied_templates(output_parent)
         other_existing = [d for d in existing if d != output_root]
         for d in other_existing:
+            # Same provenance guard as reset_john.py: only delete dirs that
+            # carry the applied-template marker, so a mis-set applied parent
+            # (e.g. via $JOHN_APPLIED_PARENT) can't wipe unrelated directories.
+            if not (d / ".applied-metadata.json").exists():
+                sys.stderr.write(
+                    f"WARN: --reset-all skipping {d}: no .applied-metadata.json "
+                    f"marker (not an applied template).\n"
+                )
+                continue
             shutil.rmtree(d)
 
     # Force-overwrite check for the SAME template
@@ -473,7 +484,7 @@ def main(argv: list[str] | None = None):
         meta_file = output_root / ".applied-metadata.json"
         if meta_file.exists():
             try:
-                existing_meta = json.loads(meta_file.read_text())
+                existing_meta = json.loads(meta_file.read_text(encoding="utf-8"))
                 if existing_meta.get("template_name") == template_name:
                     err(
                         f"Template '{template_name}' is already applied at {output_root}. "
@@ -545,7 +556,9 @@ def main(argv: list[str] | None = None):
         "workflows_copied": workflows_copied,
         "version_check": version_check,
     }
-    (output_root / ".applied-metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    (output_root / ".applied-metadata.json").write_text(
+        json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
+    )
 
     launch_command = f"claude --plugin-dir {output_root}"
     sys.stderr.write(

@@ -81,7 +81,7 @@ def main():
     workspace_state = {}
     if workspace_json_path.exists():
         try:
-            workspace_state = json.loads(workspace_json_path.read_text())
+            workspace_state = json.loads(workspace_json_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as exc:
             sys.stderr.write(f"WARN: could not read workspace.json: {exc}\n")
 
@@ -104,7 +104,7 @@ def main():
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
     snapshot_path = snapshot_dir / f"precompact-{ts}.json"
     try:
-        snapshot_path.write_text(json.dumps(snapshot, indent=2) + "\n")
+        snapshot_path.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
     except OSError as exc:
         sys.stderr.write(f"WARN: could not write precompact snapshot: {exc}\n")
         emit({})

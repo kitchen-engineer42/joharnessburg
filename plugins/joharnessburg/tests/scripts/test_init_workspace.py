@@ -15,6 +15,9 @@ class TestInitWorkspace(unittest.TestCase):
             rc, out, err = run_script("init_workspace.py", cwd=tdp)
             self.assertEqual(rc, 0, f"stderr: {err}")
             self.assertTrue(out["success"])
+            # Pin the source: a polluted JOHN_TEMPLATES_ACTIVE in the parent
+            # env must not silently switch the scaffold to a template plan.
+            self.assertEqual(out["plan_md_source"], "default")
             self.assertTrue((tdp / ".john").is_dir())
             self.assertTrue((tdp / ".john" / "workspace.json").is_file())
             self.assertTrue((tdp / "PLAN.md").is_file())
@@ -194,30 +197,66 @@ class TestInitWorkspace(unittest.TestCase):
             plan_body = (tdp / "PLAN.md").read_text()
             self.assertIn("Created by `/john:init`", plan_body)
 
-    def test_init_template_plan_md_falls_back_when_format_args_dont_match(self):
-        # Template authors may use literal `{...}` strings; init should not crash
-        # if format() raises KeyError — fall back to raw template content.
+    def test_init_template_plan_md_substitutes_despite_literal_braces(self):
+        # v0.2.2: targeted .replace() substitution. Literal `{...}` in code
+        # snippets must survive verbatim AND {project_name}/{date} must still
+        # substitute. (The old str.format() approach threw on stray braces and
+        # fell back to raw content — shipping PLAN.md with unsubstituted
+        # placeholders.)
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
             templates_active = tdp / "templates-active"
             templates_active.mkdir()
             (templates_active / "plan_md_template.md").write_text(
-                "# Template with literal braces\n\n"
-                "Some {unrecognized_placeholder} that doesn't match format args.\n"
+                "# PLAN.md — {project_name}\n\n"
+                "Files: `kc_runtime/{confidence.py, dashboard.py}`\n"
+                "A lone closing brace } and a lone { opener.\n"
+                "Some {unrecognized_placeholder} stays literal.\n\n"
+                "- {date}: scaffolded\n"
             )
 
             project = tdp / "project"
             project.mkdir()
             rc, out, _ = run_script(
                 "init_workspace.py",
+                "--project-name", "brace-proj",
                 cwd=project,
                 env_override={"JOHN_TEMPLATES_ACTIVE": str(templates_active)},
             )
             self.assertEqual(rc, 0)
             self.assertEqual(out["plan_md_source"], "template")
             plan_body = (project / "PLAN.md").read_text()
-            # Raw content preserved (since format() failed silently)
+            # Placeholders substituted
+            self.assertIn("# PLAN.md — brace-proj", plan_body)
+            self.assertNotIn("{project_name}", plan_body)
+            self.assertNotIn("{date}", plan_body)
+            # Literal braces preserved verbatim
+            self.assertIn("kc_runtime/{confidence.py, dashboard.py}", plan_body)
+            self.assertIn("A lone closing brace } and a lone { opener.", plan_body)
             self.assertIn("{unrecognized_placeholder}", plan_body)
+
+    def test_init_force_with_bad_input_path_preserves_existing_workspace(self):
+        # v0.2.2: the input path is validated in PRE-FLIGHT — a typo'd path
+        # combined with --force must not destroy the existing .john/ contents
+        # or regenerate PLAN.md.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            knowledge = tdp / ".john" / "knowledge" / "important.md"
+            knowledge.write_text("hard-won extraction results")
+            (tdp / "PLAN.md").write_text("user's evolved plan")
+
+            rc, out, _ = run_script(
+                "init_workspace.py", str(tdp / "no-such-input"), "--force", cwd=tdp
+            )
+            self.assertEqual(rc, 1)
+            self.assertFalse(out["success"])
+            self.assertTrue(
+                knowledge.exists(),
+                ".john/ must survive a failed init (validate before destroy)",
+            )
+            self.assertEqual((tdp / "PLAN.md").read_text(), "user's evolved plan")
 
     def test_init_appends_template_claude_addon_to_claude_md(self):
         with tempfile.TemporaryDirectory() as td:

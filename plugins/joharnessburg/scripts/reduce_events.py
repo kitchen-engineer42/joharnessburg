@@ -9,7 +9,7 @@ on the same event set produces identical output.
 The default fold is **generic**: collects events into a sorted list
 without phase-specific semantics. Phase-specific fold logic (e.g.,
 deduplicating extraction entries by ID, tallying QC pass/fail) lives in
-templates or M3+ phase skills. M2 ships the generic fold; templates can
+templates or phase skills; core ships the generic fold. Templates can
 ship their own reducer that calls this one or replaces it entirely.
 
 This script runs in **layer-2 sessions** inside the user's project.
@@ -40,9 +40,18 @@ import argparse
 import json
 import math
 import sys
+import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+# An unparseable event file younger than this is treated as a write in
+# progress (workflow runs have up to 16 concurrent writers), not corruption:
+# skipped this reduce, retried on the next one. Only stale unparseable files
+# are quarantined — quarantine is permanent (idempotent-skip on re-runs), so
+# racing a mid-write file would silently lose a valid event.
+FRESH_GRACE_SECONDS = 5
 
 
 def emit(payload, success=True, exit_code=0):
@@ -85,6 +94,19 @@ def load_events(phase_dir: Path, *, quarantine: bool = True):
         try:
             data = json.loads(evt_file.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
+            # Freshly-written file? Likely a concurrent writer mid-write —
+            # skip without quarantining; the next reduce picks it up.
+            try:
+                age = time.time() - evt_file.stat().st_mtime
+            except OSError:
+                age = 0.0  # vanished/renamed mid-check: treat as in-flight
+            if age < FRESH_GRACE_SECONDS:
+                sys.stderr.write(
+                    f"WARN: unparseable event {evt_file} is <{FRESH_GRACE_SECONDS}s old — "
+                    f"likely mid-write; skipped this reduce (not quarantined).\n"
+                )
+                yield "__skipped_fresh__", evt_file
+                continue
             if quarantine:
                 # Move + write a .parse_error.txt sibling.
                 rel = evt_file.relative_to(phase_dir)
@@ -207,22 +229,43 @@ def _claimed_entry_ids(events: list) -> set:
 
 
 def _disk_entry_ids(knowledge_dir: Path) -> set:
-    """Entry ids present on disk: any directory under knowledge_dir that
-    directly contains at least one regular file. Entry id = directory
-    basename. Covers flat and category-nested layouts. Skips hidden dirs and
-    `_quarantine/`. Returns empty set when the dir is missing (graceful).
+    """Entry ids present on disk (report-only heuristic).
+
+    An entry is either:
+    - a directory that directly contains at least one regular file (entry id =
+      dir basename). Its OWN subdirectories (assets/, figures/, ...) are
+      entry-internal and NOT descended into — they are not separate entries;
+    - a top-level `*.md` file (entry id = file stem), covering flat
+      file-per-entry layouts.
+
+    Directories with no direct files are category nesting and are descended
+    into. Skips hidden names and `_quarantine/`. Returns empty set when the
+    dir is missing (graceful).
     """
     ids: set = set()
     if not knowledge_dir.is_dir():
         return ids
-    for d in knowledge_dir.rglob("*"):
-        if not d.is_dir():
-            continue
-        parts = d.relative_to(knowledge_dir).parts
-        if any(p.startswith(".") or p == "_quarantine" for p in parts):
-            continue
-        if any(child.is_file() for child in d.iterdir()):
-            ids.add(d.name)
+
+    def walk(d: Path, top: bool):
+        for child in sorted(d.iterdir()):
+            name = child.name
+            if name.startswith(".") or name == "_quarantine":
+                continue
+            if child.is_file():
+                if top and child.suffix == ".md":
+                    ids.add(child.stem)
+                continue
+            if child.is_dir():
+                has_direct_file = any(
+                    g.is_file() and not g.name.startswith(".")
+                    for g in child.iterdir()
+                )
+                if has_direct_file:
+                    ids.add(name)  # entry dir; subdirs are entry-internal
+                else:
+                    walk(child, top=False)  # category nesting
+
+    walk(knowledge_dir, top=True)
     return ids
 
 
@@ -234,15 +277,19 @@ def reduce_phase(phase_dir: Path, project_root: Path, *, quarantine: bool = True
         project_root: project root for computing relative source paths.
         quarantine: passed through to load_events(); False for dry-run.
 
-    Returns (state, events_seen, events_quarantined).
+    Returns (state, events_seen, events_quarantined, events_skipped_fresh).
     """
     events = []
     quarantined = 0
+    skipped_fresh = 0
     seen = 0
     for data, src in load_events(phase_dir, quarantine=quarantine):
         seen += 1
         if data == "__quarantined__":
             quarantined += 1
+            continue
+        if data == "__skipped_fresh__":
+            skipped_fresh += 1
             continue
         if isinstance(data, dict):
             # Annotate with relative source path for traceability
@@ -271,12 +318,13 @@ def reduce_phase(phase_dir: Path, project_root: Path, *, quarantine: bool = True
         "reduced_at": datetime.now(timezone.utc).isoformat(),
         "event_count": len(events),
         "events_quarantined": quarantined,
+        "events_skipped_fresh": skipped_fresh,
         "incomplete_chunks": completeness["incomplete_chunks"],
         "chunks_with_echo": completeness["chunks_with_echo"],
         "chunks_with_complete": completeness["chunks_with_complete"],
         "events": events,
     }
-    return state, seen, quarantined
+    return state, seen, quarantined, skipped_fresh
 
 
 def main():
@@ -337,7 +385,7 @@ def main():
         )
         return
 
-    state, seen, quarantined = reduce_phase(
+    state, seen, quarantined, skipped_fresh = reduce_phase(
         phase_dir, cwd, quarantine=not args.dry_run
     )
 
@@ -352,6 +400,12 @@ def main():
         sys.stderr.write(
             f"NOTE: {quarantined} event file(s) quarantined under "
             f"{phase_dir / '_quarantine'}/ — inspect *.parse_error.txt for details.\n"
+        )
+
+    if skipped_fresh:
+        sys.stderr.write(
+            f"NOTE: {skipped_fresh} fresh unparseable event file(s) skipped (likely "
+            f"mid-write by a concurrent agent) — re-run the reduce to pick them up.\n"
         )
 
     if state["incomplete_chunks"]:
@@ -440,6 +494,7 @@ def main():
             "events_seen": seen,
             "events_folded": state["event_count"],
             "events_quarantined": quarantined,
+            "events_skipped_fresh": skipped_fresh,
             "incomplete_chunks": state["incomplete_chunks"],
             "quarantine_dir": str((phase_dir / "_quarantine").relative_to(cwd)) if quarantined else None,
             "state_file": str(state_file.relative_to(cwd)) if not args.dry_run else None,

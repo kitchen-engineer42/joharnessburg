@@ -62,6 +62,34 @@ class TestParseGovcnHtml(unittest.TestCase):
             self.assertEqual(out["chapter_count"], 2)
             self.assertEqual(out["article_count"], 3)
 
+    # v0.2.2 — real gov.cn pages nest TRS_Editor inside UCAP-CONTENT; content
+    # after the inner container's close must not be dropped.
+    def test_nested_matching_container_does_not_truncate_content(self):
+        nested_fixture = """\
+<html><body>
+  <div id="UCAP-CONTENT">
+    <div class="TRS_Editor">
+      <p>第一条 内层容器中的条款。</p>
+    </div>
+    <p>第二条 内层容器之后的条款，不能被丢弃。</p>
+  </div>
+</body></html>
+"""
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            src = tdp / "nested.html"
+            src.write_text(nested_fixture, encoding="utf-8")
+            out_dir = tdp / "parsed"
+
+            rc, out, err = run_script(
+                "parse_govcn_html.py", str(src), str(out_dir)
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            doc_md = Path(out["doc_md"]).read_text()
+            self.assertIn("第一条", doc_md)
+            self.assertIn("不能被丢弃", doc_md)
+            self.assertEqual(out["article_count"], 2)
+
     def test_errors_when_no_known_container(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

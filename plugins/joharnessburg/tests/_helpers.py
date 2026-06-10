@@ -30,9 +30,13 @@ def run_script(
     JSON object if stdout is parseable, else None.
     """
     cmd = [sys.executable, str(SCRIPTS_DIR / script_name)] + list(args)
-    env = None
+    # Sanitize: a developer shell may carry JOHN_* / CLAUDE_PLUGIN_ROOT from a
+    # live session; tests must not inherit them or behavior changes silently.
+    env = os.environ.copy()
+    for key in list(env):
+        if key.startswith("JOHN_") or key == "CLAUDE_PLUGIN_ROOT":
+            del env[key]
     if env_override:
-        env = os.environ.copy()
         env.update({k: str(v) for k, v in env_override.items()})
     result = subprocess.run(
         cmd,

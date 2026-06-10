@@ -59,11 +59,18 @@ def _build_fake_template(root: Path, name: str = "fake-template"):
     (root / "plan_md_template.md").write_text("# template's PLAN.md skeleton\n")
 
 
-def run_apply(*args, output_parent_override: Path = None):
+def run_apply(*args, output_parent_override: Path = None, env_extra: dict = None):
     """Run apply_template.py with overrides for testability."""
     env = os.environ.copy()
+    # Same sanitation as _helpers.run_script: a live session's JOHN_* env
+    # must not leak into test subprocesses.
+    for key in list(env):
+        if key.startswith("JOHN_") or key == "CLAUDE_PLUGIN_ROOT":
+            del env[key]
     if output_parent_override:
         env["JOHN_APPLIED_PARENT"] = str(output_parent_override)
+    if env_extra:
+        env.update({k: str(v) for k, v in env_extra.items()})
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS_DIR / "apply_template.py")] + list(args),
         env=env,
@@ -187,6 +194,40 @@ class TestApplyTemplate(unittest.TestCase):
             self.assertTrue(out2["success"])
             self.assertFalse((applied_parent / "template1").exists())
             self.assertTrue((applied_parent / "template2").exists())
+
+    def test_apply_reset_all_skips_dirs_without_marker(self):
+        # v0.2.2: --reset-all carries the same provenance guard as
+        # reset_john.py — a dir under the applied parent WITHOUT the
+        # .applied-metadata.json marker is not an applied template (e.g. a
+        # mis-set $JOHN_APPLIED_PARENT pointing somewhere real) and must
+        # survive the clean slate.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            john = tdp / "john"
+            t1 = tdp / "template1"
+            applied_parent = tdp / "applied"
+
+            _build_fake_john(john)
+            _build_fake_template(t1, name="template1")
+
+            # An unrelated, unmarked directory under the applied parent
+            stray = applied_parent / "my-unrelated-project"
+            stray.mkdir(parents=True)
+            (stray / "precious.txt").write_text("do not delete")
+
+            rc, out, err = run_apply(
+                "--template-root", str(t1),
+                "--john-install", str(john),
+                "--reset-all",
+                output_parent_override=applied_parent,
+            )
+            self.assertEqual(rc, 0, f"out: {out}")
+            self.assertTrue(
+                (stray / "precious.txt").is_file(),
+                "--reset-all must not delete unmarked directories",
+            )
+            self.assertIn("skipping", err)
+            self.assertTrue((applied_parent / "template1").is_dir())
 
     def test_apply_refuses_to_overwrite_same_template_without_force(self):
         with tempfile.TemporaryDirectory() as td:
@@ -491,6 +532,28 @@ class TestVersionPinAndCoreDeleteGuard(unittest.TestCase):
             self.assertIn("could not determine the installed John version", err)
             self.assertFalse(out["version_check"]["checked"])
 
+    def test_version_pin_exact_equality_grammar(self):
+        # v0.2.2: the bare "X.Y.Z" (exact-pin) branch of the spec grammar.
+        with tempfile.TemporaryDirectory() as td:
+            def mut(t):
+                tj = json.loads((t / "template.json").read_text())
+                tj["requires_john"] = "0.1.7"  # == installed fake-john version
+                (t / "template.json").write_text(json.dumps(tj))
+            rc, out, err, _ = self._apply(td, template_mutator=mut)
+            self.assertEqual(rc, 0)
+            self.assertNotIn("VERSION PIN WARNING", err)
+            self.assertTrue(out["version_check"]["satisfied"])
+
+        with tempfile.TemporaryDirectory() as td:
+            def mut(t):
+                tj = json.loads((t / "template.json").read_text())
+                tj["requires_john"] = "0.2.0"  # != installed 0.1.7
+                (t / "template.json").write_text(json.dumps(tj))
+            rc, out, err, _ = self._apply(td, template_mutator=mut)
+            self.assertEqual(rc, 0)  # warn-only
+            self.assertIn("VERSION PIN WARNING", err)
+            self.assertFalse(out["version_check"]["satisfied"])
+
     # ---- core-skill delete guard ----
 
     def test_core_skill_delete_with_reason_is_loud_but_proceeds(self):
@@ -569,6 +632,70 @@ class TestVersionPinAndCoreDeleteGuard(unittest.TestCase):
             self.assertFalse(
                 (applied / "fake-template" / "skills" / "to-be-deleted").exists()
             )
+
+
+class TestRegistryResolution(unittest.TestCase):
+    """v0.2.2 — the Python-side resolve_john_install() registry path.
+
+    Every other test passes --john-install, so this resolver (the exact code
+    path behind the v0.2.1 stale-matcher bug class) was previously untested.
+    apply.sh's embedded copy of the logic has its own test in test_apply_sh.py;
+    this one exercises scripts/apply_template.py itself.
+    """
+
+    def test_resolves_install_via_post_rename_registry_key(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            john = tdp / "fake-john"
+            template = tdp / "fake-template"
+            applied = tdp / "applied"
+            _build_fake_john(john)
+            _build_fake_template(template)
+
+            fake_home = tdp / "home"
+            (fake_home / ".claude" / "plugins").mkdir(parents=True)
+            (fake_home / ".claude" / "plugins" / "installed_plugins.json").write_text(
+                json.dumps({
+                    "version": 2,
+                    "plugins": {
+                        "john@joharnessburg": [
+                            {"scope": "user", "installPath": str(john)}
+                        ]
+                    },
+                })
+            )
+
+            # NO --john-install: the script must discover the install via the
+            # registry under $HOME, keyed with the post-v0.1.20 name.
+            rc, out, err = run_apply(
+                "--template-root", str(template),
+                output_parent_override=applied,
+                env_extra={"HOME": str(fake_home)},
+            )
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertTrue(out["success"])
+            self.assertTrue(
+                (applied / "fake-template" / ".applied-metadata.json").is_file()
+            )
+
+    def test_errors_cleanly_when_registry_has_no_match(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            template = tdp / "fake-template"
+            _build_fake_template(template)
+            fake_home = tdp / "home"
+            (fake_home / ".claude" / "plugins").mkdir(parents=True)
+            (fake_home / ".claude" / "plugins" / "installed_plugins.json").write_text(
+                json.dumps({"version": 2, "plugins": {"other@market": []}})
+            )
+            rc, out, _ = run_apply(
+                "--template-root", str(template),
+                output_parent_override=tdp / "applied",
+                env_extra={"HOME": str(fake_home)},
+            )
+            self.assertEqual(rc, 1)
+            self.assertFalse(out["success"])
+            self.assertIn("Could not resolve", out["error"])
 
 
 if __name__ == "__main__":
