@@ -125,18 +125,25 @@ def main():
         "skill_invocations_logged": count_files(john_dir / "skill-log"),
     }
 
-    # Produced skills (the knowledge phases' deliverable)
-    skills_dir = root / ".claude" / "skills"
-    inventory["produced_skills"] = len(list_dirs(skills_dir)) if skills_dir.exists() else 0
+    # Produced skills (the knowledge phases' deliverable). John supports both
+    # provider-local discovery roots when present.
+    claude_skills_dir = root / ".claude" / "skills"
+    codex_skills_dir = root / ".agents" / "skills"
+    inventory["produced_skills"] = {
+        "claude": len(list_dirs(claude_skills_dir)) if claude_skills_dir.exists() else 0,
+        "codex": len(list_dirs(codex_skills_dir)) if codex_skills_dir.exists() else 0,
+    }
 
     plan_exists = (root / "PLAN.md").exists()
     claude_md_exists = (root / "CLAUDE.md").exists()
+    agents_md_exists = (root / "AGENTS.md").exists()
 
     report = {
         "project_root": str(root),
         "workspace": state,
         "plan_md_present": plan_exists,
         "claude_md_present": claude_md_exists,
+        "agents_md_present": agents_md_exists,
         "inventory": inventory,
     }
 
@@ -167,10 +174,12 @@ def _human_summary(report):
         f"  trace files: {inv['trace_files']}",
         f"  lessons: {inv['lessons']}",
         f"  skill invocations logged: {inv['skill_invocations_logged']}",
-        f"  produced skills: {inv['produced_skills']}",
+        f"  produced skills (Claude): {inv['produced_skills']['claude']}",
+        f"  produced skills (Codex): {inv['produced_skills']['codex']}",
         "",
         f"PLAN.md present: {report['plan_md_present']}",
         f"CLAUDE.md present: {report['claude_md_present']}",
+        f"AGENTS.md present: {report['agents_md_present']}",
         "",
     ]
     return "\n".join(lines)

@@ -25,6 +25,9 @@ class TestArchiveWorkspace(unittest.TestCase):
             skill_dir = tdp / ".claude" / "skills" / "fake-skill"
             skill_dir.mkdir(parents=True)
             (skill_dir / "SKILL.md").write_text("---\nname: fake\ndescription: x\n---\n")
+            codex_skill_dir = tdp / ".agents" / "skills" / "fake-skill"
+            codex_skill_dir.mkdir(parents=True)
+            (codex_skill_dir / "SKILL.md").write_text("---\nname: fake\ndescription: x\n---\n")
 
             rc, out, err = run_script(
                 "archive_workspace.py", "shakedown", cwd=tdp
@@ -39,8 +42,10 @@ class TestArchiveWorkspace(unittest.TestCase):
                 names = zf.namelist()
             self.assertIn("PLAN.md", names)
             self.assertIn("CLAUDE.md", names)
+            self.assertIn("AGENTS.md", names)
             self.assertIn(".john/workspace.json", names)
             self.assertIn(".claude/skills/fake-skill/SKILL.md", names)
+            self.assertIn(".agents/skills/fake-skill/SKILL.md", names)
 
     def test_archive_excludes_cruft(self):
         with tempfile.TemporaryDirectory() as td:

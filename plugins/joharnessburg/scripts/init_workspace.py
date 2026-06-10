@@ -3,7 +3,8 @@
 
 Creates `.john/` with subdirs (input, parsed, chunks, knowledge, events,
 checkpoints, trace), writes `.john/workspace.json` with initial state,
-writes a starter `PLAN.md` and (only if missing) a starter `CLAUDE.md`.
+writes a starter `PLAN.md`, and writes starter provider memory files
+(`CLAUDE.md` for Claude Code, `AGENTS.md` for Codex) only when missing.
 Optionally copies a user-provided input path into `.john/input/`.
 
 This script runs in **layer-2 sessions** inside the user's project. It
@@ -65,7 +66,9 @@ PLAN_TEMPLATE = """\
 ## Knowledge inventory
 
 - Initial input: `.john/input/` (populated at scaffold time)
-- Produced skills (after the knowledge phases ship): `.claude/skills/`
+- Produced skills (after the knowledge phases ship):
+  - Claude Code: `.claude/skills/`
+  - Codex: `.agents/skills/`
 
 ## App-type definition
 
@@ -132,6 +135,33 @@ To switch templates: exit, optionally run `~/.claude/plugins/joharnessburg-templ
 """
 
 
+AGENTS_TEMPLATE = """\
+# AGENTS.md
+
+Project memory for this John-driven project. Loaded automatically into Codex sessions in this directory.
+
+## Project context
+
+<!-- Fill in as the project develops:
+- Domain / subject matter
+- Source provenance
+- Project-specific terminology or conventions
+- User taste preferences (writing style, output formats, what to avoid)
+
+The `using-john` skill provides general John orientation; this file is for what's specific to THIS project. -->
+
+## Active John plugin
+
+Codex reads John through the Codex plugin manifest when the `john` plugin is installed, or through project-local skills under `.agents/skills/`.
+
+Claude Code reads John through the Claude plugin manifest and `CLAUDE.md`. Keep this file and `CLAUDE.md` aligned for provider-neutral project decisions.
+
+## Project status
+
+- Scaffolded by John init on {date}
+"""
+
+
 def emit(payload, success=True, exit_code=0):
     """Print JSON status to stdout and exit."""
     payload["success"] = success
@@ -186,8 +216,8 @@ def main():
             "Delete and recreate .john/ if it already exists. The contents of .john/input/ "
             "are PRESERVED (user-supplied corpus, not derived state). PLAN.md is REGENERATED "
             "from the template (existing project intent + log is lost — back it up first if "
-            "you need it). CLAUDE.md is never overwritten by --force (project memory is "
-            "preserved); delete it manually if you want a clean slate."
+            "you need it). CLAUDE.md and AGENTS.md are never overwritten by --force "
+            "(project memory is preserved); delete them manually if you want a clean slate."
         ),
     )
     p.add_argument(
@@ -335,6 +365,14 @@ def main():
         claude_path.write_text(body, encoding="utf-8")
         claude_written = True
 
+    # AGENTS.md — Codex project memory. Mirror the non-overwrite contract of
+    # CLAUDE.md so provider-specific notes stay user-owned after creation.
+    agents_path = cwd / "AGENTS.md"
+    agents_written = False
+    if not agents_path.exists():
+        agents_path.write_text(AGENTS_TEMPLATE.format(date=date), encoding="utf-8")
+        agents_written = True
+
     # Install template-shipped dynamic workflows into the project's
     # .claude/workflows/ so Claude Code registers them as /<name> commands.
     # A merged template's workflows ride in templates-active/workflows/ (written
@@ -372,6 +410,8 @@ def main():
             "plan_md_source": plan_source,
             "claude_md": "CLAUDE.md" if claude_path.exists() else None,
             "claude_md_written": claude_written,
+            "agents_md": "AGENTS.md" if agents_path.exists() else None,
+            "agents_md_written": agents_written,
             "claude_addon_appended": claude_addon_appended,
             "templates_active_used": templates_active is not None and (
                 template_plan_md is not None or template_claude_addon is not None

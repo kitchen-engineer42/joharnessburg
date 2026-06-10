@@ -1,0 +1,27 @@
+{
+  "description": "Codex hook equivalents for John. Codex does not load hooks from plugin manifests; copy this shape into a project .codex/hooks.json, set JOHN_PLUGIN_ROOT to the active John plugin directory, and enable [features].codex_hooks = true when you want project-level John hooks.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${JOHN_PLUGIN_ROOT}/scripts/session_start_hook.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${JOHN_PLUGIN_ROOT}/scripts/post_tool_use_hook.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

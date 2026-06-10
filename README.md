@@ -10,6 +10,8 @@ The project's canonical vocabulary lives in [`CONTEXT.md`](CONTEXT.md); a handfu
 
 ## Install
 
+### Claude Code
+
 ```sh
 claude plugin marketplace add kitchen-engineer42/joharnessburg
 claude plugin install john@joharnessburg
@@ -18,6 +20,26 @@ claude plugin install john@joharnessburg
 claude plugin list
 # Expect: john@joharnessburg listed, status enabled
 ```
+
+### Codex
+
+This repo also ships a Codex plugin manifest and local marketplace:
+
+- Plugin manifest: `plugins/joharnessburg/.codex-plugin/plugin.json`
+- Codex marketplace: `.agents/plugins/marketplace.json`
+
+Local development install:
+
+```sh
+codex plugin marketplace add /path/to/joharnessburg
+```
+
+Then enable `john@joharnessburg` in the Codex App plugin UI. Codex does not run Claude slash commands directly; the command equivalents are exposed as skills:
+
+- `John: Init Workspace` — `/john:init`
+- `John: Workspace Status` — `/john:status`
+- `John: Endurance Goal` — `/john:endurance`
+- `John: Archive Workspace` — `/john:archive`
 
 After install, the `using-john` skill auto-loads when you start a fresh Claude Code session. That's John's orientation entry point — Claude reads it and orients itself to the harness.
 
@@ -28,7 +50,7 @@ Open a fresh Claude Code session in a project directory. John's `using-john` ski
 The natural flow for a new John project:
 
 1. **(Optional) Apply a template** for your app family before launching the session. See [Templates](#templates) below — install at `~/.claude/plugins/joharnessburg-templates/<name>/`, run its `apply.sh`, then launch Claude with `--plugin-dir`. Skip for vanilla John.
-2. **Scaffold a workspace** — run `/john:init` (or just tell Claude "set up John in this dir"). This creates `PLAN.md`, `CLAUDE.md`, and a `.john/` working directory in your project.
+2. **Scaffold a workspace** — in Claude Code, run `/john:init` (or just tell Claude "set up John in this dir"); in Codex, use `John: Init Workspace`. This creates `PLAN.md`, `CLAUDE.md`, `AGENTS.md`, and a `.john/` working directory in your project.
 3. **Drop your inputs** into `.john/input/` (PDFs, regulations, sample documents — whatever the produced app should be built from).
 4. **Tell Claude what kind of app to build**. Claude advances through the phases declared in `PLAN.md` via ralph_loop (the iterative driver), dispatches parallel subagents per phase, and ends with a working app.
 

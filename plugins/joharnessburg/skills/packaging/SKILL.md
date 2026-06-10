@@ -1,12 +1,13 @@
 ---
 name: packaging
-description: Emit the cleaned, cross-linked, deduplicated knowledge from the rewrite phase as Claude Code skills at `<project>/.claude/skills/`. Use this skill whenever the knowledge phases wrap, when the user says "package the skills" / "ship the knowledge" / "finalize the knowledge phases" / "we're ready for the app phases," or when [[ralph-loop]] signals packaging is next. Make sure to invoke this skill before the app phases run — they read the produced skills as their starting context. This is the deliverable boundary between knowledge engineering and app building; getting it wrong means the app phases operate without a real knowledge source.
+description: Emit the cleaned, cross-linked, deduplicated knowledge from the rewrite phase as provider-discoverable skills at `<project>/.claude/skills/` for Claude Code and `<project>/.agents/skills/` for Codex. Use this skill whenever the knowledge phases wrap, when the user says "package the skills" / "ship the knowledge" / "finalize the knowledge phases" / "we're ready for the app phases," or when [[ralph-loop]] signals packaging is next. Make sure to invoke this skill before the app phases run — they read the produced skills as their starting context. This is the deliverable boundary between knowledge engineering and app building; getting it wrong means the app phases operate without a real knowledge source.
 metadata:
   triggers:
     - package the skills
     - ship the knowledge
     - emit skills
     - publish to .claude/skills
+    - publish to .agents/skills
     - finalize knowledge phases
     - packaging phase
     - ready for app phases
@@ -14,21 +15,30 @@ metadata:
 
 # packaging
 
-The knowledge phases end here. Packaging turns John's working knowledge state (in `<project>/.john/knowledge/`) into the deliverable that the app phases consume (in `<project>/.claude/skills/`). After this phase, the produced skills are project-scoped Claude Code skills — auto-discovered by any Claude Code session opened in this project, including the one that will build the app.
+The knowledge phases end here. Packaging turns John's working knowledge state (in `<project>/.john/knowledge/`) into the deliverable that the app phases consume. For dual-provider projects, emit the same produced skills into both provider discovery roots:
+
+- Claude Code: `<project>/.claude/skills/`
+- Codex: `<project>/.agents/skills/`
+
+After this phase, the produced skills are project-scoped skills auto-discovered by the matching provider session that builds the app.
 
 ## Where the work happens
 
 - **Inputs**: `<project>/.john/knowledge/<entry-id>/{header.md, body.md}` (from [[knowledge-rewrite]])
-- **Outputs**: `<project>/.claude/skills/<skill-name>/SKILL.md` (+ optional `references/`, `scripts/`, `assets/`)
+- **Outputs**:
+  - `<project>/.claude/skills/<skill-name>/SKILL.md`
+  - `<project>/.agents/skills/<skill-name>/SKILL.md`
+  - optional `references/`, `scripts/`, `assets/` in both provider roots when needed
 
-`<project>/.claude/skills/` is Claude Code's project-scoped skill auto-discovery path. Skills emitted here load into any Claude Code session in this project, including future-Claude that builds the app. This is the handoff.
+`<project>/.claude/skills/` is Claude Code's project-scoped skill auto-discovery path. `<project>/.agents/skills/` is Codex's project-scoped skill auto-discovery path. Keep the two trees content-identical unless a provider-specific path or command truly requires a fork.
 
 ## What "skill" means here
 
 A skill in Claude Code is one directory with at minimum a `SKILL.md`:
 
 ```
-<project>/.claude/skills/<skill-name>/
+<project>/.claude/skills/<skill-name>/       # Claude Code
+<project>/.agents/skills/<skill-name>/       # Codex
 ├── SKILL.md          # required: YAML frontmatter + markdown body
 ├── references/       # optional: deeper material loaded on demand
 ├── scripts/          # optional: executable code
@@ -53,7 +63,7 @@ The transformation per entry depends on the entry's knowledge-format:
 
 ## Frontmatter conventions
 
-Per Claude Code's standard + skill-creator's writing guidance:
+Per Claude Code/Codex skill standards + skill-creator's writing guidance:
 
 - **`name`**: kebab-case, lowercase, max 64 chars. Globally distinctive within the project.
 - **`description`**: pushy per skill-creator. Don't write "Does X." Write *"Use this skill when the user mentions X / wants to do Y / asks about Z. Make sure to consult this skill whenever the runtime is about to apply <domain-specific operation>."* Combat the LLM tendency to undertrigger.
@@ -65,7 +75,7 @@ The header of each entry maps to the description; the rest of the entry maps to 
 
 Two paths, depending on whether a template is active:
 
-**Template-defined packaging** (preferred when applicable). Active templates may ship `scripts/package_<domain>.py` inside the merged plugin (at `$CLAUDE_PLUGIN_ROOT/scripts/`). To check whether you're running under a template, inspect `$CLAUDE_PLUGIN_ROOT` — if its parent is `~/.claude/plugins/joharnessburg-applied/`, you're in a merged-template session and its basename is the template name. List `$CLAUDE_PLUGIN_ROOT/scripts/` for any `package_*.py`; if present, invoke it via Bash with the project root as an argument. The script handles the schema-specific mapping. Output lands in `<project>/.claude/skills/`.
+**Template-defined packaging** (preferred when applicable). Active templates may ship `scripts/package_<domain>.py` inside the merged plugin. In Claude Code this is usually under `$CLAUDE_PLUGIN_ROOT/scripts/`; in Codex, resolve the plugin root from the loaded skill path or the source checkout. List `<plugin-root>/scripts/` for any `package_*.py`; if present, invoke it via Bash with the project root as an argument. The script handles the schema-specific mapping. For dual-provider projects, output must land in both `<project>/.claude/skills/` and `<project>/.agents/skills/`.
 
 **Inline packaging** (default when no template script is provided). Iterate over `<project>/.john/knowledge/<entry-id>/`, emit each entry as a skill following the conventions in `references/claude-code-skill-format.md`. Map per the patterns above (chunky vs granular). Straightforward but slower because each entry's emission is a Claude-driven decision rather than a deterministic script.
 
@@ -77,7 +87,7 @@ Some templates ship reusable assets (HTML templates, icons, image sets) that pro
 
 ## What ships, what doesn't
 
-Ships in `<project>/.claude/skills/`:
+Ships in both `<project>/.claude/skills/` and `<project>/.agents/skills/`:
 
 - One directory per produced skill, with SKILL.md at minimum.
 - `references/` subdirs for material that's useful but loads on demand.
@@ -102,9 +112,9 @@ If the user wants to ship the working state too (for transparency, reproducibili
 
 ## The handoff to the app phases
 
-After packaging completes, PLAN.md's Knowledge inventory section transitions from "pointer to `.john/input/`" to "pointer to `.claude/skills/`" — the app phases now have a *real* knowledge source to consume, not raw input. Update PLAN.md's Log section accordingly.
+After packaging completes, PLAN.md's Knowledge inventory section transitions from "pointer to `.john/input/`" to "pointer to produced skills in `.claude/skills/` and `.agents/skills/`" — the app phases now have a *real* knowledge source to consume, not raw input. Update PLAN.md's Log section accordingly.
 
-The app phases (the app-building phase skills) read from `.claude/skills/` as its starting context. The two halves of John meet at this directory.
+The app phases (the app-building phase skills) read from the provider's produced-skills directory as their starting context. The two halves of John meet at these directories.
 
 ## Cross-references
 

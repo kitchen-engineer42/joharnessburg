@@ -5,13 +5,13 @@ description: Top-level orientation for John (joharnessburg). Read this skill at 
 
 # using-john
 
-You are running in a Claude Code session where the **joharnessburg** plugin is loaded. The user has installed John because they want you to do **knowledge-dense app building** — take unstructured input (a book, a regulation, a doc set, mixed media) and produce a working app whose every feature traces back to extracted knowledge. John is a harness; you are the agent it harnesses.
+You are running in a Claude Code or Codex session where the **joharnessburg** plugin is loaded. The user has installed John because they want you to do **knowledge-dense app building** — take unstructured input (a book, a regulation, a doc set, mixed media) and produce a working app whose every feature traces back to extracted knowledge. John is a harness; you are the agent it harnesses.
 
 This skill is your orientation. Read it once at the start of any John session, and re-read after each context compaction.
 
 ## What John actually is
 
-A thin layer of skills, hooks, and a small toolkit on top of Claude Code. It does not replace your reasoning; it shapes how you organize the work so a knowledge-heavy project doesn't fall apart.
+A thin layer of skills, hooks, and a small toolkit on top of Claude Code or Codex. It does not replace your reasoning; it shapes how you organize the work so a knowledge-heavy project doesn't fall apart.
 
 The shape John imposes is a **two-axis matrix**:
 
@@ -27,11 +27,13 @@ Older projects and team shorthand may call the two halves by their legacy nickna
 Everything John writes lives in the **user's project directory** (the current working directory when this session was started). You write here, not into John's plugin install location.
 
 - `<project>/PLAN.md` — the durable plan. Read this first. Has phases, subagent assignments, the app-type definition section, open decisions, an append-only log. It is the source of truth across context compactions.
-- `<project>/CLAUDE.md` — project memory. If absent, John's `/john:init` creates a starter; if present, read it for project-specific conventions.
+- `<project>/CLAUDE.md` — Claude Code project memory. If absent, John's init creates a starter; if present, read it for project-specific conventions.
+- `<project>/AGENTS.md` — Codex project memory. If absent, John's init creates a starter; if present, read it for project-specific conventions.
 - `<project>/.john/` — working state. Hidden, ephemeral-ish. Contains `workspace.json` (active template + current phase), `input/` (user materials), `parsed/`, `chunks/`, `knowledge/`, `events/` (append-only logs), `checkpoints/`, `trace/` (offloaded large tool results).
-- `<project>/.claude/skills/` — the *deliverable* skills produced by the knowledge phases (Claude Code's project-scoped auto-discovery path). The app phases consume these.
+- `<project>/.claude/skills/` — deliverable skills for Claude Code.
+- `<project>/.agents/skills/` — deliverable skills for Codex.
 
-If none of this exists yet, John hasn't been initialized for this project. Suggest the user run `/john:init <path-to-input>` to scaffold.
+If none of this exists yet, John hasn't been initialized for this project. In Claude Code, suggest `/john:init <path-to-input>`; in Codex, use the `init-workspace` skill.
 
 ## How to behave in a John session
 
@@ -46,9 +48,9 @@ Six rules. Internalize these — every other John skill builds on them.
 
 ## The endurance goal
 
-The user can set a long-running goal for the session via `/john:endurance <goal>`. That goal is pinned to the system prompt and survives context compaction. If an endurance goal is set, treat it as the endurance race you're running — every phase advances the finish line a little closer. If none is set, the project's intent (top of PLAN.md) plays that role.
+The user can set a long-running goal for the session via `/john:endurance <goal>` in Claude Code or the `endurance-goal` skill in Codex. That goal is stored in `.john/workspace.json`; provider hooks can inject it at session start when enabled. If an endurance goal is set, treat it as the endurance race you're running — every phase advances the finish line a little closer. If none is set, the project's intent (top of PLAN.md) plays that role.
 
-Set the goal with `/john:endurance <goal>`; inspect or clear via `/john:endurance` (no args) or `/john:endurance --clear`.
+Set the goal with `/john:endurance <goal>` in Claude Code, or with `endurance-goal` in Codex. Inspect or clear it the same way.
 
 ## What you should NOT do
 
@@ -56,7 +58,7 @@ Set the goal with `/john:endurance <goal>`; inspect or clear via `/john:enduranc
 - Don't put hundreds of knowledge entries into your own context. Fan out.
 - Don't write canonical state from a subagent directly — use the event log. See [[event-log-and-reducer]].
 - Don't assume the user wants you to advance autonomously without checkpoints. Pause at phase boundaries unless they've said "run to completion."
-- Don't reference any files outside `<project>/` and the plugin's `${CLAUDE_PLUGIN_ROOT}/` — those are the only two places that exist for you.
+- Don't reference any files outside `<project>/` and the active John plugin root. In Claude Code the plugin root may be `${CLAUDE_PLUGIN_ROOT}`; in Codex, resolve it from the loaded skill path or the source checkout.
 - Don't write a separate `spec.md` for handoff between halves. PLAN.md is the durable contract across the knowledge and app phases in one session — no second contract needed. If you encounter a `spec.md` in a project, it's vestigial — incorporate its content into PLAN.md and stop reading it.
 
 ## Cross-references
@@ -71,4 +73,4 @@ Set the goal with `/john:endurance <goal>`; inspect or clear via `/john:enduranc
 - [[context-management]] — surviving multi-day sessions
 - [[workspace-discipline]] — disk-is-truth, idempotent operations, checkpoint hygiene
 
-If a skill name in this list doesn't ring a bell, read its SKILL.md. They're all here in this plugin under `${CLAUDE_PLUGIN_ROOT}/skills/`.
+If a skill name in this list doesn't ring a bell, read its SKILL.md. They're all here in this plugin under the active plugin root's `skills/` directory.

@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 plugins/joharnessburg/scripts/session_start_hook.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 plugins/joharnessburg/scripts/post_tool_use_hook.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

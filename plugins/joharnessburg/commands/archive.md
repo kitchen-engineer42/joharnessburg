@@ -1,5 +1,5 @@
 ---
-description: Bundle the finished John workspace (PLAN.md, CLAUDE.md, .john/, .claude/skills/) into a release zip. Use when the user says "archive this project", "package it up", "we're done", or you've completed an end-to-end run and want a portable bundle. Excludes git/__pycache__/node_modules cruft.
+description: Bundle the finished John workspace (PLAN.md, CLAUDE.md, AGENTS.md, .john/, .claude/skills/, .agents/skills/) into a release zip. Use when the user says "archive this project", "package it up", "we're done", or you've completed an end-to-end run and want a portable bundle. Excludes git/__pycache__/node_modules cruft.
 argument-hint: "[label] [--output PATH] [--force]"
 ---
 

@@ -1,0 +1,34 @@
+Migration inventory:
+  inactive: instruction files - none found
+  inactive: skills - none found
+  active: command sources - 4 found via plugin commands handoff
+    provider: Claude plugin command (4)
+      - archive
+      - endurance
+      - init
+      - status
+  active: subagents - 5 found via plugin agents handoff
+    - code-quality-reviewer
+    - coverage-auditor
+    - grounding-checker
+    - knowledge-extractor
+    - schema-designer
+Migration surfaces:
+  inactive: AGENTS.md - No supported source instruction file found at repository root.
+  active: skills - 4 command compatibility skills converted under .agents/skills.
+  inactive: MCP config - No settings or MCP config found.
+  active: subagents - 5 custom agents converted under .codex/agents.
+Migration report:
+  rewritten: .agents/skills/source-command-archive/SKILL.md - Converted into a Codex project skill.
+  rewritten: .agents/skills/source-command-endurance/SKILL.md - Converted into a Codex project skill.
+  rewritten: .agents/skills/source-command-init/SKILL.md - Converted into a Codex project skill.
+  rewritten: .agents/skills/source-command-status/SKILL.md - Converted into a Codex project skill.
+  rewritten: .codex/agents/code-quality-reviewer.toml - Added as a Codex custom agent; Claude tool metadata is prompt guidance only.
+  rewritten: .codex/agents/coverage-auditor.toml - Added as a Codex custom agent; Claude tool metadata is prompt guidance only.
+  rewritten: .codex/agents/grounding-checker.toml - Added as a Codex custom agent; Claude tool metadata is prompt guidance only.
+  rewritten: .codex/agents/knowledge-extractor.toml - Added as a Codex custom agent; Claude tool metadata is prompt guidance only.
+  rewritten: .codex/agents/schema-designer.toml - Added as a Codex custom agent; Claude tool metadata is prompt guidance only.
+  rewritten: plugins/joharnessburg/.codex-plugin/plugin.json - Added Codex plugin manifest.
+  rewritten: .agents/plugins/marketplace.json - Added Codex marketplace entry for john.
+  rewritten: .codex/hooks.json - Added project-level Codex hooks for local development.
+  not_added: plugins/joharnessburg/hooks/hooks.json PreCompact - Codex has no equivalent PreCompact hook.
