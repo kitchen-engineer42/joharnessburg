@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """SessionStart hook: inject endurance goal + PLAN.md state into the new session.
 
 Wired in hooks/hooks.json for the SessionStart event. Reads the user's

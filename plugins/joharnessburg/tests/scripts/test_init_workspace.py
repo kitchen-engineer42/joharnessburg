@@ -22,6 +22,7 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertTrue((tdp / ".john" / "workspace.json").is_file())
             self.assertTrue((tdp / "PLAN.md").is_file())
             self.assertTrue((tdp / "CLAUDE.md").is_file())
+            self.assertTrue((tdp / "AGENTS.md").is_file())
             # Subdirs
             for sd in ["input", "parsed", "chunks", "knowledge", "events", "checkpoints", "trace"]:
                 self.assertTrue((tdp / ".john" / sd).is_dir(), f"missing subdir {sd}")
@@ -114,6 +115,16 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertEqual(existing.read_text(), "user's existing content")
             self.assertFalse(out["claude_md_written"])
+
+    def test_init_does_not_overwrite_existing_agents_md(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            existing = tdp / "AGENTS.md"
+            existing.write_text("user's existing codex content")
+            rc, out, err = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            self.assertEqual(existing.read_text(), "user's existing codex content")
+            self.assertFalse(out["agents_md_written"])
 
     def test_init_does_not_overwrite_existing_plan_md_without_force(self):
         with tempfile.TemporaryDirectory() as td:

@@ -1,0 +1,42 @@
+{
+  "name": "john",
+  "version": "0.2.2",
+  "description": "John - a Codex and Claude Code harness for building knowledge-dense apps from unstructured source material through knowledge phases and app phases.",
+  "author": {
+    "name": "kitchen-engineer42"
+  },
+  "homepage": "https://joharnessburg.com",
+  "repository": "https://github.com/kitchen-engineer42/joharnessburg",
+  "license": "MIT",
+  "keywords": [
+    "knowledge-engineering",
+    "harness",
+    "ralph-loop",
+    "skill-driven",
+    "codex",
+    "claude-code",
+    "endurance"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "John",
+    "shortDescription": "Build knowledge-dense apps from source documents",
+    "longDescription": "John helps Codex run long knowledge-engineering and app-building projects: parse source documents, chunk them, extract and rewrite knowledge, package the result, then build a standalone app from that knowledge.",
+    "developerName": "kitchen-engineer42",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://joharnessburg.com/",
+    "privacyPolicyURL": "https://github.com/kitchen-engineer42/joharnessburg",
+    "termsOfServiceURL": "https://github.com/kitchen-engineer42/joharnessburg",
+    "defaultPrompt": [
+      "Set up John in this project",
+      "Use John to build an app from these source documents",
+      "Show the current John workspace status"
+    ],
+    "brandColor": "#4B5563",
+    "screenshots": []
+  }
+}

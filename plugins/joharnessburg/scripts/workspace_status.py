@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """Print a status report for the John workspace in the current directory.
 
 Reads `.john/workspace.json` and checkpoint files, emits structured JSON
@@ -118,18 +120,25 @@ def main():
         "trace_files": count_files(john_dir / "trace"),
     }
 
-    # Produced skills (the knowledge phases' deliverable)
-    skills_dir = cwd / ".claude" / "skills"
-    inventory["produced_skills"] = len(list_dirs(skills_dir)) if skills_dir.exists() else 0
+    # Produced skills (the knowledge phases' deliverable). John supports both
+    # provider-local discovery roots when present.
+    claude_skills_dir = cwd / ".claude" / "skills"
+    codex_skills_dir = cwd / ".agents" / "skills"
+    inventory["produced_skills"] = {
+        "claude": len(list_dirs(claude_skills_dir)) if claude_skills_dir.exists() else 0,
+        "codex": len(list_dirs(codex_skills_dir)) if codex_skills_dir.exists() else 0,
+    }
 
     plan_exists = (cwd / "PLAN.md").exists()
     claude_md_exists = (cwd / "CLAUDE.md").exists()
+    agents_md_exists = (cwd / "AGENTS.md").exists()
 
     report = {
         "project_root": str(cwd),
         "workspace": state,
         "plan_md_present": plan_exists,
         "claude_md_present": claude_md_exists,
+        "agents_md_present": agents_md_exists,
         "inventory": inventory,
     }
 
@@ -158,10 +167,12 @@ def _human_summary(report):
         f"  events phases: {len(inv['events_phases'])} ({', '.join(inv['events_phases']) or 'none'})",
         f"  checkpoints phases: {len(inv['checkpoints_phases'])} ({', '.join(inv['checkpoints_phases']) or 'none'})",
         f"  trace files: {inv['trace_files']}",
-        f"  produced skills: {inv['produced_skills']}",
+        f"  produced skills (Claude): {inv['produced_skills']['claude']}",
+        f"  produced skills (Codex): {inv['produced_skills']['codex']}",
         "",
         f"PLAN.md present: {report['plan_md_present']}",
         f"CLAUDE.md present: {report['claude_md_present']}",
+        f"AGENTS.md present: {report['agents_md_present']}",
         "",
     ]
     return "\n".join(lines)

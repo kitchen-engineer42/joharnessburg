@@ -1,0 +1,20 @@
+{
+  "name": "joharnessburg",
+  "interface": {
+    "displayName": "joharnessburg"
+  },
+  "plugins": [
+    {
+      "name": "john",
+      "source": {
+        "source": "local",
+        "path": "./plugins/joharnessburg"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

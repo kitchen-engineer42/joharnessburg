@@ -31,11 +31,12 @@ class TestWorkspaceStatus(unittest.TestCase):
             self.assertNotIn("active_template", out["workspace"])  # v0.1.15+: field removed
             self.assertTrue(out["plan_md_present"])
             self.assertTrue(out["claude_md_present"])
+            self.assertTrue(out["agents_md_present"])
             inv = out["inventory"]
             self.assertEqual(inv["input_files"], 0)
             self.assertEqual(inv["parsed_dirs"], 0)
             self.assertEqual(inv["events_phases"], [])
-            self.assertEqual(inv["produced_skills"], 0)
+            self.assertEqual(inv["produced_skills"], {"claude": 0, "codex": 0})
 
     def test_status_counts_artifacts(self):
         with tempfile.TemporaryDirectory() as td:

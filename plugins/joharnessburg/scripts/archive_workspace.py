@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Bundle the John workspace at cwd into a release zip.
 
-Includes: PLAN.md, CLAUDE.md, .claude/skills/ (the produced deliverable),
-.john/ (working state). Excludes: .git, .DS_Store, __pycache__, *.pyc,
-node_modules.
+Includes: PLAN.md, CLAUDE.md, AGENTS.md, .claude/skills/,
+.agents/skills/, and .john/ (working state). Excludes: .git, .DS_Store,
+__pycache__, *.pyc, node_modules.
 
 This script runs in **layer-2 sessions** inside the user's project. The
 zip lands at `<cwd>/<label>.zip` by default; use --output to override.
@@ -115,7 +115,9 @@ def main():
     roots = [
         cwd / "PLAN.md",
         cwd / "CLAUDE.md",
+        cwd / "AGENTS.md",
         cwd / ".claude" / "skills",
+        cwd / ".agents" / "skills",
         john_dir,
     ]
 

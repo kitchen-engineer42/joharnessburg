@@ -4,3 +4,10 @@ __pycache__/
 
 # Hamster build-provenance (must never ship inside a packaged template)
 .hamster/
+
+sites/
+
+# John local workspace/output from ad-hoc shakedowns
+.john/
+john-archive-*.zip
+.spec-workflow/
