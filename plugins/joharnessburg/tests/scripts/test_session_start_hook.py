@@ -1,4 +1,11 @@
-"""Tests for scripts/session_start_hook.py."""
+"""Tests for scripts/session_start_hook.py.
+
+Contract tests: per the documented SessionStart output schema
+(code.claude.com/docs/en/hooks), context must be emitted as
+`hookSpecificOutput.additionalContext` — a top-level `additionalContext`
+is NOT honored by the harness (the script keeps a top-level copy only for
+older harness versions). Assertions read the nested field.
+"""
 
 import json
 import os
@@ -62,8 +69,9 @@ class TestSessionStartHook(unittest.TestCase):
                 env_overrides={"CLAUDE_PLUGIN_ROOT": str(fake_plugin)},
             )
             self.assertEqual(rc, 0)
-            self.assertIn("additionalContext", out)
-            ctx = out["additionalContext"]
+            # The documented field: hookSpecificOutput.additionalContext
+            self.assertIn("additionalContext", out["hookSpecificOutput"])
+            ctx = out["hookSpecificOutput"]["additionalContext"]
             # Verify key facts are in the injection
             self.assertIn("Build a biology quiz app", ctx)
             self.assertIn("slides-from-textbook", ctx)
@@ -73,6 +81,8 @@ class TestSessionStartHook(unittest.TestCase):
             self.assertIn("dynamic workflows", ctx)
             self.assertIn("assume it's on", ctx)
             self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "SessionStart")
+            # Legacy top-level copy kept for older harness versions
+            self.assertEqual(out.get("additionalContext"), ctx)
 
     def test_handles_missing_endurance_goal(self):
         with tempfile.TemporaryDirectory() as td:
@@ -88,9 +98,9 @@ class TestSessionStartHook(unittest.TestCase):
 
             rc, out, _ = run_hook({"cwd": str(tdp)}, cwd=tdp)
             self.assertEqual(rc, 0)
-            self.assertIn("additionalContext", out)
+            self.assertIn("additionalContext", out["hookSpecificOutput"])
             # Should fall back to a helpful placeholder
-            self.assertIn("/john:endurance", out["additionalContext"])
+            self.assertIn("/john:endurance", out["hookSpecificOutput"]["additionalContext"])
 
     def test_truncates_long_plan_md(self):
         with tempfile.TemporaryDirectory() as td:
@@ -106,7 +116,7 @@ class TestSessionStartHook(unittest.TestCase):
 
             rc, out, _ = run_hook({"cwd": str(tdp)}, cwd=tdp)
             self.assertEqual(rc, 0)
-            self.assertIn("truncated", out["additionalContext"])
+            self.assertIn("truncated", out["hookSpecificOutput"]["additionalContext"])
 
     def test_handles_missing_plan_md(self):
         with tempfile.TemporaryDirectory() as td:
@@ -117,8 +127,8 @@ class TestSessionStartHook(unittest.TestCase):
 
             rc, out, _ = run_hook({"cwd": str(tdp)}, cwd=tdp)
             self.assertEqual(rc, 0)
-            self.assertIn("additionalContext", out)
-            self.assertIn("no PLAN.md", out["additionalContext"])
+            self.assertIn("additionalContext", out["hookSpecificOutput"])
+            self.assertIn("no PLAN.md", out["hookSpecificOutput"]["additionalContext"])
 
     def test_handles_corrupt_workspace_json(self):
         with tempfile.TemporaryDirectory() as td:

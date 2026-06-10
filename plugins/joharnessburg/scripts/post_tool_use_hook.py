@@ -2,10 +2,15 @@
 """PostToolUse hook: offload large tool results to .john/trace/ + replace with digest.
 
 Wired in hooks/hooks.json for PostToolUse with matcher Read|Bash|Write|Edit.
-For each matching tool call: if `tool_result` exceeds OFFLOAD_THRESHOLD bytes,
-write the full result to `<cwd>/.john/trace/<sha-prefix>.txt` and emit a
-head+tail digest as `updatedToolOutput` that replaces the tool result in
-Claude's context.
+For each matching tool call: if the tool output exceeds OFFLOAD_THRESHOLD
+characters, write the full result to `<cwd>/.john/trace/<sha-prefix>.txt` and
+emit a head+tail digest as `updatedToolOutput` that replaces the tool result
+in Claude's context.
+
+The tool output is read from the documented PostToolUse input fields
+(code.claude.com/docs/en/hooks): `tool_output_text` (string form), falling
+back to `tool_output`, then `tool_response` (older harness versions);
+non-string values are JSON-serialized before measuring.
 
 Small results (under threshold) pass through unchanged — emit `{}`.
 
@@ -53,6 +58,27 @@ def make_digest(tool_result: str, offload_path: Path, tool_name: str) -> str:
     )
 
 
+def read_tool_output(data: dict) -> str:
+    """Extract the tool's output per the documented PostToolUse input schema.
+
+    Field precedence: `tool_output_text` (current docs, always a string) →
+    `tool_output` → `tool_response` (older docs). The latter two may be
+    structured (dict/list) for many tools — serialize so large structured
+    results still offload.
+    """
+    for field in ("tool_output_text", "tool_output", "tool_response"):
+        value = data.get(field)
+        if value is None or value == "":
+            continue
+        if isinstance(value, str):
+            return value
+        try:
+            return json.dumps(value, ensure_ascii=False)
+        except (TypeError, ValueError):
+            continue
+    return ""
+
+
 def main():
     try:
         raw = sys.stdin.read()
@@ -75,9 +101,8 @@ def main():
     tool_name = "".join(
         c for c in Path(str(raw_tool_name)).name if c.isalnum() or c in "-_"
     ) or "unknown"
-    tool_result = data.get("tool_result", "")
-    if not isinstance(tool_result, str):
-        # If tool_result isn't a string, don't try to offload
+    tool_result = read_tool_output(data)
+    if not tool_result:
         emit({})
         return
 

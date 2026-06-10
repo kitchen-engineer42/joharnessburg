@@ -2,8 +2,9 @@
 """SessionStart hook: inject endurance goal + PLAN.md state into the new session.
 
 Wired in hooks/hooks.json for the SessionStart event. Reads the user's
-<cwd>/.john/workspace.json + <cwd>/PLAN.md, composes an `additionalContext`
-string Claude Code injects into the model's context before the first turn.
+<cwd>/.john/workspace.json + <cwd>/PLAN.md, composes a context string emitted
+as `hookSpecificOutput.additionalContext` (the documented SessionStart output
+field) that Claude Code injects into the model's context before the first turn.
 
 No-op (emit empty `{}`) when there's no `.john/workspace.json` — layer-2
 Claude in a non-John project shouldn't trip over John's hooks.
@@ -71,7 +72,7 @@ def main():
         return
 
     try:
-        state = json.loads(workspace_path.read_text())
+        state = json.loads(workspace_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
         sys.stderr.write(f"WARN: could not read workspace.json: {exc}\n")
         emit({})
@@ -94,7 +95,7 @@ def main():
     plan_preview = ""
     if plan_path.exists():
         try:
-            plan_text = plan_path.read_text()
+            plan_text = plan_path.read_text(encoding="utf-8")
             if len(plan_text) > PLAN_PREVIEW_CHARS:
                 plan_preview = (
                     plan_text[:PLAN_PREVIEW_CHARS]
@@ -139,10 +140,14 @@ def main():
         f"```\n{plan_preview}\n```\n"
     )
 
+    # Per the documented SessionStart output schema
+    # (code.claude.com/docs/en/hooks), additionalContext must live inside
+    # hookSpecificOutput; a top-level copy is kept for older harness versions.
     emit({
         "additionalContext": additional_context,
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",
+            "additionalContext": additional_context,
         },
     })
 
