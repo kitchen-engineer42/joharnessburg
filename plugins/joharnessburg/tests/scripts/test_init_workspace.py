@@ -57,6 +57,33 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertTrue(out["success"])
             self.assertFalse(marker.exists(), "marker should be gone after --force recreate")
 
+    def test_init_force_preserves_input_corpus(self):
+        # v0.2.3: .john/input/ is user-supplied corpus, not derived state —
+        # a forced re-init must preserve it (a real project lost its inputs
+        # to --force before this guard).
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            corpus = tdp / ".john" / "input" / "book.md"
+            corpus.write_text("the user's precious corpus")
+            (tdp / ".john" / "input" / "nested").mkdir()
+            (tdp / ".john" / "input" / "nested" / "doc.md").write_text("more corpus")
+            derived = tdp / ".john" / "knowledge" / "derived.md"
+            derived.write_text("derived state — wiped is fine")
+
+            rc, out, err = run_script("init_workspace.py", "--force", cwd=tdp)
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertTrue(out["input_preserved"])
+            self.assertIn("preserved", err)
+            self.assertEqual(corpus.read_text(), "the user's precious corpus")
+            self.assertEqual(
+                (tdp / ".john" / "input" / "nested" / "doc.md").read_text(),
+                "more corpus",
+            )
+            # Everything else was still recreated fresh
+            self.assertFalse(derived.exists())
+
     def test_init_copies_input_directory(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

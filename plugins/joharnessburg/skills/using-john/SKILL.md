@@ -37,7 +37,7 @@ If none of this exists yet, John hasn't been initialized for this project. Sugge
 
 Six rules. Internalize these — every other John skill builds on them.
 
-1. **Read PLAN.md first, every iteration.** Cheap, keeps you honest. The plan is the contract.
+1. **Read PLAN.md first, every iteration.** Cheap, keeps you honest. The plan is the contract. And when you start a phase, *invoke* the skills its "Skills to invoke" line names — actually load them; don't work from your memory of what they probably say.
 2. **Advance one phase at a time.** Don't try to finish multiple phases in one pass; the matrix is sequential horizontally.
 3. **Spawn subagents for vertical-axis parallel work.** Per-chunk extraction, per-entry rewrite, per-skill authoring — these are subagent jobs, not main-agent jobs. See [[subagent-dispatch]]. When a fan-out is large and uniform (dozens-to-thousands of units) and the session is workflow-configured, run it as a dynamic workflow instead of hand-dispatching — see [[vertical-workflows]]. **Check workflow availability before the first fan-out phase**: misconfigured → stop and tell the user the README's config recipe; feature-absent → announced inline fallback (same events, same reducer); endurance goal set → assume configured and proceed without pausing. Record the engine choice in PLAN.md.
 4. **Disk is truth.** Never trust your in-memory belief about what's done. Check disk. See [[workspace-discipline]].

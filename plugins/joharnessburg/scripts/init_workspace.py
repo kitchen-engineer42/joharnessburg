@@ -22,6 +22,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -168,9 +169,10 @@ def main():
         "--force",
         action="store_true",
         help=(
-            "Delete and recreate .john/ if it already exists. PLAN.md is REGENERATED from "
-            "the template (existing project intent + log is lost — back it up first if you "
-            "need it). CLAUDE.md is never overwritten by --force (project memory is "
+            "Delete and recreate .john/ if it already exists. The contents of .john/input/ "
+            "are PRESERVED (user-supplied corpus, not derived state). PLAN.md is REGENERATED "
+            "from the template (existing project intent + log is lost — back it up first if "
+            "you need it). CLAUDE.md is never overwritten by --force (project memory is "
             "preserved); delete it manually if you want a clean slate."
         ),
     )
@@ -202,13 +204,32 @@ def main():
         )
         return
 
+    preserved_input_src = None
     if args.force and john_dir.exists():
+        # Preserve the user's corpus across --force: .john/input/ is
+        # user-supplied material, not derived state — destroying it once
+        # cost a real project its inputs.
+        input_dir = john_dir / "input"
+        if input_dir.is_dir() and any(input_dir.iterdir()):
+            tmp_parent = Path(tempfile.mkdtemp(prefix="john-init-preserve-"))
+            preserved_input_src = tmp_parent / "input"
+            shutil.move(str(input_dir), str(preserved_input_src))
         shutil.rmtree(john_dir)
 
     # Create the dir tree
     john_dir.mkdir()
     for sd in SUBDIRS:
         (john_dir / sd).mkdir()
+
+    input_preserved = False
+    if preserved_input_src is not None:
+        shutil.rmtree(john_dir / "input")
+        shutil.move(str(preserved_input_src), str(john_dir / "input"))
+        shutil.rmtree(preserved_input_src.parent, ignore_errors=True)
+        input_preserved = True
+        sys.stderr.write(
+            "NOTE: existing .john/input/ contents were preserved across --force.\n"
+        )
 
     # workspace.json — initial state
     # Note: the template, if any, is determined by the merged plugin the
@@ -343,6 +364,7 @@ def main():
             "workflows_installed": workflows_installed,
             "workflows_skipped": workflows_skipped,
             "copied_input": copied,
+            "input_preserved": input_preserved,
             "active_template": None,
             "current_phase": "bootstrap",
             "initialized_at": now,
