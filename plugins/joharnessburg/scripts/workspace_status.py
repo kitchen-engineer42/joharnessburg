@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Print a status report for the John workspace in the current directory.
+"""Print a status report for the John workspace at or above the current directory.
 
-Reads `.john/workspace.json` and checkpoint files, emits structured JSON
-to stdout (for Claude) and a human-readable summary to stderr (for the
-user).
+Resolves the project root as the nearest directory at or above cwd that
+contains `.john/`, reads its workspace.json and checkpoint files, emits
+structured JSON to stdout (for Claude) and a human-readable summary to
+stderr (for the user).
 
 This script runs in **layer-2 sessions** inside the user's project. It
-reads from `Path.cwd()`, never from the John dev workspace.
+never reads from the John dev workspace.
 
 Exit codes:
   0  success (status emitted)
@@ -20,6 +21,8 @@ import os
 import sys
 import traceback
 from pathlib import Path
+
+from john_paths import find_john_root
 
 
 def _detect_template_from_env() -> str | None:
@@ -79,15 +82,17 @@ def main():
     args = parser.parse_args()
 
     cwd = Path.cwd()
-    john_dir = cwd / ".john"
-
-    if not john_dir.exists():
+    # Operate on the nearest project root at or above cwd (running from a
+    # project subdirectory is normal and should report the same workspace).
+    root = find_john_root(cwd)
+    if root is None:
         err(
-            f"No .john/ directory found in {cwd}. "
+            f"No .john/ directory found at or above {cwd}. "
             f"Run /john:init to scaffold one.",
             exit_code=1,
         )
         return
+    john_dir = root / ".john"
 
     workspace_json = john_dir / "workspace.json"
     if not workspace_json.exists():
@@ -119,14 +124,14 @@ def main():
     }
 
     # Produced skills (the knowledge phases' deliverable)
-    skills_dir = cwd / ".claude" / "skills"
+    skills_dir = root / ".claude" / "skills"
     inventory["produced_skills"] = len(list_dirs(skills_dir)) if skills_dir.exists() else 0
 
-    plan_exists = (cwd / "PLAN.md").exists()
-    claude_md_exists = (cwd / "CLAUDE.md").exists()
+    plan_exists = (root / "PLAN.md").exists()
+    claude_md_exists = (root / "CLAUDE.md").exists()
 
     report = {
-        "project_root": str(cwd),
+        "project_root": str(root),
         "workspace": state,
         "plan_md_present": plan_exists,
         "claude_md_present": claude_md_exists,

@@ -4,7 +4,8 @@
 The endurance goal is a long-running finish-line statement that the
 SessionStart hook injects into the model's system prompt at the top of
 every session, so it survives context compaction and fresh-terminal
-restarts. Stored in `<cwd>/.john/workspace.json` under
+restarts. Stored in `<project-root>/.john/workspace.json` (project root =
+nearest dir at or above cwd containing `.john/`) under
 `session_metadata.endurance_goal`.
 
 Usage:
@@ -13,8 +14,8 @@ Usage:
   set_endurance.py            # show the current goal (or note none)
 
 This script runs in **layer-2 sessions** inside the user's project. It
-writes to `Path.cwd()` — never to the John dev workspace, never to the
-plugin install location.
+writes to the project root's workspace.json — never to the John dev
+workspace, never to the plugin install location.
 
 Exit codes:
   0  success
@@ -28,6 +29,8 @@ import sys
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
+
+from john_paths import find_john_root
 
 
 def emit(payload, success=True, exit_code=0):
@@ -65,10 +68,12 @@ def main():
         return
 
     cwd = Path.cwd()
-    workspace_json = cwd / ".john" / "workspace.json"
-    if not workspace_json.exists():
+    # Operate on the nearest project root at or above cwd.
+    root = find_john_root(cwd)
+    workspace_json = (root / ".john" / "workspace.json") if root else None
+    if workspace_json is None or not workspace_json.exists():
         err(
-            f"No .john/workspace.json found in {cwd}. "
+            f"No .john/workspace.json found at or above {cwd}. "
             f"Run /john:init first.",
             exit_code=1,
         )

@@ -84,6 +84,28 @@ class TestReduceEvents(unittest.TestCase):
                 "events should be sorted by timestamp",
             )
 
+    def test_reduce_works_from_project_subdirectory(self):
+        # v0.2.3: the reduce walks up to the nearest .john/ — running from a
+        # subdirectory folds the root event log and writes the root checkpoint.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            phase_dir = tdp / ".john" / "events" / "extract"
+            phase_dir.mkdir()
+            (phase_dir / "evt.json").write_text(json.dumps({
+                "timestamp": "2026-05-22T00:00:00Z",
+                "payload": {"entry_id": "e_001"},
+            }))
+            subdir = tdp / "app"
+            subdir.mkdir()
+            rc, out, err = run_script("reduce_events.py", "extract", cwd=subdir)
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertEqual(out["events_folded"], 1)
+            self.assertTrue(
+                (tdp / ".john" / "checkpoints" / "extract" / "state.json").is_file()
+            )
+
     def test_reduce_is_idempotent(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
