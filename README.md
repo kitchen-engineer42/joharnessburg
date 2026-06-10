@@ -192,7 +192,7 @@ plugins/
     commands/                   # Slash commands
     scripts/                    # Small Python toolkit (ppx wrapper, event reducer, apply_template, etc.)
     agents/                     # Subagent role definitions
-    templates/                  # Universal apply.sh + authoring guide (templates/README.md); plus any promoted templates
+    templates/                  # Universal apply.sh + authoring guide (templates/README.md)
 CONTEXT.md                      # The project glossary — canonical vocabulary
 docs/adr/                       # Architecture decision records (short)
 README.md                       # This file

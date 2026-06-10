@@ -81,6 +81,11 @@ When `apply_template.py` runs for your template:
 
 Override semantics: **full replacement**, not merge. The override file is the new core file; nothing from the original is preserved.
 
+**`plan_md_template.md` placeholders**: `/john:init` substitutes exactly two
+placeholders — `{project_name}` and `{date}` — via targeted string
+replacement. Any other braces (code snippets, JSON examples, a stray `{`)
+pass through verbatim; no escaping needed.
+
 ## Shipping a saved workflow (research preview)
 
 John core ships the *skill* to author workflows (the `vertical-workflows` skill), not rigid scripts — Claude writes the right fan-out for each project live. But when a template has a **stable** sweep shape (doc-verification's rule × chapter sweep; slides-from-textbook's per-slide render), you can freeze that orchestration as a reviewed, saved workflow and ship it in `workflows/`.
@@ -95,7 +100,7 @@ Caveats — this is a research-preview surface, so keep it optional and graceful
 
 ## Authoring workflow
 
-1. **Reference an example template** — they live in [Hamster](https://github.com/kitchen-engineer42/hamster) under `examples/{slides-from-textbook,doc-verification}/` (not in this plugin — see the rationale below in the History section). Both are functional demonstrators of the diff format. For a methodical, Claude-guided build, use Hamster's full workflow.
+1. **Reference an example template** — they live in [Hamster](https://github.com/kitchen-engineer42/hamster) under `examples/`; this plugin deliberately ships none, so John's runtime carries only the template you load (or none). They're functional demonstrators of the diff format. For a methodical, Claude-guided build, use Hamster's full workflow.
 2. **Settle the app-type definition** for your domain (knowledge format / knowledge schema / app mechanism / build pipeline). Capture in `plan_md_template.md`.
 3. **Decide what to override vs add**:
    - John's `chunking` skill is generic — if your domain needs slide-shape or rule-shape chunking, override it.
@@ -135,7 +140,7 @@ If you find yourself writing "I/my workspace" in a template skill, you've slippe
 - **Overriding a core skill with a near-identical copy**. If your override is 90% the same as the core, you don't need to override — add the small differences as a sibling skill the user/template consults when relevant.
 - **Trying to stack templates**. Templates are diffs to original John, not to each other. You can have multiple applied dirs coexist for parallel sessions, but each session only ever uses ONE template (the one its `--plugin-dir` points at). Stacking template A's diff on top of template B's merged plugin isn't supported.
 - **Patching the joharnessburg cache directly**. apply_template.py builds a separate merged dir under `joharnessburg-applied/`. Never edit the cache at `~/.claude/plugins/cache/joharnessburg/...` — `claude plugin update` will clobber your changes.
-- **Bundling a closed checklist** unnecessarily. Templates can and should narrow the open methodology of John core when the domain genuinely calls for it (doc-verification locks the rule schema; that's appropriate). But don't lock things that should stay project-specific.
+- **Bundling a closed checklist** unnecessarily. Templates can and should narrow the open methodology of John core when the domain genuinely calls for it (a verification-style template locking its rule schema is appropriate). But don't lock things that should stay project-specific.
 - **Shipping a `plan_md_template.md` with hardcoded project intent**. The template provides a skeleton; the user fills in their project's specific intent during `/john:init`.
 
 ## When NOT to write a template

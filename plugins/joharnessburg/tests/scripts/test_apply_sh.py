@@ -1,11 +1,13 @@
 """Tests for templates/apply.sh — the universal template-apply wrapper.
 
-Regression context (v0.2.1): the doc-verification template shipped a frozen
-copy of apply.sh whose registry-key matcher predated the v0.1.20 plugin
-rename (`joharnessburg` -> `john@joharnessburg`), so marketplace-installed
-users couldn't apply the template. Two guards here: (1) every apply.sh copy
-bundled in a template must be byte-identical to the universal one; (2) the
-universal one must resolve an install registered under the post-rename key.
+Regression context (v0.2.1): a bundled template shipped a frozen copy of
+apply.sh whose registry-key matcher predated the v0.1.20 plugin rename
+(`joharnessburg` -> `john@joharnessburg`), so marketplace-installed users
+couldn't apply the template. Two guards here: (1) any apply.sh copy bundled
+in a template must be byte-identical to the universal one (the plugin ships
+no templates as of v0.2.2, so this passes vacuously until one is ever
+promoted again); (2) the universal one must resolve an install registered
+under the post-rename key.
 """
 
 import json
@@ -23,10 +25,12 @@ UNIVERSAL = PLUGIN_ROOT / "templates" / "apply.sh"
 class TestApplyShCopiesInSync(unittest.TestCase):
     def test_every_bundled_template_apply_sh_matches_universal(self):
         universal = UNIVERSAL.read_text(encoding="utf-8")
+        # Vacuously green while the plugin ships no templates (v0.2.2+);
+        # guards any template promoted into templates/ in the future.
         copies = [
-            p for p in (PLUGIN_ROOT / "templates").glob("*/apply.sh")
+            p for p in (PLUGIN_ROOT / "templates").glob("**/apply.sh")
+            if p != UNIVERSAL
         ]
-        self.assertTrue(copies, "expected at least one bundled template with apply.sh")
         for copy in copies:
             self.assertEqual(
                 copy.read_text(encoding="utf-8"),

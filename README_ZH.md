@@ -193,7 +193,7 @@ plugins/
     commands/                   # Slash command
     scripts/                    # 小型 Python 工具包（ppx 包装、事件 reducer、apply_template 等）
     agents/                     # Subagent 角色定义
-    templates/                  # 通用 apply.sh + 撰写指南（templates/README.md）；以及已收录的模板
+    templates/                  # 通用 apply.sh + 撰写指南（templates/README.md）
 CONTEXT.md                      # 项目词汇表——规范用语
 docs/adr/                       # 架构决策记录（简短）
 README.md                       # 英文版

@@ -1,6 +1,0 @@
-{
-  "name": "doc-verification-hamster-build",
-  "version": "0.1.0",
-  "description": "Build doc-verification apps in the KC style (KC: a sibling verification harness) \u2014 rules + glossary schema, 8-phase pipeline (Phase 0 bootstrap, source-first rule extraction, per-rule skill authoring, evolution-loop testing with systemic-vs-corner-case split, cross-doc verification, required skill-to-workflow distillation, confidence-stratified production QC, release-bundle finalization). Overrides schema-design, packaging, chunking, app-design-thinking; adds 8 verification skills + 2 scripts + 2 subagents. Inspired by KC's 7-phase methodology.",
-  "requires_john": ">=0.1.14"
-}
