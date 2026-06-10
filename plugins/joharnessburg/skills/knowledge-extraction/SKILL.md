@@ -21,7 +21,7 @@ The phase where chunks become entries. This is where the vertical axis of John's
 
 - **Inputs**: `<project>/.john/chunks/<chunk-id>.md` + `<project>/.john/chunks/chunks_index.json` (from [[chunking]])
 - **Schema reference**: PLAN.md app-type definition section (per [[schema-design]])
-- **Outputs**: subagents emit to `<project>/.john/events/extract/<chunk-id>/<subagent-id>-<ts>.json`; reducer (`${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py extract`) folds to `<project>/.john/checkpoints/extract/state.json`; canonical state then drives [[knowledge-rewrite]].
+- **Outputs**: subagents emit to `<project>/.john/events/extract/<chunk-id>/<subagent-id>-*.json` (one file per event; exact event shapes and filename suffixes are in the `knowledge-extractor` agent definition); reducer (`${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py extract`) folds to `<project>/.john/checkpoints/extract/state.json`; canonical state then drives [[knowledge-rewrite]].
 
 ## The MECE sweep
 
@@ -30,7 +30,7 @@ Extract "everything there is" OR "everything needed for what" — which one depe
 - **Comprehensive sweep**: "extract everything there is in this corpus that matches the schema." Right for encyclopedic projects, regulations, broad knowledge bases.
 - **Goal-directed sweep**: "extract everything needed to answer X." Right for narrow apps where coverage outside the goal is wasteful.
 
-Either way, MECE applies to coverage within the chosen scope: don't extract the same entry twice; don't leave the scope partially covered. The reducer dedupes at canonical-state time (see [[knowledge-rewrite]]'s two-tier dedup); your job is to give the reducer good raw events.
+Either way, MECE applies to coverage within the chosen scope: don't extract the same entry twice; don't leave the scope partially covered. Dedup across chunks happens later, in the rewrite phase (see [[knowledge-rewrite]]'s two-tier dedup) — the shipped reducer folds events without deduplicating; your job is to give that pipeline good raw events.
 
 ## Fan-out per chunk
 
@@ -49,7 +49,7 @@ For small corpora (<10 chunks), inline extraction in the main agent context is f
 
 Borrowed from mathlab's "ops[0] echoes the problem" trick: have each extraction subagent's first action be to **echo back its understanding of the chunk** before extracting from it. This catches misreading, character encoding bugs, and chunks-handed-to-the-wrong-subagent failures cheaply.
 
-Mechanically: the briefing includes the instruction *"Before extracting any entries, emit an event of type `chunk_echo` with a 2-3 sentence summary of what this chunk says. Then proceed."* The reducer can verify echoes look reasonable; a wildly off-base echo flags a chunk for re-extraction.
+Mechanically: the briefing includes the instruction *"Before extracting any entries, emit an event of type `chunk_echo` with a 2-3 sentence summary of what this chunk says. Then proceed."* The reducer folds the echoes into the checkpoint (and its completeness check flags chunks missing one); YOU spot-check them there — a wildly off-base echo flags a chunk for re-extraction.
 
 Cost: one event per chunk's worth of summarization. Cheap compared to re-running an extraction that silently extracted from the wrong chunk.
 
@@ -57,7 +57,7 @@ Cost: one event per chunk's worth of summarization. Cheap compared to re-running
 
 [[schema-design]] says the schema will iterate. Extraction is one of the phases where iteration surfaces:
 
-- An extractor reports *"this chunk has structure the schema doesn't represent."* The subagent emits a `schema_observation` event to the same event log; the reducer folds these into the extract phase's canonical state as a separate observations array (distinct from extracted entries).
+- An extractor reports *"this chunk has structure the schema doesn't represent."* The subagent emits a `schema_observation` event to the same event log; these fold into the extract phase's canonical state alongside the other events (filter on `event_type` when reviewing; a template's custom reducer may split them into a separate observations array).
 - You (the main agent, per [[ralph-loop]]) review these observations after the phase-fanout completes. If N≥3 observations point at the same gap, surface a schema-extension question to PLAN.md's Open Decisions and ask the user before proceeding.
 - [[knowledge-rewrite]] also reads these observations during the rewrite phase to guide cross-linking and dedup decisions — observations may flag entries that should be kept separate despite similarity.
 - Don't re-extract the entire corpus on every schema change. Use corrective events instead: a new `entry_replaced` event supersedes the older one. The reducer's fold function handles supersession deterministically.

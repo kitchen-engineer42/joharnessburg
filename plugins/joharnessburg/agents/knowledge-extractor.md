@@ -25,9 +25,40 @@ vs `source`, severity `"critical"` vs `"high"`) forces the reducer to pay a
 normalization cost it shouldn't have to. **Match these field sets exactly; do
 NOT invent or rename fields.**
 
+Filename convention for every event file: `<subagent-id>-<suffix>.json`, where
+`<subagent-id>` is given in your briefing (if absent, invent a short random
+one and reuse it for all your events) and `<suffix>` identifies the event
+(`echo`, the entry id, `complete`, a term slug). The prefix keeps the log
+append-only: if your chunk is ever re-dispatched, the second worker's events
+must not overwrite yours.
+
+Every event additionally carries two envelope keys at the top level (omitted
+from the examples below for brevity, but REQUIRED in every event you write):
+`"timestamp"` (ISO-8601 UTC, e.g. `"2026-06-10T08:00:00Z"` — the reducer
+sorts events by it) and `"subagent_id"` (your id).
+
+### Event 0 — One `chunk_echo` FIRST, before extracting anything
+
+Filename: `<subagent-id>-echo.json`.
+
+```json
+{
+  "event_type": "chunk_echo",
+  "chunk_id": "<chunk-id-string>",
+  "summary": "<2-3 sentences: what this chunk says, in your own words>"
+}
+```
+
+Required keys: `event_type`, `chunk_id`, `summary`.
+
+This is the self-correction echo: it catches misreads, encoding bugs, and
+wrong-chunk dispatches cheaply. The reducer's completeness check expects every
+chunk to have BOTH a `chunk_echo` and a `chunk_complete` — skipping the echo
+lands your chunk in the checkpoint's `incomplete_chunks` noise.
+
 ### Event 1 — One `entry_extracted` event per knowledge entry
 
-Filename convention: `<entry-id>.json` (e.g., `R001.json`, `slide-003-foo.json`).
+Filename: `<subagent-id>-<entry-id>.json` (e.g., `sub-7f2-R001.json`).
 
 ```json
 {
@@ -44,7 +75,8 @@ Filename convention: `<entry-id>.json` (e.g., `R001.json`, `slide-003-foo.json`)
 ```
 
 Required keys at the EVENT level: `event_type`, `chunk_id`, `entry_id`,
-`schema_fields`, `source_excerpt`, `extractor_confidence`.
+`schema_fields`, `source_excerpt`, `extractor_confidence` (plus the
+`timestamp` / `subagent_id` envelope keys, as in every event).
 
 `extractor_confidence` MUST be one of: `"high"`, `"medium"`, `"low"`.
 Do NOT use `"critical"`, `"certain"`, `"unsure"`, or any other value.
@@ -65,10 +97,9 @@ If you're unsure what the project schema names a field, emit it under
 `schema_fields` using the name from the project's PLAN.md app-type definition
 section literally. The schema is the source of truth.
 
-### Event 2 — One `chunk_complete` summary per chunk
+### Event 2 — One `chunk_complete` summary per chunk, as your LAST event
 
-Filename: `chunk_complete.json` (or `<chunk-id>-complete.json` if collision
-risk in the phase dir).
+Filename: `<subagent-id>-complete.json`.
 
 ```json
 {
@@ -86,7 +117,7 @@ look at (e.g., `["entry R004 may overlap with R006"]`); empty array if nothing.
 
 ### Event 3 (optional) — `glossary_term` events
 
-Filename: `<term-slug>.json`.
+Filename: `<subagent-id>-<term-slug>.json`.
 
 ```json
 {
@@ -101,7 +132,27 @@ Filename: `<term-slug>.json`.
 
 Required keys: `event_type`, `chunk_id`, `term`, `definition`, `source_excerpt`.
 
-### Event 4 — Failure escape hatch
+### Event 4 (optional) — `schema_observation` when the schema doesn't fit
+
+If the chunk has real content the project schema can't represent, do NOT
+invent fields — emit a `schema_observation` so the main agent can review the
+gap after the fan-out (N similar observations trigger a schema-extension
+question to the user).
+
+Filename: `<subagent-id>-observation.json` (or `-observation-2.json`, ... if several).
+
+```json
+{
+  "event_type": "schema_observation",
+  "chunk_id": "<chunk-id-string>",
+  "observation": "<one or two sentences: what structure the schema doesn't represent>",
+  "example_excerpt": "<exact quote from the chunk>"
+}
+```
+
+Required keys: `event_type`, `chunk_id`, `observation`, `example_excerpt`.
+
+### Event 5 — Failure escape hatch
 
 If you can't process the chunk (schema mismatch, content too ambiguous, chunk
 unreadable), emit exactly one event and stop:
@@ -125,9 +176,13 @@ Every event file you write must be valid JSON. The reducer (`reduce_events.py`) 
 
 Before writing each event file, mentally re-parse it. If you can't be sure it's valid, prefer the safer escape route (full-width or json.dumps).
 
+Write atomically: write to a temp name first (e.g. `<final-name>.tmp`), then
+rename to the final `.json` name. A reduce can run while you're mid-write;
+a half-written `.json` file risks being skipped or quarantined.
+
 ## What you do NOT do
 
-- Don't propose schema changes. If the chunk has content that doesn't fit the project's schema, flag it via `extractor_notes` + a separate `incomplete_entry` event; never invent fields.
+- Don't change the schema unilaterally. If the chunk has content that doesn't fit the project's schema, flag it via a `schema_observation` event (Event 4) and `extractor_notes`; never invent fields.
 - Don't dedup against other chunks' entries. That's the rewriter's job ([[knowledge-rewrite]]).
 - Don't render or package. That's downstream.
 - Don't fan out further. You ARE the leaf; spawning sub-subagents would deadlock the budget.

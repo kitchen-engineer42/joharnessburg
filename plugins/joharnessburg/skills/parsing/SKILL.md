@@ -75,9 +75,9 @@ Many files → embarrassingly parallel: one subagent per file. Per [[subagent-di
 
 The scripts fail loud — JSON error to stdout, traceback to stderr:
 
-1. **Rung not available.** `ppx_parse.py` points at the launch script for its server when unreachable; `markitdown_parse.py` names the pip install. Relay the exact command to the user.
+1. **Rung not available.** `ppx_parse.py` reports the client server unreachable and names the env var (`$JOHN_PPX_CLIENT_URL`) / flag to point at one; `markitdown_parse.py` names the pip install. Relay the exact message to the user.
 2. **Bad input path.** Check `.john/input/` is populated.
-3. **Parse exception** (OOM on a huge PDF, malformed file). Log it; for OOM, parse in page ranges (`--pages`).
+3. **Parse exception** (OOM on a huge PDF, malformed file). Log it; for OOM, split the document into smaller files first and parse each piece.
 
 Then apply the triage rules above — two strikes, surface, never silently drop.
 

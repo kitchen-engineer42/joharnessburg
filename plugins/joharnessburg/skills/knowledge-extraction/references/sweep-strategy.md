@@ -35,7 +35,7 @@ If the user's unclear, ask. Don't guess. The choice affects the schema (goal-dir
 
 Regardless of mode, MECE inside the chosen scope:
 
-- **Mutually Exclusive**: don't extract the same entry twice. Cross-chunk duplicates are common (a fact mentioned in two chapters) — the reducer's dedup handles this in [[knowledge-rewrite]]. Within one chunk, the extractor shouldn't emit duplicates.
+- **Mutually Exclusive**: don't extract the same entry twice. Cross-chunk duplicates are common (a fact mentioned in two chapters) — the rewrite phase's dedup handles those ([[knowledge-rewrite]]). Within one chunk, the extractor shouldn't emit duplicates.
 - **Collectively Exhaustive**: don't leave the scope partially covered. The chunk_echo pattern (see `self-correction-echo.md`) helps catch chunks where the extractor under-extracted.
 
 ## Coverage check at end of phase

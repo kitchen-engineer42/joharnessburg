@@ -17,4 +17,4 @@ When this command fires:
 
 4. On `success: false` with "No .john/ directory found", tell the user there's no workspace to archive — they need `/john:init` first.
 
-The archive is suitable for handing to teammates, attaching to a release, or stashing for posterity. It does NOT include `subsites/`, `production/`, `node_modules/`, `__pycache__/`, `.git/`, or `.DS_Store` — only the durable John artifacts plus the produced skills.
+The archive is suitable for handing to teammates, attaching to a release, or stashing for posterity. It does NOT include `.git/`, `node_modules/`, `__pycache__/`, `*.pyc`/`*.pyo`, or `.DS_Store` — only the durable John artifacts plus the produced skills.

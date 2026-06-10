@@ -26,6 +26,10 @@ When you're about to ship produced-app code (end of a build/polish phase, before
 
 1. **Run the deterministic checks.** Grep for leaked secrets, check the build, verify imports resolve, lint, smoke-test the entrypoint. These are cheap, fast, predictable. They catch the bulk of real issues. See `references/common-guardrails.md` for categories.
 2. **Apply automated fixes where possible.** Dependency missing → install. Import path wrong → fix the path. Leaked secret in a string → flag for user (do NOT auto-redact without confirmation; you might break a config). Many guardrails have obvious fixes; apply them.
+3. **For residual issues, dispatch the cross-validation subagent.** A separate reviewer reads the produced code + the design intent (from PLAN.md), flags issues a grep can't catch (subtle UX bugs, missing error states, security-via-obscurity, etc.). See `references/cross-validation-pattern.md`.
+4. **Surface to the user** anything still unresolved after steps 1-3.
+
+The reason for the order: deterministic checks are cheap and reliable; LLM checks are expensive and probabilistic. Spend the cheap ones first; reserve the expensive ones for what they're uniquely good at.
 
 ## When a guardrail fires but the fix isn't obvious
 
@@ -42,10 +46,6 @@ Examples:
 - Match: `localhost:3000` in deploy config → flag (might be intentional for staging).
 
 If false-positive rates are high in a particular category, surface the pattern to the user — the guardrail itself may need adjustment.
-3. **For residual issues, dispatch the cross-validation subagent.** A separate reviewer reads the produced code + the design intent (from PLAN.md), flags issues a grep can't catch (subtle UX bugs, missing error states, security-via-obscurity, etc.). See `references/cross-validation-pattern.md`.
-4. **Surface to the user** anything still unresolved after steps 1-3.
-
-The reason for the order: deterministic checks are cheap and reliable; LLM checks are expensive and probabilistic. Spend the cheap ones first; reserve the expensive ones for what they're uniquely good at.
 
 ## The four guardrail categories
 

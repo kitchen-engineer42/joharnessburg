@@ -105,7 +105,7 @@ Don't use it for: things you can resolve from existing context, judgment calls t
 
 ## What ralph-loop is NOT
 
-This is not snarktank/ralph reimplemented. We adapted the pattern. Differences (full justification in the workspace's `docs/ralph_in_john_vs_original.md`):
+This is not snarktank/ralph reimplemented. We adapted the pattern. Differences:
 
 - Original ralph spawns a fresh AI instance per iteration; John uses one long-running session with memory, falling back to fresh-session if context exhausts.
 - Original ralph uses a structured `prd.json` task list; John uses markdown `PLAN.md`.

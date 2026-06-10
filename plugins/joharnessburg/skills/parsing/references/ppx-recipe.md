@@ -1,6 +1,6 @@
 # ppx-recipe — concrete invocation
 
-`ppx_parse.py` is a thin wrapper around jyppx (memect-ppx). This note captures the practical knobs.
+`ppx_parse.py` is an HTTP client for a ppx parse server (reachable at `$JOHN_PPX_CLIENT_URL`). This note captures the practical knobs.
 
 ## Minimum invocation
 
@@ -37,10 +37,6 @@ That's it for default usage. Backend `default`, OCR `auto`, table `auto`, formul
 ## Formula recognition
 
 `--no-formula` skips formula parsing (faster, formulas become images). Useful when the project doesn't care about equations.
-
-## Source: jyppx
-
-jyppx is a separate builder project. See `readme-local-ppx.md` for the full CLI surface. The Python API used by our wrapper is `memect.pdf.parser.Parser` + `memect.pdf.base.KDocumentFactory`.
 
 ## Swapping the backend
 

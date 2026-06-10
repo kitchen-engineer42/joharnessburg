@@ -104,13 +104,13 @@ John defaults to **lenient with explicit flagging** — the phase advances on be
 Subagents writing JSON events sometimes produce unparseable files — most commonly when string values contain unescaped inner quotes (a real ~10% defect rate is observable on Chinese-language content). The reducer handles this by **quarantining** unparseable events:
 
 1. On read, `json.loads(file.read_text())` is wrapped in a try/except.
-2. On parse failure: move the original file to `<project>/.john/events/<phase>/_quarantine/<original-filename>` and write a sibling `<original-filename>.parse_error.txt` with the exception message.
+2. On parse failure: if the file was modified within the last few seconds, it is treated as a **write in progress** (concurrent writers are normal) — skipped with a warning, NOT quarantined, and picked up by the next reduce. Only *stale* unparseable files move to `<project>/.john/events/<phase>/_quarantine/<original-filename>` with a sibling `<original-filename>.parse_error.txt` carrying the exception message.
 3. Continue reducing the remaining events.
-4. At end-of-phase: log "N events quarantined" prominently in the reducer's stdout output.
+4. At end-of-phase: log "N events quarantined" (and any fresh files skipped) prominently in the reducer's stdout output.
 
 This is a **lenient + surfaced** policy: the phase doesn't fail outright (one bad event shouldn't kill 199 good ones), but the user knows immediately how many events were lost and where to inspect them.
 
-**For agents emitting events**: see the JSON-discipline section in your agent role. Prefer full-width `「」` quotes or `json.dumps()` to avoid the quarantine path entirely.
+**For agents emitting events**: see the JSON-discipline section in your agent role. Prefer full-width `「」` quotes or `json.dumps()` to avoid the quarantine path entirely. And write atomically — temp name first, then rename to the final `.json` — so a reduce racing your write never sees a half-written event.
 
 ## Why this beats file locks
 
@@ -136,11 +136,11 @@ It also adds:
 
 ## Scaling thoughts
 
-For thousands of work units, partition events into sub-directories per work-unit-type (`events/extract/chunks/`, `events/extract/figures/`, etc.) and make the reducer incremental (read only events newer than the last canonical state's timestamp). The shipped script supports this; templates can extend it.
+For thousands of work units, partition events into sub-directories per work-unit-type (`events/extract/chunks/`, `events/extract/figures/`, etc.) — the shipped script already reads nested sub-directories. Incremental folding (read only events newer than the last checkpoint) is a template extension: the shipped script deliberately re-reads the full event set every run, which is what makes it idempotent and recovery-safe.
 
 ## What the subagent skill says about events
 
-Every John skill that dispatches subagents (knowledge-extraction, slide-rendering, app-feature-author, etc.) instructs the subagent to "emit events to `<project>/.john/events/<phase>/...`, do not write canonical state directly." That's the contract. The subagent doesn't need to know how the reducer works; it just emits events in the shape the phase expects.
+Every skill that dispatches subagents — core's [[knowledge-extraction]], and template phase skills (rule-extraction, slide-rendering, and the like) — instructs the subagent to "emit events to `<project>/.john/events/<phase>/...`, do not write canonical state directly." That's the contract. The subagent doesn't need to know how the reducer works; it just emits events in the shape the phase expects.
 
 ## Workflow agents are also event producers
 
