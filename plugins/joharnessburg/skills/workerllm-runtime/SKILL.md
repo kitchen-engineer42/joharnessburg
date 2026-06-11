@@ -85,3 +85,4 @@ The example column is just what John's bundled local client routes by default �
 ## Cross-references
 
 - [[subagent-dispatch]] — for layer-2 Claude session work, not produced-app runtime.
+- [[job-runtime]] — when the LLM call lives inside a long-running produced-app job; the job's stage budget wraps this call shape (per-call timeout × retries must fit inside it).

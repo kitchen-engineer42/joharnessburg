@@ -33,7 +33,7 @@ The runtime is how the produced app works for end-users. Pin it down by asking:
 - **What's their input?** (a document upload? a chat? a click? nothing — they just browse?) The input shape constrains the runtime architecture.
 - **What's their output?** (a verdict? a slide deck? an interactive widget? a downloadable file?) The output shape determines what the runtime must produce.
 - **Is there an LLM at runtime, or only at build time?** (a static slide deck has no runtime LLM; a chat-based study companion calls a workerLLM on every user turn.) See `references/runtime-vs-buildtime-llm.md`.
-- **Is the runtime stateful?** (does it remember the user across sessions? track progress? store uploads?)
+- **Is the runtime stateful?** (does it remember the user across sessions? track progress? store uploads?) If end-users wait on expensive generation — upload → job → download — [[job-runtime]] supplies the runtime pattern.
 
 Sketch the runtime in PLAN.md's app-type definition section. Like schema-design's schema sketch, mark it "may evolve."
 
@@ -47,6 +47,7 @@ Common pipeline patterns (see `references/app-phase-design.md`):
 - **Wire core mechanics** — implement the app's central loop (rule application, game logic, slide rendering).
 - **Seed content from skills** — pull knowledge entries out of `<project>/.claude/skills/` into the app's data layer.
 - **Wire runtime LLM** (if applicable) — provider abstraction, system prompts, error handling.
+- **Wire the job runtime** (if end-users wait on long generation) — task registry, bounded worker pool, progress + cancellation endpoints; see [[job-runtime]].
 - **Polish** — UX details, error states, edge cases.
 - **Deploy** — Docker, hosting, smoke test.
 
@@ -101,5 +102,6 @@ The runtime and pipeline decisions will evolve as the project reveals itself —
 - [[plan-md-evolution]] — how to revise runtime/pipeline mid-flight
 - [[phase-design]] — decision rubric for phases (applies to app phases too)
 - [[code-quality-guardrails]] — quality discipline for produced app code
+- [[job-runtime]] — the runtime pattern when the app mechanism has end-users waiting on expensive generation jobs
 - [[ralph-loop]] — advances through the app phases this skill helps design
 - See `references/` for: 5 reference-app archetype summaries, runtime-vs-buildtime LLM patterns, common app-phase shapes

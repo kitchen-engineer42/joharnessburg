@@ -52,6 +52,7 @@ Do **not** reach for a workflow when:
 - **The work is coupled.** If unit A's output is unit B's input, it's serial, not a fan-out.
 - **It needs the user mid-task.** A workflow takes no user input once it starts (only agent permission prompts can pause it). Anything needing sign-off belongs in the main session — see the constraints below.
 - **The decision depends on your conversation with the user.** Workers start with fresh, isolated context; if the live conversation is load-bearing, do it inline.
+- **It's the produced app's own runtime work.** Jobs the app's end-users wait on (upload → generate → download) run inside the produced app at its runtime, not in the John session — that's [[job-runtime]], a different layer with its own machinery.
 
 A phase boundary — review results, update PLAN.md, ask the user — is the **seam *between* workflow runs**, never inside one. The docs' own guidance: "for sign-off between stages, run each stage as its own workflow." [[ralph-loop]] drives that seam.
 
@@ -118,3 +119,4 @@ Either way, **record the engine choice in PLAN.md** (the Subagent matrix already
 - [[phase-design]] — a fan-out phase declares its workflow + worker + cross-check agent up front
 - [[knowledge-extraction]] — the per-chunk worker behavior (chunk echo, schema_observation)
 - [[coverage-auditor]] / [[grounding-checker]] — the adversarial cross-check workers
+- [[job-runtime]] — the produced-app runtime analog: end-user-facing background jobs inside the app John builds, not build-time fan-out

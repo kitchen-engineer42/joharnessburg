@@ -35,6 +35,8 @@ For apps where the end-user interacts repeatedly (games, chat, verifier):
 
 Typical: 6-9 phases. Some can run in parallel (UX polish + telemetry).
 
+Whatever the shape: if end-users wait on expensive generation inside the app (upload → job → download, the lesson2slides runtime shape), add a **wire job runtime** phase — task registry, bounded worker pool, progress/cancel/download endpoints; see [[job-runtime]].
+
 ## Shape 3: Tool/utility app
 
 For apps that do a specific bounded thing on demand (verifier, parser builder, transformer):

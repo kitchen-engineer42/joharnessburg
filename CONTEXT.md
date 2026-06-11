@@ -64,3 +64,7 @@ A long-running John session with an endurance goal set (`/john:endurance <goal>`
 **workerLLM**:
 A cheap LLM a *produced app* calls at its own runtime (not Claude in the build session, not a subagent). Reached through any OpenAI-compatible endpoint at `$JOHN_LLM_CLIENT_URL`.
 _Avoid_: sub-worker
+
+**Runtime job**:
+A background task inside a *produced app* that its end-users wait on (upload → queued → staged generation → progress → download), managed through a persistent task registry and a bounded worker pool — the `job-runtime` skill teaches the pattern. Distinct from build-time vertical-axis work (subagents/workflows in the John session) and from John's own endurance sessions.
+_Avoid_: long-running task (ambiguous with John's own long sessions)

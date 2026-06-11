@@ -53,7 +53,7 @@ If false-positive rates are high in a particular category, surface the pattern t
 
 - **Security**: leaked API keys / tokens / passwords; hardcoded production URLs / IPs; permissive CORS; unescaped user input rendered as HTML.
 - **Code quality**: missing dependencies in package.json/requirements.txt; broken imports; unused imports flagged by linters; obvious syntax errors; type errors (if typed language).
-- **UX**: error states unhandled (what if the API returns 500?); infinite spinners (no failure path); console.log/print statements that should be debug-only; placeholder text not replaced.
+- **UX**: error states unhandled (what if the API returns 500?); infinite spinners (no failure path); long-running jobs that die with the browser connection (no task registry — see [[job-runtime]]); running jobs nothing can ever reclaim (no lease, no queue/generation timeout split); console.log/print statements that should be debug-only; placeholder text not replaced.
 - **Deployment**: build succeeds (`npm run build`, `python -m build`, etc.); smoke test passes (entrypoint runs without crashing); Dockerfile (if applicable) builds.
 
 For each category, the produced-app phase should run at least one check. Templates can ship more category-specific guardrails (e.g., a slide-deck template might check that the produced HTML opens cleanly in a browser).
