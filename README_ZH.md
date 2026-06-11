@@ -201,6 +201,10 @@ README_ZH.md                    # 本文件
 LICENSE                         # MIT
 ```
 
+## 致谢
+
+- [@HalfMoon001](https://github.com/HalfMoon001) —— 对 John 进行了大量端到端实测，并完成了 `job-runtime` skill 背后的分析（[#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)）：产出应用的长耗时 I/O 任务模式（任务注册表、槽位租约、排队/生成双预算、可恢复进度）正是基于她的测试与 issue 梳理而规约成形。
+
 ## 许可
 
 John（joharnessburg）以 **MIT 许可证**发布——见 [`LICENSE`](LICENSE)。自由使用、fork、在其上构建。

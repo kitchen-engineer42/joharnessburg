@@ -200,6 +200,10 @@ README_ZH.md                    # 中文版
 LICENSE                         # MIT
 ```
 
+## Acknowledgments
+
+- [@HalfMoon001](https://github.com/HalfMoon001) — heavy field-testing of John end-to-end, and the analysis behind the `job-runtime` skill ([#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)): the produced-app long-running I/O job pattern (task registry, slot leases, split queue/generation budgets, resumable progress) was specified from her testing and issue work.
+
 ## License
 
 John (joharnessburg) is released under the **MIT License** — see [`LICENSE`](LICENSE). Use it, fork it, build on it freely.
