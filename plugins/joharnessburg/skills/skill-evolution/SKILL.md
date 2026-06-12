@@ -50,7 +50,7 @@ A second classification, for deciding where an improvement *lands* (it shapes yo
 
 **When to distill: at phase boundaries** — the same seam where [[plan-md-evolution]] runs and the user signs off. Ask: what fought reality this phase? What would I tell the next session building this kind of app? Two or three honest lessons beat ten plausible ones — a ledger full of unvalidated truisms is evolution theater, and reviewers learn to ignore it.
 
-Raw corpus text is allowed *inside* the ledger (it's project-local). It must be scrubbed and generalized before anything leaves the project — see the care list.
+Raw corpus text is allowed *inside* the ledger (it's project-local). It must be scrubbed and generalized before anything leaves the project — see the care list. The export vehicle is the **run report** (`/john:report`): scorecard + manifest + outcome + the few lessons worth promoting, assembled per `references/run-report-format.md` and shared manually by the user (typically to the template's owner, as evolution evidence).
 
 ## Project-local skill overrides
 
@@ -96,4 +96,4 @@ Whether a scorer exists — and where feedback should come from at all — is it
 - [[subagent-dispatch]] / [[vertical-workflows]] — the fan-out machinery the training loop runs on
 - [[workerllm-runtime]] — the worker being trained
 - [[packaging]] — trained skills ship with a provenance header
-- See `references/` for: the training loop procedure, feedback-collection design, the ledger format
+- See `references/` for: the training loop procedure, feedback-collection design, the ledger format, the run-report format + scrub checklist

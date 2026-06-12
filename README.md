@@ -37,6 +37,7 @@ Along the way the session *learns from the run* (the `skill-evolution` skill, v0
 Other slash commands available after install:
 
 - `/john:status` — current phase + progress
+- `/john:report` — assemble the run report (scorecard + outcome + scrubbed lessons; the evidence a template owner aggregates — sharing is always manual)
 - `/john:archive` — archive a finished workspace
 - `/john:endurance` — set/clear the long-running goal (pinned into the system prompt; survives context compaction)
 

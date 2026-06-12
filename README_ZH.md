@@ -37,6 +37,7 @@ claude plugin list
 安装后还有其它 slash command 可用：
 
 - `/john:status` —— 当前 phase + 进度
+- `/john:report` —— 生成 run report（scorecard + 结果 + 脱敏后的经验教训；模板维护者做模板演化要汇总的证据——分享永远由人手动进行）
 - `/john:archive` —— 归档已完成的 workspace
 - `/john:endurance` —— 设置/清除长跑目标（注入 system prompt，跨上下文压缩存活）
 
