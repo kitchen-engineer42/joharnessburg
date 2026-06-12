@@ -493,6 +493,34 @@ def main():
             "missing_on_disk": missing,
         }
 
+    # Persist gate/verify verdicts (append-only) so phase-boundary outcomes are
+    # readable from the workspace itself — the process scorecard's central
+    # column. Dry-run stays fully read-only.
+    if (gate is not None or verify is not None) and not args.dry_run:
+        gates_dir = checkpoint_dir / "gates"
+        try:
+            gates_dir.mkdir(parents=True, exist_ok=True)
+            verdict_ts = datetime.now(timezone.utc).isoformat()
+            ts_compact = verdict_ts.replace(":", "").replace("-", "").replace("+0000", "Z")
+            (gates_dir / f"{ts_compact}.json").write_text(
+                json.dumps(
+                    {
+                        "timestamp": verdict_ts,
+                        "phase": args.phase,
+                        "gate": gate,
+                        "verify": verify,
+                        "entries_claimed": len(claimed) if claimed is not None else None,
+                        "events_folded": state["event_count"],
+                        "exit_code": exit_code,
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            sys.stderr.write(f"WARN: could not persist gate verdict: {exc}\n")
+
     emit(
         {
             "phase": args.phase,

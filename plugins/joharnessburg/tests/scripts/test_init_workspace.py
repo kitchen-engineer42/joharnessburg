@@ -22,14 +22,20 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertTrue((tdp / ".john" / "workspace.json").is_file())
             self.assertTrue((tdp / "PLAN.md").is_file())
             self.assertTrue((tdp / "CLAUDE.md").is_file())
-            # Subdirs
-            for sd in ["input", "parsed", "chunks", "knowledge", "events", "checkpoints", "trace"]:
+            # Subdirs (v0.3.0 adds lessons/)
+            for sd in ["input", "parsed", "chunks", "knowledge", "events", "checkpoints", "trace", "lessons"]:
                 self.assertTrue((tdp / ".john" / sd).is_dir(), f"missing subdir {sd}")
             # Workspace state shape (v0.1.15+: no active_template field)
             state = json.loads((tdp / ".john" / "workspace.json").read_text())
             self.assertEqual(state["schema_version"], 1)
             self.assertNotIn("active_template", state)
             self.assertEqual(state["current_phase"], "bootstrap")
+            # v0.3.0 run-manifest provenance: the creating John version is stamped
+            manifest = json.loads(
+                (Path(__file__).resolve().parent.parent.parent / ".claude-plugin" / "plugin.json")
+                .read_text()
+            )
+            self.assertEqual(state["created_by_john_version"], manifest["version"])
 
     def test_init_errors_when_john_exists_without_force(self):
         with tempfile.TemporaryDirectory() as td:

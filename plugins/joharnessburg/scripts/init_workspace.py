@@ -36,7 +36,21 @@ SUBDIRS = [
     "events",
     "checkpoints",
     "trace",
+    "lessons",
 ]
+
+
+def _john_version() -> str | None:
+    """Best-effort version of the John plugin this script ships in.
+
+    Stamped into workspace.json as run-manifest provenance — a run report must
+    be attributable to the exact John version that produced the run.
+    """
+    manifest = Path(__file__).resolve().parent.parent / ".claude-plugin" / "plugin.json"
+    try:
+        return json.loads(manifest.read_text(encoding="utf-8")).get("version")
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 PLAN_TEMPLATE = """\
@@ -239,6 +253,7 @@ def main():
         "name": "joharnessburg-workspace",
         "schema_version": 1,
         "initialized_at": now,
+        "created_by_john_version": _john_version(),
         "current_phase": "bootstrap",
         "session_metadata": {},
     }

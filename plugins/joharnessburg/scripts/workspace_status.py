@@ -121,6 +121,8 @@ def main():
         "events_phases": phases_with_events,
         "checkpoints_phases": phases_with_checkpoints,
         "trace_files": count_files(john_dir / "trace"),
+        "lessons": count_files(john_dir / "lessons"),
+        "skill_invocations_logged": count_files(john_dir / "skill-log"),
     }
 
     # Produced skills (the knowledge phases' deliverable)
@@ -163,6 +165,8 @@ def _human_summary(report):
         f"  events phases: {len(inv['events_phases'])} ({', '.join(inv['events_phases']) or 'none'})",
         f"  checkpoints phases: {len(inv['checkpoints_phases'])} ({', '.join(inv['checkpoints_phases']) or 'none'})",
         f"  trace files: {inv['trace_files']}",
+        f"  lessons: {inv['lessons']}",
+        f"  skill invocations logged: {inv['skill_invocations_logged']}",
         f"  produced skills: {inv['produced_skills']}",
         "",
         f"PLAN.md present: {report['plan_md_present']}",
