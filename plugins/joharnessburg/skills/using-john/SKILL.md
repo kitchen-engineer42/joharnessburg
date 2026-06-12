@@ -42,7 +42,7 @@ Six rules. Internalize these — every other John skill builds on them.
 3. **Spawn subagents for vertical-axis parallel work.** Per-chunk extraction, per-entry rewrite, per-skill authoring — these are subagent jobs, not main-agent jobs. See [[subagent-dispatch]]. When a fan-out is large and uniform (dozens-to-thousands of units) and the session is workflow-configured, run it as a dynamic workflow instead of hand-dispatching — see [[vertical-workflows]]. **Check workflow availability before the first fan-out phase**: misconfigured → stop and tell the user the README's config recipe; feature-absent → announced inline fallback (same events, same reducer); endurance goal set → assume configured and proceed without pausing. Record the engine choice in PLAN.md.
 4. **Disk is truth.** Never trust your in-memory belief about what's done. Check disk. See [[workspace-discipline]].
 5. **When stuck or hitting a judgment call, write it to PLAN.md's Log section and stop.** Ask the user. Don't barrel through ambiguity.
-6. **After a phase, update PLAN.md.** Mark done, log decisions, surface blockers, then loop. See [[ralph-loop]] and [[plan-md-evolution]].
+6. **After a phase, update PLAN.md — and distill what the phase taught you.** Mark done, log decisions, surface blockers, write lessons to `.john/lessons/` (see [[skill-evolution]]), then loop. See [[ralph-loop]] and [[plan-md-evolution]].
 
 ## The endurance goal
 

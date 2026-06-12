@@ -68,3 +68,24 @@ _Avoid_: sub-worker
 **Runtime job**:
 A background task inside a *produced app* that its end-users wait on (upload → queued → staged generation → progress → download), managed through a persistent task registry and a bounded worker pool — the `job-runtime` skill teaches the pattern. Distinct from build-time vertical-axis work (subagents/workflows in the John session) and from John's own endurance sessions.
 _Avoid_: long-running task (ambiguous with John's own long sessions)
+
+### Skill evolution
+
+**Evolution ring(s)**:
+The blast-radius levels at which John's text assets evolve, with automation decreasing as the ring rises: Ring 0 = this project (lessons, local override drafts, the worker-skill training loop); Ring 1 = a template (its owner evolves it from accumulated run reports); Ring 2 = John core + the authoring methodology (human-driven analysis only; the top gate is permanently human). Influence travels upward as evidence, never downward as automatic edits.
+_Avoid_: levels/layers (collides with John's L1/L2/L3 layer vocabulary)
+
+**Lessons ledger**:
+`<project>/.john/lessons/` — append-only, immutable, per-lesson JSON files: condition + lesson + evidence pointers + a scope guess (project/template/core). Written at phase boundaries; the project-local fast store that feeds the rings above.
+
+**Run manifest**:
+The provenance a run carries so its evidence is attributable: John version (stamped into workspace.json at init), template name+version, corpus identity, configuration. No manifest, no attribution.
+
+**Process scorecard**:
+The deterministic, read-only, frozen-rubric report (`scripts/process_scorecard.py`) of how a run *behaved*: per-phase events and fan-out, gate runs and verdicts, skill invocations, lessons, silent skips. The process-quality signal for everything above the template ring; its rubric is amendable by maintainers only — no automated edit surface can change what it counts.
+
+**Run report**:
+The shareable postmortem artifact of one run: scorecard + manifest + outcome summary + candidate lessons, **scrubbed of corpus content** before it leaves the project. The input format of template evolution; shared manually — never transmitted automatically.
+
+**Promotion**:
+A lesson crossing a ring boundary (project → template → core), always through scrub-and-generalize: restated so it carries no corpus content and would hold for the next corpus of the domain.

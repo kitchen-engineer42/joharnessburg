@@ -47,6 +47,7 @@ CORE_SKILLS = {
     "workspace-discipline": "the disk-is-truth operating contract",
     "context-management": "compaction survival for long sessions",
     "subagent-dispatch": "the vertical-axis fan-out mechanism",
+    "skill-evolution": "the evolution-ring boundary + lessons discipline; process_scorecard.py's documentation",
 }
 
 

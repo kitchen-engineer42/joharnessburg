@@ -97,6 +97,7 @@ If the user wants to ship the working state too (for transparency, reproducibili
 2. **Descriptions are pushy.** Spot-check 5: would Claude reliably trigger this skill on a relevant prompt?
 3. **Cross-links resolve.** `[[skill-name]]` references in bodies point to skills that actually exist.
 4. **No leaked workspace paths.** Skills shouldn't reference `<project>/.john/` (working state) or the user's input source paths — those don't matter to the runtime.
+4b. **Trained skills carry their provenance header.** Any worker skill that went through the training loop ([[skill-evolution]]) ships with its provenance comment (when trained, scorer, baseline → final scores) intact — that header is how the next builder knows the text was earned, not guessed.
 5. **The skills-analytics dashboard (if installed) shows the new skills as discoverable.** Optional check, valuable when shaking down a fresh run.
 
 ## The handoff to the app phases

@@ -32,6 +32,8 @@ The natural flow for a new John project:
 3. **Drop your inputs** into `.john/input/` (PDFs, regulations, sample documents — whatever the produced app should be built from).
 4. **Tell Claude what kind of app to build**. Claude advances through the phases declared in `PLAN.md` via ralph_loop (the iterative driver), dispatches parallel subagents per phase, and ends with a working app.
 
+Along the way the session *learns from the run* (the `skill-evolution` skill, v0.3.x): lessons are distilled into `.john/lessons/` at phase boundaries, skill invocations and phase-gate verdicts are recorded for the deterministic process scorecard (`scripts/process_scorecard.py`), and — where a template ships a scorer — the produced app's workerLLM skills can be trained with a held-out-gated edit loop during the build.
+
 Other slash commands available after install:
 
 - `/john:status` — current phase + progress

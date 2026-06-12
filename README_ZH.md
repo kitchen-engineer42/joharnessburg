@@ -32,6 +32,8 @@ claude plugin list
 3. **把输入材料放进** `.john/input/`（PDF、法规、样本文档——任何 produced app 需要的素材）。
 4. **告诉 Claude 你想构建什么 app**。Claude 会按 `PLAN.md` 里声明的 phase，通过 ralph_loop（迭代驱动器）逐步推进，每个 phase 派发并行的 subagent，最终产出一个可工作的 app。
 
+构建过程中，会话还会*从这次运行中学习*（`skill-evolution` skill，v0.3.x 起）：在 phase 边界把经验教训沉淀到 `.john/lessons/`；skill 调用与 phase 关卡判定会被记录下来，供确定性的 process scorecard（`scripts/process_scorecard.py`）读取；当模板带有 scorer 时，produced app 的 workerLLM skill 还能在构建期间通过留出集门控的编辑循环进行训练。
+
 安装后还有其它 slash command 可用：
 
 - `/john:status` —— 当前 phase + 进度
