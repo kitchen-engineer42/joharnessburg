@@ -38,6 +38,19 @@ class TestWorkspaceStatus(unittest.TestCase):
             self.assertEqual(inv["events_phases"], [])
             self.assertEqual(inv["produced_skills"], {"claude": 0, "codex": 0})
 
+    def test_status_works_from_project_subdirectory(self):
+        # v0.2.3: CLI scripts walk up to the nearest .john/ — running from a
+        # project subdirectory reports the same workspace.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            subdir = tdp / "app" / "src"
+            subdir.mkdir(parents=True)
+            rc, out, err = run_script("workspace_status.py", "--quiet", cwd=subdir)
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertEqual(Path(out["project_root"]).resolve(), tdp.resolve())
+
     def test_status_counts_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

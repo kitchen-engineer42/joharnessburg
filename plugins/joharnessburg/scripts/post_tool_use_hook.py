@@ -3,7 +3,8 @@
 
 Wired in hooks/hooks.json for PostToolUse with matcher Read|Bash|Write|Edit.
 For each matching tool call: if the tool output exceeds OFFLOAD_THRESHOLD
-characters, write the full result to `<cwd>/.john/trace/<sha-prefix>.txt` and
+characters, write the full result to `<project-root>/.john/trace/<sha-prefix>.txt`
+(project root = nearest dir at or above cwd containing `.john/`) and
 emit a head+tail digest as `updatedToolOutput` that replaces the tool result
 in Claude's context.
 
@@ -24,10 +25,13 @@ Exit codes:
 
 import hashlib
 import json
+import os
 import sys
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
+
+from john_paths import find_john_root
 
 
 OFFLOAD_THRESHOLD = 2048  # bytes; below this, pass through unchanged
@@ -88,12 +92,14 @@ def main():
         return
 
     cwd = Path(data.get("cwd", ".")).resolve()
-    john_dir = cwd / ".john"
-
-    if not john_dir.exists():
-        # No John workspace → no-op; pass tool result through unchanged
+    # Walk up to the nearest .john/ — the session cwd is often a project
+    # subdirectory, and offloading must not silently stop there.
+    project_root = find_john_root(cwd)
+    if project_root is None:
+        # No John workspace at or above cwd → no-op; pass through unchanged
         emit({})
         return
+    john_dir = project_root / ".john"
 
     raw_tool_name = data.get("tool_name", "unknown")
     # Sanitize: keep only the filename component, alphanumeric + dash + underscore.
@@ -127,12 +133,10 @@ def main():
             emit({})
             return
 
-    # Show a cwd-relative pointer (e.g. .john/trace/<name>.txt) rather than the
-    # user's absolute home path.
-    try:
-        offload_display = offload_path.relative_to(cwd)
-    except ValueError:
-        offload_display = offload_path
+    # Show a pointer relative to the session cwd (e.g. .john/trace/<name>.txt,
+    # or ../.john/trace/<name>.txt from a subdirectory) rather than the user's
+    # absolute home path.
+    offload_display = Path(os.path.relpath(offload_path, cwd))
     digest = make_digest(tool_result, offload_display, tool_name)
 
     emit({

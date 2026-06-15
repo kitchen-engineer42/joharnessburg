@@ -27,7 +27,7 @@ This skill fires every time [[ralph-loop]] step 5 runs ("update PLAN.md after ea
 
 ## The maintenance jobs
 
-Six recurring patterns. Use the right one for the situation:
+Seven recurring patterns. Use the right one for the situation:
 
 1. **Mark a phase done.** When a phase's done criteria are met (verified via [[workspace-discipline]] disk checks), update its section header and append to the Log.
 2. **Subdivide a phase.** When you discover mid-flight that a phase has too much in it ("extract knowledge from corpus" turns out to need both summary-extraction and structured-extraction as separate sub-phases). Append a Log entry, split the phase into N sub-phases, keep the original's Done criteria as the union of the children's.
@@ -35,6 +35,7 @@ Six recurring patterns. Use the right one for the situation:
 4. **Drop a phase.** When a phase's intent no longer applies (the active template's "research images" phase isn't needed because this corpus is text-only). Mark it dropped in the Log with rationale; keep the section as a struck-through stub for traceability.
 5. **Insert a phase.** When you discover a phase you didn't anticipate (the corpus turned out to need a coreference-resolution step). Append a Log entry; insert the new phase at the right position; renumber subsequent ones.
 6. **Promote a TBD to concrete.** When you wrote "Phase 5: TBD — decide after Phase 4 ships" and now Phase 4 is done. Settle Phase 5's intent + skills + artifacts + done criteria with the user.
+7. **Distill lessons.** The phase boundary is also where the run's learning gets captured: write what fought reality this phase into `<project>/.john/lessons/` (per [[skill-evolution]] — conditional form, evidence pointers, scope guess), and present any project-local skill-override *drafts* for sign-off alongside the phase summary. The Log references lesson files; it doesn't duplicate them.
 
 For each of these, the Log records *what changed and why*. Append-only — never edit a prior Log entry. See `references/log-and-decisions-discipline.md`.
 

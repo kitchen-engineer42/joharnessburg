@@ -1,5 +1,5 @@
 {
-  "description": "John (joharnessburg) hooks. SessionStart injects endurance goal + PLAN.md state into new sessions; PreCompact snapshots workspace state before context compaction; PostToolUse offloads large file-tool results to .john/trace/ and replaces them with head+tail digests. All three no-op when no .john/ directory is present in the current working directory (i.e., John isn't active for this project).",
+  "description": "John (joharnessburg) hooks. SessionStart injects endurance goal + PLAN.md state into new sessions; PreCompact snapshots workspace state before context compaction; PostToolUse offloads large file-tool results to .john/trace/ and replaces them with head+tail digests, and records Skill invocations into .john/skill-log/ (process-scorecard instrumentation). All no-op when no .john/ directory is present at or above the current working directory (i.e., John isn't active for this project).",
   "hooks": {
     "SessionStart": [
       {
@@ -30,6 +30,16 @@
           {
             "type": "command",
             "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/post_tool_use_hook.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skill_invocation_hook.py",
             "timeout": 10
           }
         ]

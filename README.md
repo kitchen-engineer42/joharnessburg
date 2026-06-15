@@ -61,9 +61,12 @@ Codex compatibility notes:
 - When running from this source checkout instead of an installed Codex plugin, use the project-local bridge skills under `.agents/skills/`; they call the same scripts with source-checkout paths.
 - Helper scripts such as `scripts/app_first_contracts.py` are plain Python stdlib scripts. In a Codex plugin install, resolve them from the loaded John plugin root; in a source checkout, use `plugins/joharnessburg/scripts/<script>.py`.
 
+Along the way the session *learns from the run* (the `skill-evolution` skill, v0.3.x): lessons are distilled into `.john/lessons/` at phase boundaries, skill invocations and phase-gate verdicts are recorded for the deterministic process scorecard (`scripts/process_scorecard.py`), and — where a template ships a scorer — the produced app's workerLLM skills can be trained with a held-out-gated edit loop during the build.
+
 Other slash commands available after install:
 
 - `/john:status` — current phase + progress
+- `/john:report` — assemble the run report (scorecard + outcome + scrubbed lessons; the evidence a template owner aggregates — sharing is always manual)
 - `/john:archive` — archive a finished workspace
 - `/john:endurance` — set/clear the long-running goal (pinned into the system prompt; survives context compaction)
 
@@ -228,6 +231,10 @@ README.md                       # This file
 README_ZH.md                    # 中文版
 LICENSE                         # MIT
 ```
+
+## Acknowledgments
+
+- [@HalfMoon001](https://github.com/HalfMoon001) — heavy field-testing of John end-to-end, and the analysis behind the `job-runtime` skill ([#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)): the produced-app long-running I/O job pattern (task registry, slot leases, split queue/generation budgets, resumable progress) was specified from her testing and issue work.
 
 ## License
 

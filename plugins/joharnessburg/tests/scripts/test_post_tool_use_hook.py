@@ -181,6 +181,26 @@ class TestPostToolUseHook(unittest.TestCase):
             self.assertFalse((tdp / "etc").exists())
             self.assertFalse((tdp.parent / "etc").exists())
 
+    def test_offloads_from_project_subdirectory(self):
+        # v0.2.3: the session cwd is often a project subdirectory — the
+        # offload must land in the project root's .john/trace/, not no-op.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            (tdp / ".john").mkdir()
+            subdir = tdp / "app"
+            subdir.mkdir()
+            rc, out, _ = run_hook(
+                {"cwd": str(subdir), "tool_name": "Bash", "tool_output_text": "S" * 5000},
+                cwd=subdir,
+            )
+            self.assertEqual(rc, 0)
+            digest = out["hookSpecificOutput"]["updatedToolOutput"]
+            # Offload written under the PROJECT ROOT's .john/trace/
+            files = list((tdp / ".john" / "trace").iterdir())
+            self.assertEqual(len(files), 1)
+            # Pointer is relative to the session cwd (one level up)
+            self.assertIn("../.john/trace/", digest)
+
     def test_identical_results_dedup(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

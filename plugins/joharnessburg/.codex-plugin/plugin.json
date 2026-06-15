@@ -1,6 +1,6 @@
 {
   "name": "john",
-  "version": "0.2.3",
+  "version": "0.4.0",
   "description": "John - a Codex and Claude Code harness for building app-first, knowledge-dense apps from unstructured source material.",
   "author": {
     "name": "kitchen-engineer42"

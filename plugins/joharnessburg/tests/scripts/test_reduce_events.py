@@ -84,6 +84,28 @@ class TestReduceEvents(unittest.TestCase):
                 "events should be sorted by timestamp",
             )
 
+    def test_reduce_works_from_project_subdirectory(self):
+        # v0.2.3: the reduce walks up to the nearest .john/ — running from a
+        # subdirectory folds the root event log and writes the root checkpoint.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            phase_dir = tdp / ".john" / "events" / "extract"
+            phase_dir.mkdir()
+            (phase_dir / "evt.json").write_text(json.dumps({
+                "timestamp": "2026-05-22T00:00:00Z",
+                "payload": {"entry_id": "e_001"},
+            }))
+            subdir = tdp / "app"
+            subdir.mkdir()
+            rc, out, err = run_script("reduce_events.py", "extract", cwd=subdir)
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertEqual(out["events_folded"], 1)
+            self.assertTrue(
+                (tdp / ".john" / "checkpoints" / "extract" / "state.json").is_file()
+            )
+
     def test_reduce_is_idempotent(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
@@ -476,6 +498,48 @@ class TestPhaseGateAndVerify(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertEqual(out["verify"]["orphans"], [])
             self.assertEqual(out["verify"]["missing_on_disk"], [])
+
+    # v0.3.0 — gate verdicts persist to disk (the scorecard's central column)
+    def test_gate_verdict_persisted_to_checkpoints(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            self._setup_phase(tdp, ["e_001", "e_002", "e_003"])
+            rc, _, _ = run_script(
+                "reduce_events.py", "extract",
+                "--expect-entries", "2-4", "--verify-knowledge", cwd=tdp,
+            )
+            self.assertEqual(rc, 0)
+            gates_dir = tdp / ".john" / "checkpoints" / "extract" / "gates"
+            records = list(gates_dir.glob("*.json"))
+            self.assertEqual(len(records), 1)
+            record = json.loads(records[0].read_text())
+            self.assertEqual(record["gate"]["status"], "pass")
+            self.assertEqual(record["entries_claimed"], 3)
+            self.assertEqual(record["exit_code"], 0)
+            self.assertIn("verify", record)
+
+            # A second gated reduce appends a second record (append-only history)
+            rc, _, _ = run_script(
+                "reduce_events.py", "extract", "--expect-entries", "10", cwd=tdp,
+            )
+            self.assertEqual(rc, 3)
+            records = sorted(gates_dir.glob("*.json"))
+            self.assertEqual(len(records), 2)
+            self.assertEqual(json.loads(records[-1].read_text())["gate"]["status"], "fail")
+
+    def test_gate_verdict_not_persisted_on_dry_run(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            self._setup_phase(tdp, ["e_001"])
+            rc, _, _ = run_script(
+                "reduce_events.py", "extract",
+                "--expect-entries", "1", "--dry-run", cwd=tdp,
+            )
+            self.assertEqual(rc, 0)
+            self.assertFalse(
+                (tdp / ".john" / "checkpoints" / "extract" / "gates").exists(),
+                "--dry-run must stay fully read-only",
+            )
 
     # v0.2.2 — layout-aware disk reconciliation
     def test_verify_entry_internal_subdirs_are_not_orphans(self):

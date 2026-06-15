@@ -78,6 +78,22 @@ class TestPrecompactHook(unittest.TestCase):
             self.assertIn("extract", snap["recent_events"])
             self.assertEqual(len(snap["recent_events"]["extract"]), 5)
 
+    def test_snapshots_from_project_subdirectory(self):
+        # v0.2.3: compaction frequently hits while cwd is a project
+        # subdirectory — the snapshot must land in the root .john/.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            (tdp / ".john").mkdir()
+            (tdp / ".john" / "workspace.json").write_text(json.dumps({
+                "current_phase": "build",
+            }))
+            subdir = tdp / "app"
+            subdir.mkdir()
+            rc, out, _ = run_hook({"cwd": str(subdir)}, cwd=subdir)
+            self.assertEqual(rc, 0)
+            snapshots = list((tdp / ".john" / "checkpoints").glob("precompact-*.json"))
+            self.assertEqual(len(snapshots), 1)
+
     def test_handles_missing_workspace_json(self):
         # .john/ exists but no workspace.json
         with tempfile.TemporaryDirectory() as td:

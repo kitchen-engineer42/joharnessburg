@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-"""Print a status report for the John workspace in the current directory.
+"""Print a status report for the John workspace at or above the current directory.
 
-Reads `.john/workspace.json` and checkpoint files, emits structured JSON
-to stdout (for Claude) and a human-readable summary to stderr (for the
-user).
+Resolves the project root as the nearest directory at or above cwd that
+contains `.john/`, reads its workspace.json and checkpoint files, emits
+structured JSON to stdout (for Claude) and a human-readable summary to
+stderr (for the user).
 
 This script runs in **layer-2 sessions** inside the user's project. It
-reads from `Path.cwd()`, never from the John dev workspace.
+never reads from the John dev workspace.
 
 Exit codes:
   0  success (status emitted)
@@ -22,6 +23,8 @@ import os
 import sys
 import traceback
 from pathlib import Path
+
+from john_paths import find_john_root
 
 
 def _detect_template_from_env() -> str | None:
@@ -81,15 +84,17 @@ def main():
     args = parser.parse_args()
 
     cwd = Path.cwd()
-    john_dir = cwd / ".john"
-
-    if not john_dir.exists():
+    # Operate on the nearest project root at or above cwd (running from a
+    # project subdirectory is normal and should report the same workspace).
+    root = find_john_root(cwd)
+    if root is None:
         err(
-            f"No .john/ directory found in {cwd}. "
+            f"No .john/ directory found at or above {cwd}. "
             f"Run /john:init to scaffold one.",
             exit_code=1,
         )
         return
+    john_dir = root / ".john"
 
     workspace_json = john_dir / "workspace.json"
     if not workspace_json.exists():
@@ -118,23 +123,25 @@ def main():
         "events_phases": phases_with_events,
         "checkpoints_phases": phases_with_checkpoints,
         "trace_files": count_files(john_dir / "trace"),
+        "lessons": count_files(john_dir / "lessons"),
+        "skill_invocations_logged": count_files(john_dir / "skill-log"),
     }
 
     # Produced skills (the knowledge phases' deliverable). John supports both
     # provider-local discovery roots when present.
-    claude_skills_dir = cwd / ".claude" / "skills"
-    codex_skills_dir = cwd / ".agents" / "skills"
+    claude_skills_dir = root / ".claude" / "skills"
+    codex_skills_dir = root / ".agents" / "skills"
     inventory["produced_skills"] = {
         "claude": len(list_dirs(claude_skills_dir)) if claude_skills_dir.exists() else 0,
         "codex": len(list_dirs(codex_skills_dir)) if codex_skills_dir.exists() else 0,
     }
 
-    plan_exists = (cwd / "PLAN.md").exists()
-    claude_md_exists = (cwd / "CLAUDE.md").exists()
-    agents_md_exists = (cwd / "AGENTS.md").exists()
+    plan_exists = (root / "PLAN.md").exists()
+    claude_md_exists = (root / "CLAUDE.md").exists()
+    agents_md_exists = (root / "AGENTS.md").exists()
 
     report = {
-        "project_root": str(cwd),
+        "project_root": str(root),
         "workspace": state,
         "plan_md_present": plan_exists,
         "claude_md_present": claude_md_exists,
@@ -167,6 +174,8 @@ def _human_summary(report):
         f"  events phases: {len(inv['events_phases'])} ({', '.join(inv['events_phases']) or 'none'})",
         f"  checkpoints phases: {len(inv['checkpoints_phases'])} ({', '.join(inv['checkpoints_phases']) or 'none'})",
         f"  trace files: {inv['trace_files']}",
+        f"  lessons: {inv['lessons']}",
+        f"  skill invocations logged: {inv['skill_invocations_logged']}",
         f"  produced skills (Claude): {inv['produced_skills']['claude']}",
         f"  produced skills (Codex): {inv['produced_skills']['codex']}",
         "",

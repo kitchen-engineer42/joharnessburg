@@ -83,7 +83,8 @@ Each of those has 4-7 phases. The user and active template shape them.
 - **Intent fits one sentence.** No ambiguity about the goal.
 - **Done criteria are observable on disk.** A test, a file, a count, a structural check. Not a feeling.
 - **Vertical fan-out is acknowledged.** If the phase has 200 work units inside, the Subagent matrix says so up front. For a large uniform fan-out, the phase declares its **execution: Workflow yes/no + the worker agent + the cross-check agent + the model** — so the loop knows to launch one workflow run for the phase rather than hand-dispatch. See [[vertical-workflows]].
-- **Boundary is a clean compaction point.** If context compacts at the boundary, the next iteration can resume cleanly by reading disk. For fan-out phases this boundary is also the **sign-off seam between workflow runs** — the only place a workflow-driven phase can take user input.
+- **Boundary is a clean compaction point.** If context compacts at the boundary, the next iteration can resume cleanly by reading disk. For fan-out phases this boundary is also the **sign-off seam between workflow runs** — the only place a workflow-driven phase can take user input — and the seam where lessons get distilled and skill-override drafts get reviewed (per [[skill-evolution]]).
+- **A trainable phase declares its scorer.** If the phase trains a worker skill (see [[skill-evolution]]), its done criteria name the scorer and the held-out split, so the gate is auditable from PLAN.md.
 - **No dependencies on phases below it.** Phase 5 doesn't read state that Phase 7 produces.
 
 ## What makes a phase "bad"

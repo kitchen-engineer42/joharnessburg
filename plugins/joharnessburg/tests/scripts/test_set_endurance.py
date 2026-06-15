@@ -17,6 +17,23 @@ class TestSetEndurance(unittest.TestCase):
             self.assertFalse(out["success"])
             self.assertIn(".john/workspace.json", out["error"])
 
+    def test_set_from_subdirectory_lands_in_root_workspace(self):
+        # v0.2.3: setting the goal from a project subdirectory writes to the
+        # project root's workspace.json (walk-up resolution).
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            subdir = tdp / "app"
+            subdir.mkdir()
+            rc, out, _ = run_script("set_endurance.py", "finish the build", cwd=subdir)
+            self.assertEqual(rc, 0)
+            self.assertEqual(out["endurance_goal"], "finish the build")
+            state = json.loads((tdp / ".john" / "workspace.json").read_text())
+            self.assertEqual(
+                state["session_metadata"]["endurance_goal"], "finish the build"
+            )
+
     def test_show_when_unset(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

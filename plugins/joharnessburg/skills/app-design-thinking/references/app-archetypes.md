@@ -24,7 +24,7 @@ Five reference apps built manually before John existed. Each is one combination 
 
 **Pipeline shape**: extract lesson text (with cascading parser fallback) → plan spec (slide-by-slide) → research-agent fetches media from the web → render HTML slide fragments → assemble single .html file.
 
-**Why it's useful**: heavy at build, no runtime LLM. Locked component templates (model fills placeholders, doesn't design containers). Strong example of skill-as-template constraint.
+**Why it's useful**: heavy at build, no runtime LLM. Locked component templates (model fills placeholders, doesn't design containers). Strong example of skill-as-template constraint. Its upload → expensive generation → download flow is the I/O job shape; [[job-runtime]] is the runtime pattern that hardens it (the manual build streams the job over a single request — the coupling that pattern removes).
 
 ## 4. Mathlab (mathlab)
 

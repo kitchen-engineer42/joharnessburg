@@ -90,6 +90,8 @@ Idempotency matters because the reducer may be invoked multiple times during a p
 
 Why a deterministic floor when [[vertical-workflows]] already has LLM cross-check agents: the failures these catch are *infrastructure* failures — a session killed mid-write, a worker whose events never landed, 16 concurrent writers, a full disk. No amount of model intelligence prevents those, and an LLM auditor can sincerely report a truncated phase as complete. Run both checks together at every phase boundary (one disk walk serves both); [[ralph-loop]] shows the invocation.
 
+Every gated (non-dry-run) reduce also **persists its verdict** to `<project>/.john/checkpoints/<phase>/gates/<ts>.json` (append-only history: gate status, counts, verify results, exit code). This makes phase-boundary outcomes readable from the workspace itself — the process scorecard (`${CLAUDE_PLUGIN_ROOT}/scripts/process_scorecard.py`) reads them when assessing how a run actually went.
+
 ## Failure handling
 
 A subagent crashed mid-write? Its event file is partial or absent. Options for the reducer:

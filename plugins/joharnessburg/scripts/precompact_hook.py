@@ -3,7 +3,8 @@
 
 Wired in hooks/hooks.json for the PreCompact event. Snapshots the user's
 workspace state (workspace.json contents + PLAN.md path + recent events)
-to `<cwd>/.john/checkpoints/precompact-<ts>.json` so post-compaction
+to `<project-root>/.john/checkpoints/precompact-<ts>.json` (project root =
+nearest dir at or above cwd containing `.john/`) so post-compaction
 recovery can read it back if needed.
 
 No-op when there's no `.john/` directory.
@@ -21,6 +22,8 @@ import sys
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
+
+from john_paths import find_john_root
 
 
 RECENT_EVENTS_PER_PHASE = 20
@@ -71,11 +74,13 @@ def main():
         return
 
     cwd = Path(data.get("cwd", ".")).resolve()
-    john_dir = cwd / ".john"
-
-    if not john_dir.exists():
+    # Walk up to the nearest .john/ — the session cwd is often a project
+    # subdirectory at compaction time.
+    project_root = find_john_root(cwd)
+    if project_root is None:
         emit({})
         return
+    john_dir = project_root / ".john"
 
     workspace_json_path = john_dir / "workspace.json"
     workspace_state = {}
@@ -90,8 +95,8 @@ def main():
         "compaction_reason": data.get("compaction_reason") or data.get("reason"),
         "session_id": data.get("session_id"),
         "workspace_state": workspace_state,
-        "plan_md_path": str(cwd / "PLAN.md") if (cwd / "PLAN.md").exists() else None,
-        "claude_md_path": str(cwd / "CLAUDE.md") if (cwd / "CLAUDE.md").exists() else None,
+        "plan_md_path": str(project_root / "PLAN.md") if (project_root / "PLAN.md").exists() else None,
+        "claude_md_path": str(project_root / "CLAUDE.md") if (project_root / "CLAUDE.md").exists() else None,
         "recent_events": gather_recent_events(john_dir / "events", RECENT_EVENTS_PER_PHASE),
         "checkpoints_dirs": sorted(
             [d.name for d in (john_dir / "checkpoints").iterdir() if d.is_dir()]

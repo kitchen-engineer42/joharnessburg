@@ -3,8 +3,10 @@ from __future__ import annotations
 
 """SessionStart hook: inject endurance goal + PLAN.md state into the new session.
 
-Wired in hooks/hooks.json for the SessionStart event. Reads the user's
-<cwd>/.john/workspace.json + <cwd>/PLAN.md, composes a context string emitted
+Wired in hooks/hooks.json for the SessionStart event. Resolves the project
+root as the nearest directory at or above cwd containing `.john/` (the
+session cwd is often a subdirectory), reads its workspace.json + PLAN.md,
+and composes a context string emitted
 as `hookSpecificOutput.additionalContext` (the documented SessionStart output
 field) that Claude Code injects into the model's context before the first turn.
 
@@ -23,6 +25,8 @@ import os
 import sys
 import traceback
 from pathlib import Path
+
+from john_paths import find_john_root
 
 
 PLAN_PREVIEW_CHARS = 3000
@@ -66,10 +70,16 @@ def main():
         return
 
     cwd = Path(data.get("cwd", ".")).resolve()
-    workspace_path = cwd / ".john" / "workspace.json"
+    # The session cwd is often a SUBDIRECTORY of the project (e.g. app/) at
+    # compaction time — walk up to the nearest .john/ instead of no-oping.
+    project_root = find_john_root(cwd)
+    if project_root is None:
+        # No John workspace at or above this directory — no-op
+        emit({})
+        return
+    workspace_path = project_root / ".john" / "workspace.json"
 
     if not workspace_path.exists():
-        # No John workspace in this directory — no-op
         emit({})
         return
 
@@ -93,7 +103,7 @@ def main():
     initialized_at = state.get("initialized_at", "?")
 
     # PLAN.md preview
-    plan_path = cwd / "PLAN.md"
+    plan_path = project_root / "PLAN.md"
     plan_preview = ""
     if plan_path.exists():
         try:
@@ -135,6 +145,9 @@ def main():
         f"**Read PLAN.md first** before doing any substantive work. Re-read it after every context "
         f"compaction. The `using-john` skill is your top-level orientation; consult it if anything "
         f"about John's conventions is unclear.\n\n"
+        f"**Invoke skills, don't recall them**: at each phase start, invoke the phase's named "
+        f"skill (PLAN.md lists them per phase) before doing the phase's work — the methodology "
+        f"lives in the skill bodies, not in this banner.\n\n"
         f"**Fan-out phases expect dynamic workflows** (`/effort ultracode`). Check availability "
         f"before the first fan-out; if an endurance goal is set, assume it's on and proceed "
         f"without pausing to confirm config (see the `vertical-workflows` skill).\n\n"

@@ -61,9 +61,12 @@ Codex 兼容说明：
 - 如果是在本源码检出目录中使用，而不是安装后的 Codex 插件，使用 `.agents/skills/` 下的项目桥接技能；它们调用的是同一批脚本，只是路径指向源码检出。
 - `scripts/app_first_contracts.py` 等 helper 脚本只依赖 Python 标准库。Codex 插件安装场景从已加载的 John plugin root 解析；源码检出场景使用 `plugins/joharnessburg/scripts/<script>.py`。
 
+构建过程中，会话还会*从这次运行中学习*（`skill-evolution` skill，v0.3.x 起）：在 phase 边界把经验教训沉淀到 `.john/lessons/`；skill 调用与 phase 关卡判定会被记录下来，供确定性的 process scorecard（`scripts/process_scorecard.py`）读取；当模板带有 scorer 时，produced app 的 workerLLM skill 还能在构建期间通过留出集门控的编辑循环进行训练。
+
 安装后还有其它 slash command 可用：
 
 - `/john:status` —— 当前 phase + 进度
+- `/john:report` —— 生成 run report（scorecard + 结果 + 脱敏后的经验教训；模板维护者做模板演化要汇总的证据——分享永远由人手动进行）
 - `/john:archive` —— 归档已完成的 workspace
 - `/john:endurance` —— 设置/清除长跑目标（注入 system prompt，跨上下文压缩存活）
 
@@ -229,6 +232,10 @@ README.md                       # 英文版
 README_ZH.md                    # 本文件
 LICENSE                         # MIT
 ```
+
+## 致谢
+
+- [@HalfMoon001](https://github.com/HalfMoon001) —— 对 John 进行了大量端到端实测，并完成了 `job-runtime` skill 背后的分析（[#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)）：产出应用的长耗时 I/O 任务模式（任务注册表、槽位租约、排队/生成双预算、可恢复进度）正是基于她的测试与 issue 梳理而规约成形。
 
 ## 许可
 

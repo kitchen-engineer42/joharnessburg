@@ -25,6 +25,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -40,7 +41,21 @@ SUBDIRS = [
     "events",
     "checkpoints",
     "trace",
+    "lessons",
 ]
+
+
+def _john_version() -> str | None:
+    """Best-effort version of the John plugin this script ships in.
+
+    Stamped into workspace.json as run-manifest provenance — a run report must
+    be attributable to the exact John version that produced the run.
+    """
+    manifest = Path(__file__).resolve().parent.parent / ".claude-plugin" / "plugin.json"
+    try:
+        return json.loads(manifest.read_text(encoding="utf-8")).get("version")
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 PLAN_TEMPLATE = """\
@@ -232,9 +247,10 @@ def main():
         "--force",
         action="store_true",
         help=(
-            "Delete and recreate .john/ if it already exists. PLAN.md is REGENERATED from "
-            "the template (existing project intent + log is lost — back it up first if you "
-            "need it). CLAUDE.md and AGENTS.md are never overwritten by --force "
+            "Delete and recreate .john/ if it already exists. The contents of .john/input/ "
+            "are PRESERVED (user-supplied corpus, not derived state). PLAN.md is REGENERATED "
+            "from the template (existing project intent + log is lost — back it up first if "
+            "you need it). CLAUDE.md and AGENTS.md are never overwritten by --force "
             "(project memory is preserved); delete them manually if you want a clean slate."
         ),
     )
@@ -266,13 +282,32 @@ def main():
         )
         return
 
+    preserved_input_src = None
     if args.force and john_dir.exists():
+        # Preserve the user's corpus across --force: .john/input/ is
+        # user-supplied material, not derived state — destroying it once
+        # cost a real project its inputs.
+        input_dir = john_dir / "input"
+        if input_dir.is_dir() and any(input_dir.iterdir()):
+            tmp_parent = Path(tempfile.mkdtemp(prefix="john-init-preserve-"))
+            preserved_input_src = tmp_parent / "input"
+            shutil.move(str(input_dir), str(preserved_input_src))
         shutil.rmtree(john_dir)
 
     # Create the dir tree
     john_dir.mkdir()
     for sd in SUBDIRS:
         (john_dir / sd).mkdir()
+
+    input_preserved = False
+    if preserved_input_src is not None:
+        shutil.rmtree(john_dir / "input")
+        shutil.move(str(preserved_input_src), str(john_dir / "input"))
+        shutil.rmtree(preserved_input_src.parent, ignore_errors=True)
+        input_preserved = True
+        sys.stderr.write(
+            "NOTE: existing .john/input/ contents were preserved across --force.\n"
+        )
 
     # workspace.json — initial state
     # Note: the template, if any, is determined by the merged plugin the
@@ -282,6 +317,7 @@ def main():
         "name": "joharnessburg-workspace",
         "schema_version": 1,
         "initialized_at": now,
+        "created_by_john_version": _john_version(),
         "current_phase": "bootstrap",
         "intent_question_budget": {
             "question_batch_limit": 1,
@@ -422,6 +458,7 @@ def main():
             "workflows_installed": workflows_installed,
             "workflows_skipped": workflows_skipped,
             "copied_input": copied,
+            "input_preserved": input_preserved,
             "active_template": None,
             "current_phase": "bootstrap",
             "initialized_at": now,

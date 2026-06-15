@@ -60,6 +60,26 @@ class TestHooksJsonConsistency(unittest.TestCase):
                 )
 
 
+class TestCommandsConsistency(unittest.TestCase):
+    def test_commands_reference_existing_scripts(self):
+        # A command doc naming a ${CLAUDE_PLUGIN_ROOT}/scripts/... path that
+        # doesn't exist ships green and breaks at first use — same blindness
+        # the hooks.json check closes.
+        commands = sorted((PLUGIN_ROOT / "commands").glob("*.md"))
+        self.assertTrue(commands, "no command docs found?")
+        pattern = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/(scripts/[A-Za-z0-9_]+\.py)")
+        referenced = set()
+        for doc in commands:
+            referenced.update(pattern.findall(doc.read_text(encoding="utf-8")))
+        self.assertTrue(referenced, "no script references found in command docs?")
+        for rel in sorted(referenced):
+            with self.subTest(script=rel):
+                self.assertTrue(
+                    (PLUGIN_ROOT / rel).is_file(),
+                    f"command docs reference missing script: {rel}",
+                )
+
+
 class TestCoreSkillsConsistency(unittest.TestCase):
     def test_core_skills_dict_matches_real_skill_dirs(self):
         import sys

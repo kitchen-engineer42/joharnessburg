@@ -23,8 +23,19 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertTrue((tdp / "PLAN.md").is_file())
             self.assertTrue((tdp / "CLAUDE.md").is_file())
             self.assertTrue((tdp / "AGENTS.md").is_file())
-            # Subdirs
-            for sd in ["input", "brief", "contracts", "parsed", "chunks", "knowledge", "events", "checkpoints", "trace"]:
+            # Subdirs (app-first adds brief/contracts; v0.3.0 adds lessons/)
+            for sd in [
+                "input",
+                "brief",
+                "contracts",
+                "parsed",
+                "chunks",
+                "knowledge",
+                "events",
+                "checkpoints",
+                "trace",
+                "lessons",
+            ]:
                 self.assertTrue((tdp / ".john" / sd).is_dir(), f"missing subdir {sd}")
             # Workspace state shape (v0.1.15+: no active_template field)
             state = json.loads((tdp / ".john" / "workspace.json").read_text())
@@ -45,6 +56,12 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertIn(".john/contracts/app_blueprint.json", plan_body)
             self.assertIn("one batch maximum, four questions maximum", plan_body)
             self.assertIn("schema pilot", plan_body)
+            # v0.3.0 run-manifest provenance: the creating John version is stamped
+            manifest = json.loads(
+                (Path(__file__).resolve().parent.parent.parent / ".claude-plugin" / "plugin.json")
+                .read_text()
+            )
+            self.assertEqual(state["created_by_john_version"], manifest["version"])
 
     def test_init_errors_when_john_exists_without_force(self):
         with tempfile.TemporaryDirectory() as td:
@@ -71,6 +88,33 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertEqual(rc, 0, f"stderr: {err}")
             self.assertTrue(out["success"])
             self.assertFalse(marker.exists(), "marker should be gone after --force recreate")
+
+    def test_init_force_preserves_input_corpus(self):
+        # v0.2.3: .john/input/ is user-supplied corpus, not derived state —
+        # a forced re-init must preserve it (a real project lost its inputs
+        # to --force before this guard).
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            corpus = tdp / ".john" / "input" / "book.md"
+            corpus.write_text("the user's precious corpus")
+            (tdp / ".john" / "input" / "nested").mkdir()
+            (tdp / ".john" / "input" / "nested" / "doc.md").write_text("more corpus")
+            derived = tdp / ".john" / "knowledge" / "derived.md"
+            derived.write_text("derived state — wiped is fine")
+
+            rc, out, err = run_script("init_workspace.py", "--force", cwd=tdp)
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            self.assertTrue(out["input_preserved"])
+            self.assertIn("preserved", err)
+            self.assertEqual(corpus.read_text(), "the user's precious corpus")
+            self.assertEqual(
+                (tdp / ".john" / "input" / "nested" / "doc.md").read_text(),
+                "more corpus",
+            )
+            # Everything else was still recreated fresh
+            self.assertFalse(derived.exists())
 
     def test_init_copies_input_directory(self):
         with tempfile.TemporaryDirectory() as td:

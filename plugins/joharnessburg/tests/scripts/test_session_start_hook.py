@@ -80,9 +80,34 @@ class TestSessionStartHook(unittest.TestCase):
             # v0.2.0: workflow expectation + endurance assumption line
             self.assertIn("dynamic workflows", ctx)
             self.assertIn("assume it's on", ctx)
+            # v0.2.3: invoke-the-phase-skill nudge
+            self.assertIn("Invoke skills", ctx)
             self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "SessionStart")
             # Legacy top-level copy kept for older harness versions
             self.assertEqual(out.get("additionalContext"), ctx)
+
+    def test_injects_from_project_subdirectory(self):
+        # v0.2.3 regression: a real session compacted while cwd was
+        # <project>/app — the hook resolved .john/ only at cwd and silently
+        # emitted {}, dropping the PLAN.md + endurance injection. The hook
+        # must walk up to the nearest .john/.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            (tdp / ".john").mkdir()
+            (tdp / ".john" / "workspace.json").write_text(json.dumps({
+                "schema_version": 1,
+                "current_phase": "build",
+                "session_metadata": {"endurance_goal": "ship the RPG"},
+            }))
+            (tdp / "PLAN.md").write_text("# PLAN.md — subdir test\n")
+            subdir = tdp / "app" / "src"
+            subdir.mkdir(parents=True)
+
+            rc, out, _ = run_hook({"cwd": str(subdir)}, cwd=subdir)
+            self.assertEqual(rc, 0)
+            ctx = out["hookSpecificOutput"]["additionalContext"]
+            self.assertIn("ship the RPG", ctx)
+            self.assertIn("subdir test", ctx)
 
     def test_handles_missing_endurance_goal(self):
         with tempfile.TemporaryDirectory() as td:

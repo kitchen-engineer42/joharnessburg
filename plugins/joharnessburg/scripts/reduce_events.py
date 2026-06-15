@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Fold append-only events for a phase into canonical state.
 
-Reads all `.json` files under `<cwd>/.john/events/<phase>/`, sorts them
-deterministically, and writes a canonical state file at
-`<cwd>/.john/checkpoints/<phase>/state.json`. Idempotent — running twice
-on the same event set produces identical output.
+Reads all `.json` files under `<project-root>/.john/events/<phase>/`
+(project root = nearest dir at or above cwd containing `.john/`), sorts
+them deterministically, and writes a canonical state file at
+`<project-root>/.john/checkpoints/<phase>/state.json`. Idempotent —
+running twice on the same event set produces identical output.
 
 The default fold is **generic**: collects events into a sorted list
 without phase-specific semantics. Phase-specific fold logic (e.g.,
@@ -44,6 +45,8 @@ import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
+
+from john_paths import find_john_root
 
 
 # An unparseable event file younger than this is treated as a write in
@@ -365,12 +368,14 @@ def main():
     )
     args = parser.parse_args()
 
-    cwd = Path.cwd()
+    # Operate on the nearest project root at or above cwd (the reduce is
+    # frequently invoked from a project subdirectory).
+    cwd = find_john_root(Path.cwd()) or Path.cwd()
     john_dir = cwd / ".john"
 
     if not john_dir.exists():
         err(
-            f"No .john/ directory found in {cwd}. "
+            f"No .john/ directory found at or above {Path.cwd()}. "
             f"Run /john:init first.",
             exit_code=1,
         )
@@ -487,6 +492,34 @@ def main():
             "orphans": orphans,
             "missing_on_disk": missing,
         }
+
+    # Persist gate/verify verdicts (append-only) so phase-boundary outcomes are
+    # readable from the workspace itself — the process scorecard's central
+    # column. Dry-run stays fully read-only.
+    if (gate is not None or verify is not None) and not args.dry_run:
+        gates_dir = checkpoint_dir / "gates"
+        try:
+            gates_dir.mkdir(parents=True, exist_ok=True)
+            verdict_ts = datetime.now(timezone.utc).isoformat()
+            ts_compact = verdict_ts.replace(":", "").replace("-", "").replace("+0000", "Z")
+            (gates_dir / f"{ts_compact}.json").write_text(
+                json.dumps(
+                    {
+                        "timestamp": verdict_ts,
+                        "phase": args.phase,
+                        "gate": gate,
+                        "verify": verify,
+                        "entries_claimed": len(claimed) if claimed is not None else None,
+                        "events_folded": state["event_count"],
+                        "exit_code": exit_code,
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            sys.stderr.write(f"WARN: could not persist gate verdict: {exc}\n")
 
     emit(
         {
