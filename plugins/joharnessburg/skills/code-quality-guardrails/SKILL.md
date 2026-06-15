@@ -71,7 +71,7 @@ Examples:
 - ✓ `grep -r 'sk-[a-zA-Z0-9]{40}' produced-app/` (leaked secret pattern)
 - ✓ `npm run build` returns exit 0
 - ✓ `pylint --errors-only produced-app/` has zero errors
-- ✓ `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/app_first_contracts.py" scan-ui-leaks produced-app/dist --language zh-CN` finds no internal terms in a Chinese UI
+- ✓ `python3 "<john-plugin-root>/scripts/app_first_contracts.py" scan-ui-leaks produced-app/dist --language zh-CN` finds no internal terms in a Chinese UI
 - ✗ "Is the UX confusing?" — requires judgment; not a guardrail, that's cross-validation territory.
 
 When a guardrail fails, the fix is usually obvious (install the dep, escape the input, fix the import). Apply automatically when safe; surface to user when not.
@@ -97,10 +97,10 @@ For app-first projects, the public UI must be checked against `.john/contracts/a
 - For non-English source projects, fail unnecessary English internal terms such as `chapter`, `schema`, `chunk`, `skill`, or `json` when they appear as user-facing labels.
 - If a term is technically present in code but not user-visible, narrow the scan target to rendered HTML/text or document the false positive in PLAN.md.
 
-Preferred command when the helper script is available:
+Preferred command when the helper script is available. In Claude Code, `<john-plugin-root>` is usually `${CLAUDE_PLUGIN_ROOT}`. In Codex, resolve it from the loaded John skill path; in a source checkout, use `plugins/joharnessburg`.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/app_first_contracts.py" scan-ui-leaks <produced-app-static-output> --language <public-language>
+python3 "<john-plugin-root>/scripts/app_first_contracts.py" scan-ui-leaks <produced-app-static-output> --language <public-language>
 ```
 
 Fix leaks by changing the display contract or rendering labels, not by renaming internal schema fields unless the internal name itself is causing repeated leaks.

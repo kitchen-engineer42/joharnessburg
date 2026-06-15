@@ -41,7 +41,7 @@ Write:
 - `.john/contracts/app_blueprint.json` always before schema pilot.
 - `.john/contracts/extraction_plan.json` always before schema pilot.
 
-Use `${CLAUDE_PLUGIN_ROOT}/scripts/app_first_contracts.py` when available to validate or generate the standard JSON shells. The LLM supplies judgment; the script keeps wire shape stable.
+Use `scripts/app_first_contracts.py` when available to validate or generate the standard JSON shells. In Claude Code, call it via `${CLAUDE_PLUGIN_ROOT}/scripts/app_first_contracts.py`. In Codex, resolve the John plugin root from this loaded skill path; in a source checkout, use `plugins/joharnessburg/scripts/app_first_contracts.py`. The LLM supplies judgment; the script keeps wire shape stable.
 
 ## One-shot product questions
 

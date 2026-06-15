@@ -41,7 +41,7 @@ codex plugin marketplace add /path/to/joharnessburg
 - `John: Endurance Goal` —— `/john:endurance`
 - `John: Archive Workspace` —— `/john:archive`
 
-安装完成后，新开一个 Claude Code 会话时 `using-john` skill 会自动加载——这是 John 的入口定向 skill，Claude 读到它就开始进入 John 的工作模式。
+安装完成后，新开一个 Claude Code 会话时 `using-john` skill 会自动加载——这是 John 的入口定向 skill，Claude 读到它就开始进入 John 的工作模式。在 Codex 中，使用 Codex App 插件界面里的 John skills；底层仍使用同一套 workspace 文件和脚本，只是 slash command 以 skill 形式暴露。
 
 ## 快速开始
 
@@ -50,9 +50,16 @@ codex plugin marketplace add /path/to/joharnessburg
 新 John 项目的自然流程：
 
 1. **（可选）先应用模板** 来特化 app 家族。看下面的 [模板](#模板) 章节——把模板装到 `~/.claude/plugins/joharnessburg-templates/<name>/`，运行它的 `apply.sh`，然后用 `--plugin-dir` 启动 Claude。如果用 vanilla John，跳过这步。
-2. **创建 workspace** —— Claude Code 中运行 `/john:init`（或者直接告诉 Claude "在这个目录里设置 John"）；Codex 中使用 `John: Init Workspace`。这会在你的项目里创建 `PLAN.md`、`CLAUDE.md`、`AGENTS.md` 和一个 `.john/` 工作目录。
+2. **创建 workspace** —— Claude Code 中运行 `/john:init`（或者直接告诉 Claude "在这个目录里设置 John"）；Codex 中使用 `John: Init Workspace`。这会在你的项目里创建 `PLAN.md`、`CLAUDE.md`、`AGENTS.md` 和一个 `.john/` 工作目录，其中 `.john/brief/` 与 `.john/contracts/` 用于 app-first intent flow。
 3. **把输入材料放进** `.john/input/`（PDF、法规、样本文档——任何 produced app 需要的素材）。
-4. **告诉 Claude 你想构建什么 app**。Claude 会按 `PLAN.md` 里声明的 phase，通过 ralph_loop（迭代驱动器）逐步推进，每个 phase 派发并行的 subagent，最终产出一个可工作的 app。
+4. **让 John 先推断普通用户看到的 app 形态**。John 会先 parse/probe 并抽样 survey 输入；当方向清楚时直接选择最佳默认方案，只有高影响且无法可靠推断的产品取舍才会向用户发起一次小问题批次。用户可以自然语言回答；John 会把中间状态写成固定 JSON，方便工具识别。
+5. **从 contract 反推构建**。schema pilot 前，John 会写出 `.john/brief/user_intent.json`、`.john/contracts/app_blueprint.json` 和 `.john/contracts/extraction_plan.json`。后续抽取从公开 app blueprint 反推，最终 UI guardrails 会检查 raw JSON、schema key、skill 名、chunk ID、文件路径、无意义英文变量名等内部痕迹不会泄漏到用户界面。
+
+Codex 兼容说明：
+
+- Codex 插件用 skills 暴露 slash command 等价入口：`John: Init Workspace`、`John: Workspace Status`、`John: Endurance Goal`、`John: Archive Workspace`。
+- 如果是在本源码检出目录中使用，而不是安装后的 Codex 插件，使用 `.agents/skills/` 下的项目桥接技能；它们调用的是同一批脚本，只是路径指向源码检出。
+- `scripts/app_first_contracts.py` 等 helper 脚本只依赖 Python 标准库。Codex 插件安装场景从已加载的 John plugin root 解析；源码检出场景使用 `plugins/joharnessburg/scripts/<script>.py`。
 
 安装后还有其它 slash command 可用：
 

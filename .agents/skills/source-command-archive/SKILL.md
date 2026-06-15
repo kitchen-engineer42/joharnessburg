@@ -7,7 +7,7 @@ description: "Codex-compatible project skill for the John archive command. Use w
 
 This project-level skill runs the same script as Claude Code's `/john:archive`.
 
-Run from the user's John project directory:
+Run from the source checkout root:
 
 ```bash
 python3 "plugins/joharnessburg/scripts/archive_workspace.py" <label-if-any> <--output PATH> <--force>

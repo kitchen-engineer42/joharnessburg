@@ -8,7 +8,7 @@ description: "Codex-compatible project skill for the John endurance command. Use
 This project-level skill runs the same script as Claude Code's
 `/john:endurance`.
 
-Run from the user's John project directory:
+Run from the source checkout root:
 
 ```bash
 python3 "plugins/joharnessburg/scripts/set_endurance.py" <goal-text-or---clear>

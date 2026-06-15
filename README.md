@@ -41,7 +41,7 @@ Then enable `john@joharnessburg` in the Codex App plugin UI. Codex does not run 
 - `John: Endurance Goal` — `/john:endurance`
 - `John: Archive Workspace` — `/john:archive`
 
-After install, the `using-john` skill auto-loads when you start a fresh Claude Code session. That's John's orientation entry point — Claude reads it and orients itself to the harness.
+After install, the `using-john` skill auto-loads when you start a fresh Claude Code session. That's John's orientation entry point — Claude reads it and orients itself to the harness. In Codex, use the John plugin skills from the app UI; the same workspace files and scripts are used, but slash commands are represented as skills.
 
 ## Quick start
 
@@ -50,9 +50,16 @@ Open a fresh Claude Code session in a project directory. John's `using-john` ski
 The natural flow for a new John project:
 
 1. **(Optional) Apply a template** for your app family before launching the session. See [Templates](#templates) below — install at `~/.claude/plugins/joharnessburg-templates/<name>/`, run its `apply.sh`, then launch Claude with `--plugin-dir`. Skip for vanilla John.
-2. **Scaffold a workspace** — in Claude Code, run `/john:init` (or just tell Claude "set up John in this dir"); in Codex, use `John: Init Workspace`. This creates `PLAN.md`, `CLAUDE.md`, `AGENTS.md`, and a `.john/` working directory in your project.
+2. **Scaffold a workspace** — in Claude Code, run `/john:init` (or just tell Claude "set up John in this dir"); in Codex, use `John: Init Workspace`. This creates `PLAN.md`, `CLAUDE.md`, `AGENTS.md`, and a `.john/` working directory in your project, including `.john/brief/` and `.john/contracts/` for the app-first intent flow.
 3. **Drop your inputs** into `.john/input/` (PDFs, regulations, sample documents — whatever the produced app should be built from).
-4. **Tell Claude what kind of app to build**. Claude advances through the phases declared in `PLAN.md` via ralph_loop (the iterative driver), dispatches parallel subagents per phase, and ends with a working app.
+4. **Let John infer the ordinary-user app shape first**. John parses/probes and surveys representative input, chooses the best default app direction when it is clear, and asks at most one small product-question batch only when a high-impact choice cannot be inferred. The user can answer naturally; John writes fixed JSON artifacts for tooling.
+5. **Build from the contracts**. Before schema pilot, John writes `.john/brief/user_intent.json`, `.john/contracts/app_blueprint.json`, and `.john/contracts/extraction_plan.json`. Extraction then works backward from the public app blueprint, and final UI guardrails check that internal terms such as raw JSON, schema keys, skill names, chunk IDs, file paths, and unnecessary English variable names do not leak into the app.
+
+Codex compatibility notes:
+
+- The Codex plugin exposes command equivalents as skills; use `John: Init Workspace`, `John: Workspace Status`, `John: Endurance Goal`, and `John: Archive Workspace`.
+- When running from this source checkout instead of an installed Codex plugin, use the project-local bridge skills under `.agents/skills/`; they call the same scripts with source-checkout paths.
+- Helper scripts such as `scripts/app_first_contracts.py` are plain Python stdlib scripts. In a Codex plugin install, resolve them from the loaded John plugin root; in a source checkout, use `plugins/joharnessburg/scripts/<script>.py`.
 
 Other slash commands available after install:
 

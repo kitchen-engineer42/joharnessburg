@@ -7,7 +7,7 @@ description: "Codex-compatible project skill for the John status command. Use wh
 
 This project-level skill runs the same script as Claude Code's `/john:status`.
 
-Run from the user's John project directory:
+Run from the source checkout root:
 
 ```bash
 python3 "plugins/joharnessburg/scripts/workspace_status.py"

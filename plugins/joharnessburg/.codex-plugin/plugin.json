@@ -1,7 +1,7 @@
 {
   "name": "john",
   "version": "0.2.2",
-  "description": "John - a Codex and Claude Code harness for building knowledge-dense apps from unstructured source material through knowledge phases and app phases.",
+  "description": "John - a Codex and Claude Code harness for building app-first, knowledge-dense apps from unstructured source material.",
   "author": {
     "name": "kitchen-engineer42"
   },
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "John",
     "shortDescription": "Build knowledge-dense apps from source documents",
-    "longDescription": "John helps Codex run long knowledge-engineering and app-building projects: parse source documents, chunk them, extract and rewrite knowledge, package the result, then build a standalone app from that knowledge.",
+    "longDescription": "John helps Codex run long app-first knowledge projects: parse and survey source documents, infer the ordinary-user app shape, write fixed intent/display/extraction JSON contracts, extract and rewrite the knowledge needed by that app, then build a standalone result.",
     "developerName": "kitchen-engineer42",
     "category": "Developer Tools",
     "capabilities": [
