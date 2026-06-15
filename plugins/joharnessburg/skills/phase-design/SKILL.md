@@ -30,7 +30,7 @@ Phases that don't have all three are not phases — they're tasks within a phase
 
 ## How many phases
 
-For the knowledge phases (knowledge engineering): typically 4-8 phases. The starter from John (parse → survey → schema-design → chunk → extract → rewrite → package) is 7. You can drop or merge — for example, a corpus that arrives pre-chunked skips "parse" and "chunk."
+For the knowledge/app-intent phases: typically 5-9 phases. The starter from John is now parse/probe → survey → infer intent / optional one-shot question batch → app blueprint / extraction plan → schema pilot → chunk/extract → rewrite → package. You can drop or merge — for example, a corpus that arrives pre-chunked skips "parse" and "chunk."
 
 For the app phases (app building): depends entirely on what's being built. A static-output app (slides, a wiki, a portfolio) might be 3-4 phases; an interactive runtime (a game, a verifier) might be 6-10. The active template usually suggests phases; if not, design them with the user.
 
@@ -44,11 +44,12 @@ These are starting points, not requirements. The user or the active template ove
 |---|---|---|---|
 | 1 | parse | Raw input → markdown. PDFs need ppx, others need MarkItDown. | Corpus arrives as clean text already. |
 | 2 | survey | Read the corpus shape before designing anything. | Tiny corpus where you can read all of it in one pass. |
-| 3 | schema-design | Decide knowledge format/schema. | Active template has already fixed the schema. |
-| 4 | chunk | Break large docs into tree of progressive-disclosure chunks. | Short-file-set corpus needs onion-*wrapper* (assemble) instead — see [[chunking]]. |
-| 5 | extract | Sweep chunks for knowledge entries. Subagent fan-out. Open with a **schema pilot** (diverse 10–20 chunk sample against the draft schema, per [[schema-design]]) before committing the full fan-out; for large corpora the pilot can be its own thin phase. | Knowledge IS the corpus (e.g., already-structured data). |
-| 6 | rewrite + cross-link | Progressive disclosure, dedup, cross-link. | Single-entry corpus. |
-| 7 | package | Emit SKILL.md to `<project>/.claude/skills/`. | Knowledge goes somewhere else (e.g., a database). |
+| 3 | intent + app blueprint | Infer user intent, ask one product-question batch only if needed, then write `.john/brief/user_intent.json` and `.john/contracts/app_blueprint.json`. | Active template has already fixed the app shape and display contract. |
+| 4 | extraction plan + schema-design | Write `.john/contracts/extraction_plan.json`, then derive internal knowledge format/schema from UI slots. | Knowledge IS already structured for the produced app. |
+| 5 | chunk | Break large docs into tree of progressive-disclosure chunks. | Short-file-set corpus needs onion-*wrapper* (assemble) instead — see [[chunking]]. |
+| 6 | schema pilot + extract | Pilot a diverse 10–20 chunk sample against the extraction plan and draft schema, then sweep chunks for knowledge entries. Subagent fan-out. | Tiny corpus can be extracted inline; active template may have deterministic extraction. |
+| 7 | rewrite + cross-link | Progressive disclosure, dedup, cross-link. | Single-entry corpus. |
+| 8 | package | Emit SKILL.md to `<project>/.claude/skills/` / `<project>/.agents/skills/` or another app data layer. | Knowledge goes somewhere else (e.g., a database). |
 
 When deciding knowledge phases for a specific project, walk this list and ask "does this project need this phase?" Drop or merge accordingly.
 
@@ -71,9 +72,9 @@ This decision must be visible in PLAN.md's chunk phase (or whatever you name it)
 
 These come from the conversation about app mechanism, not from a fixed list. But common shapes:
 
-- **Static-output apps** (slide deck, portfolio, wiki): scaffold → assemble content per entry (fan-out) → render → preview-iterate → publish.
-- **Interactive runtime apps** (game, quiz, simulator): scaffold → wire core mechanics → seed content from knowledge → wire runtime LLM proxy (if needed) → polish → deploy.
-- **Tool apps** (verifier, parser builder): scaffold → wire I/O → wire core logic from skills → test on sample inputs → tune → ship.
+- **Static-output apps** (slide deck, portfolio, wiki): scaffold → assemble public modules from the display contract → render → preview-iterate → UI leak guardrails → publish.
+- **Interactive runtime apps** (game, quiz, simulator): scaffold → wire core mechanics → seed content from UI-shaped knowledge → wire runtime LLM proxy (if needed) → polish → UI leak guardrails → deploy.
+- **Tool apps** (verifier, parser builder): scaffold → wire I/O → wire core logic from skills → test on sample inputs → tune → UI leak guardrails → ship.
 
 Each of those has 4-7 phases. The user and active template shape them.
 

@@ -15,6 +15,8 @@ project-local John state:
 - `.john/`
 - `.john/workspace.json`
 - `.john/input/`
+- `.john/brief/`
+- `.john/contracts/`
 - `PLAN.md`
 - `CLAUDE.md` if missing
 
@@ -43,8 +45,9 @@ python3 "<plugin-root>/scripts/init_workspace.py" <input-path-if-any> <--force-i
    - which input files were copied
 
 5. After success, read the new `PLAN.md` and start the project-shaping
-   conversation using `plan-md-authoring`: confirm project intent, decide the
-   app-type definition, and sketch the first phases.
+   flow using `plan-md-authoring`: capture known project intent, parse/survey
+   enough input to infer the app direction, ask the single product-question
+   batch only if needed, and produce the app-first intent/display contracts.
 
 Do not skip step 5. The script only scaffolds; the plan still needs user-facing
-project decisions.
+project decisions or documented agent assumptions.

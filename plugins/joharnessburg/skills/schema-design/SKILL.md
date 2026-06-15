@@ -1,6 +1,6 @@
 ---
 name: schema-design
-description: Decide what shape the knowledge takes in this project — facts, rules, stories, wiki entries, screenplays, custom. Use whenever the user is starting a project, the app-type definition section of PLAN.md is unsettled, you're about to enter the extract phase without a clear target schema, or anyone says "what format should we use?". Schema decisions cascade — get this loose enough to iterate but specific enough to write a starter extractor.
+description: Decide the internal knowledge schema from the app-first display contract and extraction plan — facts, rules, stories, wiki entries, screenplays, custom. Use whenever `.john/contracts/app_blueprint.json` and `.john/contracts/extraction_plan.json` exist but the internal schema is unsettled, you're about to enter the schema pilot/extract phase without a clear target schema, or anyone says "what format should we use?".
 metadata:
   triggers:
     - design the schema
@@ -20,13 +20,14 @@ This is the most consequential decision in the knowledge phases. Get it wrong-or
 
 - It's not picking from a closed menu. There is no "the John schema." Different projects want different shapes.
 - It's not a one-shot decision. The schema **evolves** through the early phases as the corpus reveals itself.
-- It's not a JSON spec for layer-2 Claude to autocomplete. It's a *taste call* the user owns.
+- It's not a public UI contract. Public labels and visible modules live in `.john/contracts/app_blueprint.json`; schema fields are internal and must be mapped before display.
+- It's not a question to push back to the user unless the one-shot product-question budget is unused and the choice is high-impact.
 
-## The app-type definition cascade
+## The app-first cascade
 
-The app-type definition cascade — knowledge format → knowledge schema → app mechanism → build pipeline — has each link constrain the next. Schema is the second link in the chain — downstream of *what kind of knowledge* and upstream of *what the app does*. The cascade itself is explained in `references/app-type-definition-cascade.md` and applied in [[plan-md-authoring]]; this skill is where the *schema link* gets designed.
+John's default cascade is now user intent → app mechanism → display contract → extraction targets → internal knowledge format/schema → build pipeline. Schema is downstream of what the public app needs to show. The legacy knowledge-first cascade remains useful for template-specific projects, but vanilla John should not design schema in isolation and then let the UI inherit awkward internal fields.
 
-You make schema decisions **only after the format decision is roughly settled**. Reverse the order and you end up over-fitting the schema to the corpus, then re-doing it when the runtime asks for something the schema can't represent.
+You make schema decisions **only after** the corpus survey and app-first contracts are available. Reverse the order and you end up extracting tidy internal data that produces a confusing app.
 
 ## Before you design — read the corpus first
 
@@ -35,15 +36,16 @@ John's job is to *teach* schema design, not hand you a schema: abstract the meth
 Practical method:
 
 1. **Read [[parsing]]'s output**. Walk through a representative sample of `<project>/.john/parsed/*/doc.md` (don't read everything; read enough to recognize patterns).
-2. **Ask survey questions** as you read:
+2. **Read app-first contracts**. Load `.john/brief/user_intent.json`, `.john/contracts/app_blueprint.json`, and `.john/contracts/extraction_plan.json`. If they do not exist, run [[app-design-thinking]] before schema-design.
+3. **Ask survey questions** as you read:
    - Is the corpus mostly *atomic statements* (factual)?
    - Mostly *prescriptive how-to* (procedural / rules)?
    - Mostly *narrative* (storylines / characters / scenes)?
    - Heavy on *connections between entities* (relational / wiki)?
    - Mixed? Which mix?
-3. **Notice structural features** the corpus already exhibits: causal chains, taxonomies, glossary-shaped terminology, recurring entities, citations, decision flowcharts.
-4. **Cross-reference user intent** from PLAN.md's project intent + app mechanism (the app-type definition cascade). A corpus full of facts might suit a quiz app (procedural runtime) OR a wiki (browsable runtime); user intent decides.
-5. **THEN sketch the schema** to fit (corpus shape × user intent), not to fit a default.
+4. **Notice structural features** the corpus already exhibits: causal chains, taxonomies, glossary-shaped terminology, recurring entities, citations, decision flowcharts.
+5. **Cross-reference extraction targets** from `.john/contracts/extraction_plan.json`. A corpus full of facts might be extracted as concept cards, chapter digests, a searchable library, or a quiz bank; UI slots decide which fields matter.
+6. **THEN sketch the schema** to fit (corpus shape × display contract × extraction targets), not to fit a default.
 
 Skip this survey and you'll re-do the schema mid-extraction. Cheap to do early; expensive to fix late.
 
@@ -68,7 +70,7 @@ Design the schema for *this* corpus — there's no canonical shape to fill in. F
 
 ## The MECE principle
 
-Extract "everything there is" OR "everything needed for what" — Mutually Exclusive, Collectively Exhaustive within the chosen schema. **Don't extract the same fact three times under different schemas; don't leave the user's input partially covered.**
+Extract "everything there is" OR "everything needed for what" — Mutually Exclusive, Collectively Exhaustive within the chosen schema. In app-first projects, "needed for what" is defined by `.john/contracts/extraction_plan.json`. **Don't extract the same fact three times under different schemas; don't leave any committed UI slot unsupported.**
 
 MECE applies to coverage, not granularity — a fact and a rule that depends on the fact can coexist if they're in different formats. Inside a single format, no duplicates.
 
@@ -86,8 +88,8 @@ This is **not a schema choice** — it's a universal practice applied on top of 
 A schema that is only *designed* but never *tested* is a hypothesis, and betting hundreds of extractions on a hypothesis is how you discover a structural mismatch at the most expensive possible moment. Before the full fan-out, run a **schema pilot**:
 
 1. Pick a **deliberately diverse 10–20 chunk sample** — and chase the corpus's *edge cases*, not its average. A pilot of typical chunks proves nothing; the chunks that looked weird in the survey (the table-heavy chapter, the appendix, the one document in a different genre) are exactly the ones that break schemas.
-2. Extract the sample against the draft schema (the [[knowledge-extraction]] mechanics in miniature, or the `schema-designer` agent's iteration loop).
-3. Check fit: did every pilot chunk's content land in the schema without forcing? Did any field stay always-empty (over-design) or overflow into free text (under-design)?
+2. Extract the sample against the draft schema and `.john/contracts/extraction_plan.json` (the [[knowledge-extraction]] mechanics in miniature, or the `schema-designer` agent's iteration loop).
+3. Check fit: did every pilot chunk's relevant content land in the schema without forcing? Did any UI slot stay unfillable? Did any field stay always-empty (over-design) or overflow into free text (under-design)?
 4. Iterate the schema on what the pilot showed, *then* commit to the full extraction. Schema changes before bulk extraction are nearly free; after it, every change carries a migration bill.
 
 Record the pilot's outcome (sample size, what changed) in PLAN.md's Log. [[phase-design]] treats the pilot as a natural early step of the extraction phase (or a thin phase of its own for large corpora).
@@ -98,7 +100,7 @@ You will. Plan for it.
 
 - After parsing: realize the corpus has a kind of content you didn't anticipate (e.g., "this regulation has both rules AND a glossary; I need both formats").
 - During extraction: an extractor subagent surfaces a structure that doesn't fit (e.g., "this rule has multi-step prerequisites the schema doesn't represent").
-- During app design: the runtime needs a field the schema doesn't carry (e.g., "the game runtime needs character motivations as first-class objects").
+- During app design: the runtime needs a field the schema doesn't carry (e.g., "the concept page needs a plain-language explanation and a quote, but the schema only stores technical labels").
 
 When iteration happens, **update PLAN.md's app-type definition section + the schema-design notes**. Log the change. Re-emit affected entries via corrective events ([[event-log-and-reducer]]) rather than rewriting the canonical state in place.
 
@@ -114,13 +116,13 @@ An earlier production system collapsed its research-grade 4-type schema (factual
 
 John's stance, in three rules drawn from the regression:
 
-- **Let the knowledge format drive the schema, not the app shape.** If the format is rules, the schema has rule-shaped fields; if it's facts, fact-shaped. Don't reverse-engineer schema from the runtime.
+- **Let extraction targets constrain the schema, not internal taste.** If the UI needs concept cards, chapter digests, and source evidence, the schema must support those public slots even if the internal entry type is factual, relational, or mixed.
 - **Templates may collapse types** if their domain only ever uses one. A doc-verification template can ship a rules-only schema. That's the template's choice, not core John's default.
 - **Header + body progressive disclosure remains universal**, regardless of schema choice. See the universal layer below.
 
 ## Working with the user
 
-Schema-design is **co-authored**. You sketch options, the user picks. Show them the menu + your read of what fits this project; ask them to choose or correct. Capture the chosen schema in PLAN.md's app-type definition section before [[knowledge-extraction]] starts. Write any unresolved questions to PLAN.md's Open Decisions section.
+Schema-design is agent-led after the app-first contracts are set. The user already had one chance to weigh in on product direction. If schema uncertainty is merely internal, choose the best schema, record assumptions, and continue. Ask only if the one-shot product-question budget is still unused and the decision would materially change the product. Capture the chosen schema in PLAN.md's app-type definition section before [[knowledge-extraction]] starts.
 
 ## Cross-references
 

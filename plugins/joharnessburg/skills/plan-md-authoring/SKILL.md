@@ -22,9 +22,17 @@ The plan is not a recipe. It's a **wide-tunnel agreement** between you and the u
 
 ## When to start writing
 
-After `/john:init` has scaffolded `<project>/.john/` and put the user's input materials in `<project>/.john/input/`. Before you've parsed anything. Before you've decided on a knowledge schema.
+After `/john:init` has scaffolded `<project>/.john/` and put the user's input materials in `<project>/.john/input/`. Before you've decided on a knowledge schema.
 
-The plan should be **written through a conversation with the user**, not generated unilaterally. If you find yourself filling in sections without asking, stop and ask. You only get one chance to shape a project at the top — don't waste it on assumptions.
+The plan starts from the user's request and what the corpus reveals. Prefer judgment over questionnaires: infer what is obvious, ask only for high-impact product choices where two or more plausible directions would materially change the app.
+
+John's default questioning budget is strict:
+
+- At most **one** product-question batch for the whole project.
+- At most **four** questions in that batch; most projects should ask zero to two.
+- Each question is ordinary-user language with a few options plus free text. Do not ask about schema fields, skill names, chunking, JSON, or implementation internals.
+- User input may be natural language. The fixed JSON lives in `.john/brief/` and `.john/contracts/`, not in the user's reply.
+- After the batch is used, do not ask more product-preference questions. Record assumptions or blockers instead.
 
 ## The skeleton
 
@@ -36,14 +44,23 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 ## Project intent
 <what the produced app does, who uses it, what it consumes, what success looks like>
 
+## Intent and display contracts
+- Intent question budget: one batch maximum, four questions maximum.
+- Intent questions, if needed: .john/brief/intent_questions.json
+- Normalized user intent, always required before schema pilot: .john/brief/user_intent.json
+- Public app blueprint, always required before schema pilot: .john/contracts/app_blueprint.json
+- UI-driven extraction plan, always required before schema pilot: .john/contracts/extraction_plan.json
+
 ## Knowledge inventory (from the knowledge phases)
 <initial: pointer to .john/input/ and a one-line corpus profile
  over time: pointer to <project>/.claude/skills/ once the knowledge phases ship>
 
 ## App-type definition
-- Knowledge format: <facts? rules? stories? wiki? mixed? — initial guess, may evolve>
-- Knowledge schema: <starter sketch; expect to iterate>
+- User intent: <derived from request + survey + optional one-shot product-question batch>
 - App mechanism: <how the produced app works for end-users>
+- Display contract: <public pages, navigation, labels, modules, forbidden visible terms>
+- Extraction targets: <what each UI slot needs from the corpus>
+- Knowledge format/schema: <internal representation derived from extraction targets; expect to iterate>
 - Build pipeline: <the rest of this doc — phases that build the app>
 
 ## Phases
@@ -75,19 +92,21 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 
 ## What goes in each section — the taste calls
 
-**Project intent.** Specific enough to disambiguate ("a study companion that quizzes the user on chapter content"), wide enough not to overfit ("a study companion" alone is fine; "a Next.js SPA with React 19 and Tailwind 4" is too narrow at intent-time — that's a runtime decision). The intent should still make sense if you change app mechanism later.
+**Project intent.** Specific enough to disambiguate ("a study companion that helps ordinary readers understand this Chinese book"), wide enough not to overfit ("a Next.js SPA with React 19 and Tailwind 4" is too narrow at intent-time). The intent should still make sense if you change app mechanism later.
+
+**Intent and display contracts.** This section records the app-first discipline. The agent first infers from the user's request, existing PLAN content, and corpus survey. If a product choice cannot be inferred and would materially change the app, emit `.john/brief/intent_questions.json` and ask the user once. Whether or not a question batch was needed, produce `.john/brief/user_intent.json`, `.john/contracts/app_blueprint.json`, and `.john/contracts/extraction_plan.json` before schema pilot.
 
 **Knowledge inventory.** Initially just a pointer + one-line profile of the corpus: "10 PDFs, ~2000 pages total, financial regulations in Chinese." Don't speculate about what'll come out yet. After the knowledge phases ship, this becomes a pointer to the produced skills.
 
-**App-type definition.** Knowledge format / knowledge schema / app mechanism / build pipeline are a **cascade** — each constrains the next. [[schema-design]] teaches the cascade methodology in depth (and the corpus-survey step that grounds it); your job in this section is to *apply* the cascade, not re-explain it. Sketch each structure for *this* project with the user, and explicitly mark each "may evolve." Two cheap commitments worth writing in here from day one: the extraction phase opens with a **schema pilot** (diverse sample before mass extraction — [[schema-design]]), and entries carry a **`schema_version`** field so later schema changes stay detectable and migratable.
+**App-type definition.** The default cascade is app-first: user intent -> app mechanism -> display contract -> extraction targets -> internal knowledge format/schema -> build pipeline. [[app-design-thinking]] owns the display contract; [[schema-design]] turns it into an internal schema after the corpus survey. Two cheap commitments worth writing in here from day one: the extraction phase opens with a **schema pilot** (diverse sample before mass extraction — [[schema-design]]), and entries carry a **`schema_version`** field so later schema changes stay detectable and migratable.
 
-This section is the user's project taste applied. Wide tunnel — sketch loose, iterate as the corpus reveals itself. The cascade's order matters: settle format first, derive schema, derive runtime, derive pipeline. Reversing the order over-fits.
+This section is the user's project taste applied, but do not push routine choices back to them. Wide tunnel — sketch loose, iterate as the corpus reveals itself. The cascade's order matters: public user experience first, then extraction and schema.
 
-**Phases.** This is the build pipeline. For the knowledge phases, John suggests a starter (parse → survey → schema-design → chunk → extract → rewrite → package, see [[phase-design]]) but the user or active template can override. For the app phases, they come from your conversation about the app mechanism. Don't try to nail every phase at start — leave the last few as "TBD: decide after phase N" if you genuinely don't know yet.
+**Phases.** This is the build pipeline. The default starter is now parse/probe -> survey -> infer intent -> optional one-shot question batch -> app blueprint -> extraction plan -> schema pilot -> full extraction -> rewrite/package -> app build -> UI leak guardrails. The user or active template can override, but vanilla John should not return to schema-first planning.
 
 **Subagent matrix.** Often empty at PLAN.md authoring time. Fills in when a phase hits fan-out. For a large uniform fan-out, note whether the phase runs as a dynamic workflow ([[vertical-workflows]]) or inline dispatch ([[subagent-dispatch]]) — the work units and event paths are the same either way.
 
-**Open decisions.** Be brave about putting stuff here. "Open decisions" is the user's chance to weigh in; if you suppress your uncertainty, you'll guess wrong and waste a phase.
+**Open decisions.** Before the one-shot product-question batch, use this section only for high-impact product choices. After the batch is used, do not keep accumulating product questions; move uncertainties into assumptions, or mark a true blocker if the project cannot proceed without external state.
 
 **Log.** Append-only. Most recent first. Real reverse-chronological dev log. After every phase advance, after every meaningful decision, write a line.
 
@@ -99,23 +118,25 @@ If your initial PLAN.md is under 100 lines, you probably haven't asked enough qu
 
 ## Anti-patterns
 
-- **Filling in everything without asking.** PLAN.md is a co-authored doc. The first draft can be your sketch, but the user must approve before phases start running.
+- **Turning bootstrap into a questionnaire.** The agent should choose the best default when the request and corpus make it obvious. Ask only when the choice is high-impact and genuinely ambiguous.
+- **Asking twice about product taste.** One product-question batch is the maximum. Later uncertainty becomes assumptions or blockers.
 - **Locking down phases that depend on extracted knowledge.** You don't know yet what the corpus contains. Write the early phases concretely; mark later phases as TBD or sketch-only.
-- **Specifying runtime details before the app-type definition conversation has settled.** Choosing React vs vanilla before deciding knowledge-format is putting the cart before the horse.
+- **Exposing internals as user-facing design.** Public labels must not show schema keys, skill names, chunk IDs, raw JSON, file paths, or meaningless English variable names in a non-English project.
 - **Copying KC's 7 phases or a predecessor's 5 stages verbatim into PLAN.md.** They were designed for specific app types. John is general. Take the pattern (a small number of named phases with clear done-criteria), drop the specifics.
 - **Omitting "Done criteria."** Without observable conditions, you can't tell when a phase is done. Disk-verifiable artifacts are the gold standard ([[workspace-discipline]]).
 
 ## The conversation with the user
 
-PLAN.md is co-authored. Do NOT fill in everything unilaterally. The taste calls — what the project actually is, what shape the runtime takes, what schema makes sense — belong to the user. You're sketching options, not deciding for them.
+PLAN.md is co-authored, but co-authoring is not abdication. The taste calls belong to the user when their preference materially changes the product; the agent owns routine defaults and inferred decisions.
 
 A workable conversation flow (adapt freely):
 
-1. **Confirm project intent.** Echo back what you understood from `/john:init` and the user's framing. If anything's ambiguous, ask before sketching.
+1. **Capture known intent.** Echo back what you understood from `/john:init`, the user's framing, and any existing project memory.
 2. **Check for an active template.** A template is active if the session launched with `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/` — its parent dir being `joharnessburg-applied/` is the signal. If so, `$CLAUDE_PLUGIN_ROOT/templates-active/plan_md_template.md` (if shipped by the template) is your skeleton; `/john:init` automatically uses it on workspace scaffold. Otherwise, you're sketching from scratch — confirm with the user.
-3. **Drive the app-type definition conversation.** For the app phases especially: ask about the runtime shape (what's the produced app, who uses it, how do they interact?) — that drives schema and format decisions backward, and pipeline decisions forward.
-4. **Sketch phases.** For the knowledge phases the suggested pipeline ([[phase-design]] documents it) is a decent default; for the app phases, phases emerge from the mechanism decision.
-5. **Show the draft, ask for taste corrections.** Don't commit to disk until the user has read and approved the app-type definition section and the first 2-3 phases.
+3. **Survey before schema.** Parse/probe enough of the corpus to identify language, genre, structure, likely audience, and likely app form.
+4. **Infer first, ask only if needed.** If a high-impact product choice remains genuinely ambiguous, write `.john/brief/intent_questions.json` with at most four ordinary-user questions, each with options and free text, then ask the single batch.
+5. **Persist contracts.** Normalize the result into `.john/brief/user_intent.json`, then write `.john/contracts/app_blueprint.json` and `.john/contracts/extraction_plan.json`. These fixed JSON files are the source of truth for schema and extraction.
+6. **Sketch phases.** Use the app-first pipeline as the default. Later app phases can remain TBD if they depend on pilot results.
 
 After the first PLAN.md write, [[plan-md-evolution]] takes over — keep PLAN.md current as work proceeds.
 

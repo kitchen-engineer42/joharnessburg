@@ -3,8 +3,8 @@ from __future__ import annotations
 
 """Scaffold a John workspace in the current working directory.
 
-Creates `.john/` with subdirs (input, parsed, chunks, knowledge, events,
-checkpoints, trace), writes `.john/workspace.json` with initial state,
+Creates `.john/` with subdirs (input, brief, contracts, parsed, chunks,
+knowledge, events, checkpoints, trace), writes `.john/workspace.json` with initial state,
 writes a starter `PLAN.md`, and writes starter provider memory files
 (`CLAUDE.md` for Claude Code, `AGENTS.md` for Codex) only when missing.
 Optionally copies a user-provided input path into `.john/input/`.
@@ -32,6 +32,8 @@ from pathlib import Path
 
 SUBDIRS = [
     "input",
+    "brief",
+    "contracts",
     "parsed",
     "chunks",
     "knowledge",
@@ -44,11 +46,22 @@ SUBDIRS = [
 PLAN_TEMPLATE = """\
 # PLAN.md — {project_name}
 
-*Created by `/john:init` on {date}. Edit freely; this is your living plan and the durable contract that spans the knowledge phases (knowledge engineering) and the app phases (app building) in one session.*
+*Created by `/john:init` on {date}. Edit freely; this is your living plan and the durable contract that spans app-first intent design, knowledge engineering, and app building in one session.*
 
 ## Project intent
 
-<!-- What the produced app does, who uses it, what it consumes, what success looks like. Filled in during the start-of-project conversation between you and Claude — see the `plan-md-authoring` skill. -->
+<!-- What the produced app does, who uses it, what it consumes, what success looks like. Start from the user's request and corpus survey; ask the user only for high-impact product choices that cannot be inferred. -->
+
+## Intent and display contracts
+
+John's default flow is app-first: decide what ordinary end-users should see, then extract the knowledge needed to serve that UI. The user can answer in natural language; John persists fixed JSON contracts for tooling.
+
+- Intent question budget: one batch maximum, four questions maximum, usually zero to two. Ask only when a high-impact product choice cannot be inferred from the user's request, existing PLAN content, and corpus survey.
+- Intent questions, if needed: `.john/brief/intent_questions.json`
+- Normalized user intent, always required before schema pilot: `.john/brief/user_intent.json`
+- Public app blueprint, always required before schema pilot: `.john/contracts/app_blueprint.json`
+- UI-driven extraction plan, always required before schema pilot: `.john/contracts/extraction_plan.json`
+- Public UI must hide: raw JSON, internal IDs, skill names, schema keys, chunk IDs, file paths, and unnecessary English variable names.
 
 ## Knowledge inventory
 
@@ -59,25 +72,44 @@ PLAN_TEMPLATE = """\
 
 ## App-type definition
 
-The four decisions that define this app type, in two pairs (format = what it is / how it works; schema = what it has / how it is built). They constrain each other in a cascade — knowledge format determines knowledge schema, schema constrains the app mechanism, mechanism drives the build pipeline. See the `plan-md-authoring` and `schema-design` skills for the methodology.
+The default cascade is now app-first. Use the corpus survey and normalized user intent to sketch the public app shape first, then derive extraction and internal schema from that display contract. See the `plan-md-authoring`, `app-design-thinking`, and `schema-design` skills for the methodology.
 
-- **Knowledge format**: <facts? rules? stories? wiki? mixed? — initial sketch, may evolve>
-- **Knowledge schema**: <starter shape per entry — fields, header/body, MECE>
+- **User intent**: <derived from request + survey + optional one-shot question batch>
 - **App mechanism**: <how the produced app works for end-users>
+- **Display contract**: <public pages, navigation, labels, modules, forbidden visible terms>
+- **Extraction targets**: <what each UI slot needs from the corpus>
+- **Knowledge format/schema**: <internal representation derived from extraction targets; may evolve after pilot>
 - **Build pipeline**: <the phases below>
 
 ## Phases
 
 ### Phase 1: bootstrap
 
-- Intent: confirm project intent + app-type-definition sketch with the user; settle the project's shape.
+- Intent: initialize the project, record known user intent, and set the app-first contract budget.
 - Skills to invoke: `plan-md-authoring`, `phase-design`
-- Required artifacts: this PLAN.md filled in with intent + initial app-type definition section
-- Done criteria: user has read and approved the app-type definition section + the first 2-3 phases
+- Required artifacts: this PLAN.md filled in with known intent, initial phase sketch, and the intent/display contract section above
+- Done criteria: PLAN.md records what is known, what will be inferred, and whether the one allowed product-question batch is still unused
 
-### Phase 2: TBD
+### Phase 2: parse + survey
 
-*Design phases 2+ once the app-type definition sketch is settled. The `phase-design` skill teaches how. Wide tunnel — don't over-specify too early.*
+- Intent: parse/probe the input and survey enough representative material to infer corpus language, structure, audience fit, and likely app forms.
+- Skills to invoke: `parsing`, `phase-design`
+- Required artifacts: `.john/parsed/` where applicable, plus a survey note in this PLAN.md Log or a phase artifact named by the agent
+- Done criteria: the agent can either infer the app direction or justify one one-shot product-question batch
+
+### Phase 3: intent + app blueprint
+
+- Intent: infer normalized user intent, ask at most one product-question batch only if needed, then write the app-first JSON contracts.
+- Skills to invoke: `app-design-thinking`, `schema-design`
+- Required artifacts: `.john/brief/user_intent.json`, `.john/contracts/app_blueprint.json`, `.john/contracts/extraction_plan.json`; `.john/brief/intent_questions.json` only if a question batch was needed
+- Done criteria: contracts exist, are valid JSON, and include public labels plus forbidden visible terms
+
+### Phase 4: schema pilot
+
+- Intent: design the internal knowledge schema from the display contract and test it on a diverse sample before full extraction.
+- Skills to invoke: `schema-design`, `knowledge-extraction`
+- Required artifacts: schema notes in this PLAN.md plus pilot events/checkpoint under `.john/events/` and `.john/checkpoints/`
+- Done criteria: pilot shows the UI slots in `.john/contracts/extraction_plan.json` can be filled without leaking internal terms
 
 ## Subagent matrix
 
@@ -85,7 +117,7 @@ The four decisions that define this app type, in two pairs (format = what it is 
 
 ## Open decisions
 
-*Things you want the user's input on. Append as they arise; clear as they resolve.*
+*High-impact product decisions only. After the one allowed product-question batch has been used, do not add new product questions here; record assumptions or blockers instead.*
 
 ## Log
 
@@ -251,6 +283,11 @@ def main():
         "schema_version": 1,
         "initialized_at": now,
         "current_phase": "bootstrap",
+        "intent_question_budget": {
+            "question_batch_limit": 1,
+            "max_questions_in_batch": 4,
+            "used": False,
+        },
         "session_metadata": {},
     }
     (john_dir / "workspace.json").write_text(

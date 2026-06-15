@@ -107,7 +107,8 @@ If the user wants to ship the working state too (for transparency, reproducibili
 2. **Descriptions are pushy.** Spot-check 5: would Claude reliably trigger this skill on a relevant prompt?
 3. **Cross-links resolve.** `[[skill-name]]` references in bodies point to skills that actually exist.
 4. **No leaked workspace paths.** Skills shouldn't reference `<project>/.john/` (working state) or the user's input source paths — those don't matter to the runtime.
-5. **The skills-analytics dashboard (if installed) shows the new skills as discoverable.** Optional check, valuable when shaking down a fresh run.
+5. **No public-label leakage.** Produced skill names and schema keys are internal retrieval handles. The app phase must map them through `.john/contracts/app_blueprint.json` before showing anything to end-users.
+6. **The skills-analytics dashboard (if installed) shows the new skills as discoverable.** Optional check, valuable when shaking down a fresh run.
 
 ## The handoff to the app phases
 

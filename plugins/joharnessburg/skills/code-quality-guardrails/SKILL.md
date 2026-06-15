@@ -1,6 +1,6 @@
 ---
 name: code-quality-guardrails
-description: Apply deterministic quality checks to the code John produces — catch the 80% of issues (leaked API keys, hardcoded prod URLs, broken imports, missing dependencies, infinite spinners, dead error states, debug logs in production) without invoking the LLM at all; only fall back to LLM-driven repair for the residual edge cases. Use this skill whenever you're about to ship produced-app code, after a build phase completes, when the user mentions code quality / security review / production readiness, or when [[ralph-loop]] approaches a deploy phase. Cheap, fast, deterministic-first — guardrails are the floor before the polish.
+description: Apply deterministic quality checks to the code John produces — catch the 80% of issues (leaked API keys, hardcoded prod URLs, broken imports, missing dependencies, infinite spinners, dead error states, debug logs in production, and user-visible internal term leaks) without invoking the LLM at all; only fall back to LLM-driven repair for the residual edge cases. Use this skill whenever you're about to ship produced-app code, after a build phase completes, when the user mentions code quality / security review / production readiness, or when [[ralph-loop]] approaches a deploy phase. Cheap, fast, deterministic-first — guardrails are the floor before the polish.
 metadata:
   triggers:
     - code quality
@@ -24,7 +24,7 @@ The principle: **deterministic checks first, LLM repair second.**
 
 When you're about to ship produced-app code (end of a build/polish phase, before deploy, or any time the user signals "is this ready?"):
 
-1. **Run the deterministic checks.** Grep for leaked secrets, check the build, verify imports resolve, lint, smoke-test the entrypoint. These are cheap, fast, predictable. They catch the bulk of real issues. See `references/common-guardrails.md` for categories.
+1. **Run the deterministic checks.** Grep for leaked secrets, check the build, verify imports resolve, lint, smoke-test the entrypoint, and scan rendered/static UI text for internal term leaks. These are cheap, fast, predictable. They catch the bulk of real issues. See `references/common-guardrails.md` for categories.
 2. **Apply automated fixes where possible.** Dependency missing → install. Import path wrong → fix the path. Leaked secret in a string → flag for user (do NOT auto-redact without confirmation; you might break a config). Many guardrails have obvious fixes; apply them.
 3. **For residual issues, dispatch the cross-validation subagent.** A separate reviewer reads the produced code + the design intent (from PLAN.md), flags issues a grep can't catch (subtle UX bugs, missing error states, security-via-obscurity, etc.). See `references/cross-validation-pattern.md`.
 4. **Surface to the user** anything still unresolved after steps 1-3.
@@ -53,7 +53,7 @@ If false-positive rates are high in a particular category, surface the pattern t
 
 - **Security**: leaked API keys / tokens / passwords; hardcoded production URLs / IPs; permissive CORS; unescaped user input rendered as HTML.
 - **Code quality**: missing dependencies in package.json/requirements.txt; broken imports; unused imports flagged by linters; obvious syntax errors; type errors (if typed language).
-- **UX**: error states unhandled (what if the API returns 500?); infinite spinners (no failure path); console.log/print statements that should be debug-only; placeholder text not replaced.
+- **UX**: error states unhandled (what if the API returns 500?); infinite spinners (no failure path); console.log/print statements that should be debug-only; placeholder text not replaced; user-visible internal labels such as raw JSON, schema keys, skill names, chunk IDs, file paths, or unnecessary English variable names.
 - **Deployment**: build succeeds (`npm run build`, `python -m build`, etc.); smoke test passes (entrypoint runs without crashing); Dockerfile (if applicable) builds.
 
 For each category, the produced-app phase should run at least one check. Templates can ship more category-specific guardrails (e.g., a slide-deck template might check that the produced HTML opens cleanly in a browser).
@@ -71,6 +71,7 @@ Examples:
 - ✓ `grep -r 'sk-[a-zA-Z0-9]{40}' produced-app/` (leaked secret pattern)
 - ✓ `npm run build` returns exit 0
 - ✓ `pylint --errors-only produced-app/` has zero errors
+- ✓ `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/app_first_contracts.py" scan-ui-leaks produced-app/dist --language zh-CN` finds no internal terms in a Chinese UI
 - ✗ "Is the UX confusing?" — requires judgment; not a guardrail, that's cross-validation territory.
 
 When a guardrail fails, the fix is usually obvious (install the dep, escape the input, fix the import). Apply automatically when safe; surface to user when not.
@@ -86,6 +87,23 @@ Some issues require judgment:
 These are real bugs that grep won't catch. The **cross-validation pattern** (from a production app-builder's design): a separate reviewer subagent reads the produced code + design intent + a few key files, returns a flagged-issues list. Opt-in via a flag; slows the pipeline but catches what guardrails miss.
 
 See `references/cross-validation-pattern.md` for the briefing and integration.
+
+## UI leak guardrail
+
+For app-first projects, the public UI must be checked against `.john/contracts/app_blueprint.json` before phase-done or ship:
+
+- Scan the built or rendered UI output, not `.john/` working state.
+- Fail if visible/static text contains raw JSON, `schema_version`, `chapter_id`, `chunk_id`, skill names, `.john/` paths, source file paths, or long internal identifiers.
+- For non-English source projects, fail unnecessary English internal terms such as `chapter`, `schema`, `chunk`, `skill`, or `json` when they appear as user-facing labels.
+- If a term is technically present in code but not user-visible, narrow the scan target to rendered HTML/text or document the false positive in PLAN.md.
+
+Preferred command when the helper script is available:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/app_first_contracts.py" scan-ui-leaks <produced-app-static-output> --language <public-language>
+```
+
+Fix leaks by changing the display contract or rendering labels, not by renaming internal schema fields unless the internal name itself is causing repeated leaks.
 
 ## Templates extend these
 

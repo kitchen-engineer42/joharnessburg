@@ -24,13 +24,27 @@ class TestInitWorkspace(unittest.TestCase):
             self.assertTrue((tdp / "CLAUDE.md").is_file())
             self.assertTrue((tdp / "AGENTS.md").is_file())
             # Subdirs
-            for sd in ["input", "parsed", "chunks", "knowledge", "events", "checkpoints", "trace"]:
+            for sd in ["input", "brief", "contracts", "parsed", "chunks", "knowledge", "events", "checkpoints", "trace"]:
                 self.assertTrue((tdp / ".john" / sd).is_dir(), f"missing subdir {sd}")
             # Workspace state shape (v0.1.15+: no active_template field)
             state = json.loads((tdp / ".john" / "workspace.json").read_text())
             self.assertEqual(state["schema_version"], 1)
             self.assertNotIn("active_template", state)
             self.assertEqual(state["current_phase"], "bootstrap")
+            self.assertEqual(
+                state["intent_question_budget"],
+                {
+                    "question_batch_limit": 1,
+                    "max_questions_in_batch": 4,
+                    "used": False,
+                },
+            )
+            plan_body = (tdp / "PLAN.md").read_text()
+            self.assertIn("Intent and display contracts", plan_body)
+            self.assertIn(".john/brief/user_intent.json", plan_body)
+            self.assertIn(".john/contracts/app_blueprint.json", plan_body)
+            self.assertIn("one batch maximum, four questions maximum", plan_body)
+            self.assertIn("schema pilot", plan_body)
 
     def test_init_errors_when_john_exists_without_force(self):
         with tempfile.TemporaryDirectory() as td:

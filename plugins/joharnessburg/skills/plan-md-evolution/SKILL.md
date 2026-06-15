@@ -42,9 +42,10 @@ For each of these, the Log records *what changed and why*. Append-only — never
 
 PLAN.md's Open Decisions section is where you write questions you need the user to answer. The discipline:
 
-- **Append questions as they arise.** Don't sit on uncertainty — write it down where the user can see.
+- **Respect the intent question budget.** Product-preference questions get at most one batch of at most four ordinary-user questions for the whole project. If that batch has already been used, record assumptions or blockers instead of appending another product question.
+- **Append only real blockers or unused-budget product questions.** Don't sit on uncertainty, but don't turn every uncertainty into a user interruption.
 - **Clear questions when resolved.** When the user answers, append the resolution to the Log + remove the question from Open Decisions. Or move-to-resolved; some users like a struck-through history.
-- **One Open Decision can block the loop.** When a question blocks phase progress, ralph-loop stops there and surfaces the question. Don't barrel through ambiguity.
+- **One Open Decision can block the loop.** When a non-product blocker or unused-budget product question blocks phase progress, ralph-loop stops there and surfaces it. After the product-question budget is spent, make the best defensible product assumption unless the project truly cannot proceed.
 
 See `references/log-and-decisions-discipline.md` for the formatting + flow.
 
@@ -64,7 +65,7 @@ The handoff: [[ralph-loop]] step 5 is "update PLAN.md after each phase." That st
 
 A common mistake: trying to do evolution mid-phase (e.g., editing the phase definition while the phase is still running). Don't. Wait until the phase boundary, then evolve. Mid-phase changes risk leaving the canonical state inconsistent with the new phase intent.
 
-If a mid-phase observation NEEDS to be captured (e.g., a subagent surfaces that the schema is wrong and you can't continue extraction), use the **Open Decisions** section, not the phase definition. The user resolves the decision at the next phase boundary.
+If a mid-phase observation NEEDS to be captured (e.g., a subagent surfaces that the schema is wrong and you can't continue extraction), use the **Open Decisions** section only if it is a real blocker or the one product-question batch is still unused. Otherwise record it as an assumption or Log entry and continue with the best defensible default.
 
 ## Anti-patterns
 

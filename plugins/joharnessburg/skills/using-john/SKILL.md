@@ -22,6 +22,12 @@ Older projects and team shorthand may call the two halves by their legacy nickna
 
 **Produced apps run standalone by default** — locally or on any host the user owns, configured through `.env`, with no external auth/billing/telemetry platform assumed. Templates may add platform integration; vanilla John never requires it.
 
+**Vanilla John is app-first by default** — after parse/probe and survey, infer what ordinary end-users should see, ask one product-question batch only if a high-impact choice cannot be inferred, then write fixed JSON contracts before schema pilot:
+
+- `.john/brief/user_intent.json`
+- `.john/contracts/app_blueprint.json`
+- `.john/contracts/extraction_plan.json`
+
 ## The user's working state — where to look
 
 Everything John writes lives in the **user's project directory** (the current working directory when this session was started). You write here, not into John's plugin install location.
@@ -29,7 +35,7 @@ Everything John writes lives in the **user's project directory** (the current wo
 - `<project>/PLAN.md` — the durable plan. Read this first. Has phases, subagent assignments, the app-type definition section, open decisions, an append-only log. It is the source of truth across context compactions.
 - `<project>/CLAUDE.md` — Claude Code project memory. If absent, John's init creates a starter; if present, read it for project-specific conventions.
 - `<project>/AGENTS.md` — Codex project memory. If absent, John's init creates a starter; if present, read it for project-specific conventions.
-- `<project>/.john/` — working state. Hidden, ephemeral-ish. Contains `workspace.json` (active template + current phase), `input/` (user materials), `parsed/`, `chunks/`, `knowledge/`, `events/` (append-only logs), `checkpoints/`, `trace/` (offloaded large tool results).
+- `<project>/.john/` — working state. Hidden, ephemeral-ish. Contains `workspace.json` (current phase + intent question budget), `input/` (user materials), `brief/` (one-shot intent questions + normalized intent), `contracts/` (app blueprint + extraction plan), `parsed/`, `chunks/`, `knowledge/`, `events/` (append-only logs), `checkpoints/`, `trace/` (offloaded large tool results).
 - `<project>/.claude/skills/` — deliverable skills for Claude Code.
 - `<project>/.agents/skills/` — deliverable skills for Codex.
 
@@ -43,7 +49,7 @@ Six rules. Internalize these — every other John skill builds on them.
 2. **Advance one phase at a time.** Don't try to finish multiple phases in one pass; the matrix is sequential horizontally.
 3. **Spawn subagents for vertical-axis parallel work.** Per-chunk extraction, per-entry rewrite, per-skill authoring — these are subagent jobs, not main-agent jobs. See [[subagent-dispatch]]. When a fan-out is large and uniform (dozens-to-thousands of units) and the session is workflow-configured, run it as a dynamic workflow instead of hand-dispatching — see [[vertical-workflows]]. **Check workflow availability before the first fan-out phase**: misconfigured → stop and tell the user the README's config recipe; feature-absent → announced inline fallback (same events, same reducer); endurance goal set → assume configured and proceed without pausing. Record the engine choice in PLAN.md.
 4. **Disk is truth.** Never trust your in-memory belief about what's done. Check disk. See [[workspace-discipline]].
-5. **When stuck or hitting a judgment call, write it to PLAN.md's Log section and stop.** Ask the user. Don't barrel through ambiguity.
+5. **When stuck or hitting a judgment call, respect the intent question budget.** For product taste, ask at most one batch of at most four ordinary-user questions; after that, record assumptions or blockers in PLAN.md and continue with the best defensible default. For non-product blockers (missing files, parse failures, credentials), report the blocker plainly.
 6. **After a phase, update PLAN.md.** Mark done, log decisions, surface blockers, then loop. See [[ralph-loop]] and [[plan-md-evolution]].
 
 ## The endurance goal
@@ -58,6 +64,7 @@ Set the goal with `/john:endurance <goal>` in Claude Code, or with `endurance-go
 - Don't put hundreds of knowledge entries into your own context. Fan out.
 - Don't write canonical state from a subagent directly — use the event log. See [[event-log-and-reducer]].
 - Don't assume the user wants you to advance autonomously without checkpoints. Pause at phase boundaries unless they've said "run to completion."
+- Don't expose internal schema keys, skill names, raw JSON, chunk IDs, file paths, or unnecessary English variable names in the produced app's public UI.
 - Don't reference any files outside `<project>/` and the active John plugin root. In Claude Code the plugin root may be `${CLAUDE_PLUGIN_ROOT}`; in Codex, resolve it from the loaded skill path or the source checkout.
 - Don't write a separate `spec.md` for handoff between halves. PLAN.md is the durable contract across the knowledge and app phases in one session — no second contract needed. If you encounter a `spec.md` in a project, it's vestigial — incorporate its content into PLAN.md and stop reading it.
 
