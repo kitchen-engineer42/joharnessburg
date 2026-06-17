@@ -126,7 +126,15 @@ claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 
 合并后的插件**就是**那个会话的 John —— 模板的 skill 跟核心 skill 同等加载，没有"模板层"这种二等概念。哪个模板被加载是会话启动时固定的；要切换，退出当前会话用不同的 `--plugin-dir` 重新启动。多个 applied 模板可以共存（并行的 Claude 会话可以用不同模板）。
 
-重置：`rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/`（或者全清 `~/.claude/plugins/joharnessburg-applied/`）。下次不带 `--plugin-dir` 启动就是 vanilla John。
+重置：`rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/`（或用 `scripts/reset_john.py` 全清）——**仅在没有会话正在使用这些目录时**（见下方警告）。下次不带 `--plugin-dir` 启动就是 vanilla John。
+
+### 同时跑多个会话（不同模板，或同时跑 vanilla）
+
+会话之间靠各自的 `--plugin-dir` 相互隔离，所以你可以并行跑很多个——不同模板，也可以同时跑 vanilla John：
+
+- **每个模板一个 applied 目录。** 每个模板各应用一次到自己的 `~/.claude/plugins/joharnessburg-applied/<name>/`，每个会话用对应目录的 `--plugin-dir` 启动。每个项目各自有独立的 `.john/` 工作区，跟加载了哪个模板无关。
+- **vanilla** 直接从插件源码目录启动（`claude --plugin-dir /path/to/joharnessburg/plugins/joharnessburg`），**不要**从 applied 目录启动——这样 `reset_john.py` 也永远不会动到 vanilla 会话。
+- **⚠️ 绝不要在某个 applied 目录正被会话使用时删除或重置它。** `--plugin-dir` 会话是从该目录**实时读盘**的——hook 在每次工具调用时都会重新执行其脚本，skill 也按需加载——所以运行途中删掉它（误跑 `reset_john.py` 或 `rm -rf`）会让所有指向它的活跃会话崩掉：hook 报 "file not found"、skill 加载失败。只在这些会话都关闭后再重置。万一误删了，把同一个模板重新应用到同一路径即可；活跃会话会在下一次动作时自动恢复（或用 `claude --continue --plugin-dir <path>` 重新接上）。
 
 **去哪儿找模板**：本插件不内置示例——这能让 John 的运行时聚焦于你加载的那一个模板（或者完全不用模板）。功能演示性质的参考示例（展示 diff 格式）放在配套工具 **Hamster**（[github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)）的 `examples/` 目录下。生产模板由你的团队单独交付。
 

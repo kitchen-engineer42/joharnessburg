@@ -1,6 +1,6 @@
 {
   "name": "john",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "John \u2014 a Claude Code harness for app-first, knowledge-dense apps. Wraps Claude Code with skills, hooks, slash commands, and a small toolkit so Claude can survey unstructured input, infer the ordinary-user app shape, take it through knowledge phases and app phases, and build the app in one long-running session.",
   "author": {
     "name": "kitchen-engineer42"

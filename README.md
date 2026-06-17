@@ -126,7 +126,15 @@ claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 
 The merged plugin IS John for that session — all template skills load equally with the core ones; there's no second-class "template layer." Which template is loaded is fixed at session start; to switch, exit and relaunch with a different `--plugin-dir`. Multiple applied templates can coexist (parallel Claude sessions can use different ones).
 
-To reset: `rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/` (or wipe all with `~/.claude/plugins/joharnessburg-applied/`). The next launch without `--plugin-dir` uses vanilla John.
+To reset: `rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/` (or wipe all with `scripts/reset_john.py`) — **only when no session is using those dirs** (see the warning below). The next launch without `--plugin-dir` uses vanilla John.
+
+### Running several sessions at once (different templates, or vanilla too)
+
+Sessions are isolated by their `--plugin-dir`, so you can run many in parallel — different templates, with vanilla John alongside:
+
+- **One applied dir per template.** Apply each template once to its own `~/.claude/plugins/joharnessburg-applied/<name>/`, and launch each session with `--plugin-dir` at the matching dir. Each project keeps its own `.john/` workspace, independent of which template is loaded.
+- **Vanilla** launches from the plugin source itself (`claude --plugin-dir /path/to/joharnessburg/plugins/joharnessburg`), **not** from an applied dir — that also keeps `reset_john.py` from ever touching a vanilla session.
+- **⚠️ Never delete or reset an applied dir while a session is using it.** A `--plugin-dir` session reads that directory **live from disk** — hooks re-run their scripts on every tool call and skills load on demand — so deleting it mid-run (a stray `reset_john.py` or `rm -rf`) breaks every live session pointed at it: hooks fail "file not found", skills stop loading. Reset only after those sessions are closed. If it happens by accident, re-apply the same template to the same path; the live session recovers on its next action (or resume it with `claude --continue --plugin-dir <path>`).
 
 **Where to find templates**: This plugin ships no bundled examples — that keeps John's runtime focused on the one template you load (or none). Reference examples (functional demonstrators of the diff format) live in the companion tool **Hamster** ([github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)) under `examples/`. Real production templates ship separately from your team.
 
