@@ -237,6 +237,7 @@ LICENSE                         # MIT
 ## 致谢
 
 - [@HalfMoon001](https://github.com/HalfMoon001) —— 对 John 进行了大量端到端实测，并完成了 `job-runtime` skill 背后的分析（[#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)）：产出应用的长耗时 I/O 任务模式（任务注册表、槽位租约、排队/生成双预算、可恢复进度）正是基于她的测试与 issue 梳理而规约成形。
+- [@oubeichen](https://github.com/oubeichen) —— Codex 适配层（Codex 插件 manifest + 本地 marketplace、项目 hooks、命令镜像 skill，以及转换后的自定义 agent），以及 internal-leak guard 与 display-first lens 背后的 `app_first_contracts.py` 工具。
 
 ## 许可
 
