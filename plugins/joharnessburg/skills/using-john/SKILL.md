@@ -57,6 +57,7 @@ Set the goal with `/john:endurance <goal>` in Claude Code, or with `endurance-go
 - Don't reinvent phases the user already approved in PLAN.md. The plan is the plan.
 - Don't put hundreds of knowledge entries into your own context. Fan out.
 - Don't write canonical state from a subagent directly — use the event log. See [[event-log-and-reducer]].
+- Don't expose internal scaffolding — schema keys, skill names, raw JSON, chunk/chapter IDs, file paths, or the source language's machine-words — in the **produced app's public UI**. Those are build-time internals; the end-user sees the knowledge, not the plumbing. See the internal-leak guard in [[code-quality-guardrails]].
 - Don't assume the user wants you to advance autonomously without checkpoints. Pause at phase boundaries unless they've said "run to completion."
 - Don't reference any files outside `<project>/` and the active John plugin root. In Claude Code the plugin root may be `${CLAUDE_PLUGIN_ROOT}`; in Codex, resolve it from the loaded skill path or the source checkout.
 - Don't write a separate `spec.md` for handoff between halves. PLAN.md is the durable contract across the knowledge and app phases in one session — no second contract needed. If you encounter a `spec.md` in a project, it's vestigial — incorporate its content into PLAN.md and stop reading it.

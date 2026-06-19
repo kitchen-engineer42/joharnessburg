@@ -58,6 +58,18 @@ If false-positive rates are high in a particular category, surface the pattern t
 
 For each category, the produced-app phase should run at least one check. Templates can ship more category-specific guardrails (e.g., a slide-deck template might check that the produced HTML opens cleanly in a browser).
 
+## The internal-leak guard (the produced app's public surface)
+
+A knowledge-dense app is built from internal scaffolding — schema keys, chunk IDs, skill names, `.john/` paths, raw JSON, the source language's machine-words. None of it belongs in what the end-user sees, and a shipped app surfacing `chapter_id` in a heading or a stray `{"schema_version": …}` in the UI is a recurring, embarrassing failure. It's deterministically catchable, so catch it.
+
+Before phase-done or ship, scan the **produced app's user-facing output** (built/rendered files — never `.john/` working state) for leaked internals:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/app_first_contracts.py" scan-ui-leaks <produced-app-dir> [--language zh]
+```
+
+It returns `{success, violations}` — flagging raw JSON, internal identifiers (`schema_version` / `chapter_id` / `chunk_id` / skill names), `.john/` or filesystem paths, and — for a non-English app (`--language zh`) — bare English machine-words (`chapter`, `schema`, `chunk`, `json`) showing up as user-facing labels. Treat violations as ship-blockers unless one is provably inside non-user-facing code. (The same tool can help you *design* the public surface up front — the display-first lens in [[app-design-thinking]].)
+
 ## What "deterministic" means here
 
 A guardrail is deterministic if:

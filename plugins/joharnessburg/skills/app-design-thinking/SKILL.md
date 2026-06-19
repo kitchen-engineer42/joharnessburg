@@ -69,6 +69,18 @@ Sometimes app-design-thinking reveals that the produced knowledge isn't quite sh
 
 If re-emission is expensive AND the runtime can adapt, adapting often wins. If re-emission is cheap OR the field is mandatory, extending the schema is right. Capture the decision in PLAN.md so future-you knows why the cascade looks the way it does.
 
+## The display-first lens — front-load the cascade (optional)
+
+The reverse-direction section above is the *reactive* fix: you discover late that the schema doesn't carry what the runtime needs. For projects where the app's shape is reasonably clear early (most app-shaped projects — a reading site, a verifier dashboard, a study app), you can avoid that whole detour by thinking display-first **before** the schema locks:
+
+1. After parse + corpus survey, sketch **what the ordinary end-user should see and do** — the public surface: the pages/views, the navigation, the labels (in the user's language), and what must *never* be visible (internal IDs, schema words).
+2. **Derive the extraction targets from that display.** Each thing the UI shows becomes a field the extraction must produce. This front-loads "runtime informs schema" so the expensive late re-emission rarely happens.
+3. Then run schema-design and the schema pilot against those targets, and fan out extraction with each worker knowing which UI slot its fields feed.
+
+Optionally capture this as machine-readable contracts for the extraction fan-out — `scripts/app_first_contracts.py build-contracts` emits an app-blueprint + extraction-plan JSON; `scan-ui-leaks` later checks the built app honored the "never visible" list (see [[code-quality-guardrails]]).
+
+**Keep the tunnel wide.** This is a lens, not a cage: the day-one display is a *starting* contract, not a ceiling. Don't let it under-constrain the corpus — still extract the knowledge the corpus richly offers that the app could grow into, and let the contract evolve after the schema pilot. And if settling the display needs a genuine product call, ask the user a *small* focused batch of plain-language questions (what should the reader experience? what tone?), not schema/JSON/chunking questions — a handful at most, then proceed on a defensible default and record it in PLAN.md. John stays knowledge-dense; the display just gives the knowledge a destination earlier.
+
 ## Working with the user
 
 App-design-thinking is **co-authored**. Sketch options, the user picks. The runtime shape especially is a taste call — does the user want a chat app or a static page? A web app or a CLI? Don't decide unilaterally.
