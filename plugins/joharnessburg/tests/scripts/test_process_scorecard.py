@@ -96,7 +96,10 @@ class TestProcessScorecard(unittest.TestCase):
             self.assertEqual(ex["distinct_subagents"], 2)
             self.assertEqual(ex["event_types"], {"entry_extracted": 3})
             self.assertTrue(ex["checkpoint_present"])
-            self.assertEqual(ex["incomplete_chunks"], 1)
+            # Legacy checkpoints stored echo-only audit gaps in incomplete_chunks;
+            # the scorecard normalizes those down to chunks_missing_echo.
+            self.assertEqual(ex["incomplete_chunks"], 0)
+            self.assertEqual(ex["chunks_missing_echo"], 1)
             self.assertEqual(ex["gate_runs"], 1)
             self.assertEqual(ex["gates"][0]["gate_status"], "pass")
             self.assertEqual(ex["gates"][0]["verify_orphans"], 1)
@@ -109,9 +112,63 @@ class TestProcessScorecard(unittest.TestCase):
             self.assertEqual(si["per_skill"]["john:chunking"], 1)
             self.assertEqual(si["per_phase"]["(unattributed)"], 1)
 
+            # Phase provenance — fixture's current_phase (extract) IS backed.
+            pp = out["phase_provenance"]
+            self.assertEqual(pp["event_checkpoint_backed"], ["extract", "parse", "rewrite"])
+            self.assertEqual(pp["current_phase"], "extract")
+            self.assertTrue(pp["current_phase_backed"])
+            self.assertEqual(pp["skill_log_phases"], ["extract"])
+            self.assertEqual(pp["skill_log_unbacked"], [])
+
             self.assertEqual(out["lessons"]["total"], 1)
             self.assertEqual(out["lessons"]["by_scope"], {"template": 1})
             self.assertIn("n/a", out["interventions"])
+
+    def test_phase_provenance_flags_unbacked_current_phase(self):
+        # current_phase advanced to an artifact-producing phase that wrote no
+        # events/checkpoints, and skills were attributed to it — the scorecard
+        # phase list omits it; provenance must surface the disagreement.
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            _build_fixture(tdp)
+            ws = json.loads((tdp / ".john" / "workspace.json").read_text())
+            ws["current_phase"] = "app-build"
+            (tdp / ".john" / "workspace.json").write_text(json.dumps(ws))
+            (tdp / ".john" / "skill-log" / "c-app-build.json").write_text(json.dumps({
+                "schema_version": 1, "timestamp": "2026-06-12T00:00:02+00:00",
+                "skill": "john:app-build", "args_chars": 0, "phase": "app-build",
+            }))
+
+            rc, out, err = run_script("process_scorecard.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            pp = out["phase_provenance"]
+            self.assertEqual(pp["current_phase"], "app-build")
+            self.assertFalse(pp["current_phase_backed"])
+            self.assertEqual(pp["skill_log_phases"], ["app-build", "extract"])
+            self.assertEqual(pp["skill_log_unbacked"], ["app-build"])
+            self.assertNotIn("app-build", out["phases"])  # absent from the event/checkpoint list
+            # human summary surfaces both notes
+            self.assertIn("no event/checkpoint", err)
+            self.assertIn("skill-log", err)
+
+    def test_legacy_checkpoint_chunk_counts_keep_missing_complete_high_risk(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            _build_fixture(tdp)
+            (tdp / ".john" / "checkpoints" / "extract" / "state.json").write_text(json.dumps({
+                "phase": "extract",
+                "incomplete_chunks": [
+                    {"chunk_id": "echo-only", "missing": ["chunk_echo"]},
+                    {"chunk_id": "no-complete", "missing": ["chunk_complete"]},
+                    {"chunk_id": "no-both", "missing": ["chunk_complete", "chunk_echo"]},
+                ],
+            }))
+
+            rc, out, err = run_script("process_scorecard.py", "--quiet", cwd=tdp)
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            ex = out["phases"]["extract"]
+            self.assertEqual(ex["incomplete_chunks"], 2)
+            self.assertEqual(ex["chunks_missing_echo"], 1)
 
     def test_deterministic_and_read_only(self):
         with tempfile.TemporaryDirectory() as td:

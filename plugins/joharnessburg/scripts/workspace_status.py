@@ -70,6 +70,24 @@ def list_dirs(p: Path):
     return sorted([d.name for d in p.iterdir() if d.is_dir()])
 
 
+def skill_log_phases(john_dir: Path):
+    log_dir = john_dir / "skill-log"
+    phases = set()
+    if not log_dir.is_dir():
+        return []
+    for f in sorted(log_dir.glob("*.json")):
+        try:
+            record = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(record, dict):
+            continue
+        phase = record.get("phase")
+        if isinstance(phase, str) and phase:
+            phases.add(phase)
+    return sorted(phases)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Print John workspace status.",
@@ -112,6 +130,24 @@ def main():
     # Inventory of phase artifacts
     phases_with_events = list_dirs(john_dir / "events")
     phases_with_checkpoints = list_dirs(john_dir / "checkpoints")
+    event_checkpoint_backed_phases = sorted(
+        set(phases_with_events) | set(phases_with_checkpoints)
+    )
+    current_phase = state.get("current_phase")
+    logged_phases = skill_log_phases(john_dir)
+    phase_provenance = {
+        "event_checkpoint_backed": event_checkpoint_backed_phases,
+        "current_phase": current_phase,
+        "current_phase_backed": (
+            current_phase in event_checkpoint_backed_phases
+            if current_phase
+            else None
+        ),
+        "skill_log_phases": logged_phases,
+        "skill_log_unbacked": sorted(
+            set(logged_phases) - set(event_checkpoint_backed_phases)
+        ),
+    }
 
     inventory = {
         "input_files": count_files(john_dir / "input"),
@@ -145,6 +181,7 @@ def main():
         "claude_md_present": claude_md_exists,
         "agents_md_present": agents_md_exists,
         "inventory": inventory,
+        "phase_provenance": phase_provenance,
     }
 
     if not args.quiet:
@@ -157,12 +194,25 @@ def main():
 def _human_summary(report):
     ws = report["workspace"]
     inv = report["inventory"]
+    pp = report["phase_provenance"]
     lines = [
         "",
         f"John workspace at: {report['project_root']}",
         f"  initialized: {ws.get('initialized_at', '?')}",
         f"  loaded template: {_detect_template_from_env() or '(none — vanilla John)'}",
-        f"  current phase: {ws.get('current_phase') or '?'}",
+        f"  current phase: {ws.get('current_phase') or '?'}"
+        + (
+            "  ⚠ current_phase has no event/checkpoint backing"
+            if pp.get("current_phase_backed") is False
+            else ""
+        ),
+    ]
+    if pp.get("skill_log_unbacked"):
+        lines.append(
+            "  NOTE: phase attributed in skill-log but no event/checkpoint recorded: "
+            + ", ".join(pp["skill_log_unbacked"])
+        )
+    lines += [
         "",
         "Inventory:",
         f"  input files: {inv['input_files']}",

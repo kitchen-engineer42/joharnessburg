@@ -140,14 +140,24 @@ def load_events(phase_dir: Path, *, quarantine: bool = True):
 
 
 def _check_chunk_completeness(events: list[dict]) -> dict:
-    """Detect chunks with missing chunk_echo or chunk_complete events.
+    """Classify per-chunk completeness by the work-completion signal.
 
-    A subagent may occasionally skip its chunk_echo (or, less commonly,
-    chunk_complete). The reducer flags these so the user can see them.
+    Two conditions of very different severity, kept separate so a reader is not
+    misled into re-extracting work that is actually done:
+
+    - **incomplete_chunks** — chunks with no ``chunk_complete`` event: the work
+      unit may genuinely be unfinished (higher risk; worth a look before
+      advancing). Each entry records what is missing (always ``chunk_complete``,
+      plus ``chunk_echo`` when that is absent too).
+    - **chunks_missing_echo** — chunks that HAVE ``chunk_complete`` but skipped
+      their ``chunk_echo``: the knowledge was extracted; only the
+      self-correction / audit echo is absent (low risk, informational — *not*
+      incomplete).
 
     Returns a dict like:
       {
-        "incomplete_chunks": [{"chunk_id": "...", "missing": ["chunk_echo"]}, ...],
+        "incomplete_chunks": [{"chunk_id": "...", "missing": [...]}, ...],
+        "chunks_missing_echo": ["chunk_id", ...],
         "chunks_with_echo": N,
         "chunks_with_complete": M,
       }
@@ -171,19 +181,23 @@ def _check_chunk_completeness(events: list[dict]) -> dict:
             chunks_with_complete.add(chunk_id)
 
     incomplete: list[dict] = []
+    missing_echo: list[str] = []
     if chunks_with_echo or chunks_with_complete:
-        all_chunks = chunks_with_echo | chunks_with_complete
-        for cid in sorted(all_chunks):
-            missing = []
-            if cid not in chunks_with_echo:
-                missing.append("chunk_echo")
-            if cid not in chunks_with_complete:
-                missing.append("chunk_complete")
-            if missing:
-                incomplete.append({"chunk_id": cid, "missing": missing})
+        for cid in sorted(chunks_with_echo | chunks_with_complete):
+            has_echo = cid in chunks_with_echo
+            has_complete = cid in chunks_with_complete
+            if not has_complete:
+                # No chunk_complete → the work unit may genuinely be unfinished.
+                incomplete.append(
+                    {"chunk_id": cid, "missing": ["chunk_complete"] + ([] if has_echo else ["chunk_echo"])}
+                )
+            elif not has_echo:
+                # Has chunk_complete but no echo → audit-trail gap only, not incomplete.
+                missing_echo.append(cid)
 
     return {
         "incomplete_chunks": incomplete,
+        "chunks_missing_echo": missing_echo,
         "chunks_with_echo": len(chunks_with_echo),
         "chunks_with_complete": len(chunks_with_complete),
     }
@@ -323,6 +337,7 @@ def reduce_phase(phase_dir: Path, project_root: Path, *, quarantine: bool = True
         "events_quarantined": quarantined,
         "events_skipped_fresh": skipped_fresh,
         "incomplete_chunks": completeness["incomplete_chunks"],
+        "chunks_missing_echo": completeness["chunks_missing_echo"],
         "chunks_with_echo": completeness["chunks_with_echo"],
         "chunks_with_complete": completeness["chunks_with_complete"],
         "events": events,
@@ -415,8 +430,15 @@ def main():
 
     if state["incomplete_chunks"]:
         sys.stderr.write(
-            f"NOTE: {len(state['incomplete_chunks'])} chunk(s) missing chunk_echo or "
-            f"chunk_complete events. See state.json's incomplete_chunks field.\n"
+            f"WARNING: {len(state['incomplete_chunks'])} chunk(s) missing chunk_complete — "
+            f"extraction may be unfinished. See state.json's incomplete_chunks field.\n"
+        )
+
+    if state["chunks_missing_echo"]:
+        sys.stderr.write(
+            f"INFO: {len(state['chunks_missing_echo'])} chunk(s) completed without a "
+            f"chunk_echo (audit-trail only; not incomplete). See state.json's "
+            f"chunks_missing_echo field.\n"
         )
 
     # ---- phase-boundary checks (count gate + disk reconciliation) ----
@@ -529,6 +551,7 @@ def main():
             "events_quarantined": quarantined,
             "events_skipped_fresh": skipped_fresh,
             "incomplete_chunks": state["incomplete_chunks"],
+            "chunks_missing_echo": state["chunks_missing_echo"],
             "quarantine_dir": str((phase_dir / "_quarantine").relative_to(cwd)) if quarantined else None,
             "state_file": str(state_file.relative_to(cwd)) if not args.dry_run else None,
             "dry_run": args.dry_run,

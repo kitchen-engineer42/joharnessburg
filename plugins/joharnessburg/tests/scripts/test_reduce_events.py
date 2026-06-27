@@ -283,13 +283,13 @@ class TestReduceEvents(unittest.TestCase):
                 "timestamp": "2026-05-22T00:00:01Z",
                 "entries_count": 3, "issues": [],
             }))
-            # chunk-002: complete but no echo (the bug we're flagging)
+            # chunk-002: complete but no echo → audit-trail only (chunks_missing_echo, NOT incomplete)
             (phase_dir / "c2-complete.json").write_text(json.dumps({
                 "event_type": "chunk_complete", "chunk_id": "chunk-002",
                 "timestamp": "2026-05-22T00:00:02Z",
                 "entries_count": 2, "issues": [],
             }))
-            # chunk-003: echo only, no complete (also incomplete)
+            # chunk-003: echo only, no complete → genuinely incomplete
             (phase_dir / "c3-echo.json").write_text(json.dumps({
                 "event_type": "chunk_echo", "chunk_id": "chunk-003",
                 "timestamp": "2026-05-22T00:00:03Z",
@@ -297,17 +297,21 @@ class TestReduceEvents(unittest.TestCase):
 
             rc, out, err = run_script("reduce_events.py", "extract", cwd=tdp)
             self.assertEqual(rc, 0)
+            # chunk-002 has chunk_complete → audit-trail gap only, not incomplete
+            self.assertEqual(out["chunks_missing_echo"], ["chunk-002"])
+            # chunk-003 has no chunk_complete → the only genuinely incomplete chunk
             incomplete = out["incomplete_chunks"]
-            self.assertEqual(len(incomplete), 2)
+            self.assertEqual(len(incomplete), 1)
             by_id = {item["chunk_id"]: item["missing"] for item in incomplete}
-            self.assertEqual(by_id["chunk-002"], ["chunk_echo"])
             self.assertEqual(by_id["chunk-003"], ["chunk_complete"])
-            self.assertIn("missing chunk_echo", err)
+            self.assertIn("missing chunk_complete", err)   # WARNING for the incomplete chunk
+            self.assertIn("without a chunk_echo", err)      # INFO for the echo-only chunk
 
             state = json.loads(
                 (tdp / ".john" / "checkpoints" / "extract" / "state.json").read_text()
             )
-            self.assertEqual(len(state["incomplete_chunks"]), 2)
+            self.assertEqual(len(state["incomplete_chunks"]), 1)
+            self.assertEqual(state["chunks_missing_echo"], ["chunk-002"])
             self.assertEqual(state["chunks_with_echo"], 2)
             self.assertEqual(state["chunks_with_complete"], 2)
 

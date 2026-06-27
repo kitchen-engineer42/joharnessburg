@@ -95,6 +95,43 @@ def _manifest(john_dir: Path, applied_metadata: Path | None) -> dict:
     }
 
 
+def _checkpoint_chunk_counts(state: dict | None) -> dict:
+    """Return severity-split chunk counts from a reducer checkpoint.
+
+    New checkpoints already carry `chunks_missing_echo`. Older checkpoints
+    stored echo-only audit gaps inside `incomplete_chunks`; normalize them here
+    so historical scorecards don't keep overstating low-risk gaps.
+    """
+    if not isinstance(state, dict):
+        return {"incomplete_chunks": None, "chunks_missing_echo": None}
+
+    raw_incomplete = state.get("incomplete_chunks") or []
+    if not isinstance(raw_incomplete, list):
+        raw_incomplete = []
+
+    high_risk = 0
+    legacy_echo_only = 0
+    for item in raw_incomplete:
+        if not isinstance(item, dict):
+            high_risk += 1
+            continue
+        missing = item.get("missing")
+        missing_set = {m for m in missing if isinstance(m, str)} if isinstance(missing, list) else set()
+        if missing_set == {"chunk_echo"}:
+            legacy_echo_only += 1
+        else:
+            high_risk += 1
+
+    explicit_missing_echo = state.get("chunks_missing_echo") or []
+    if not isinstance(explicit_missing_echo, list):
+        explicit_missing_echo = []
+
+    return {
+        "incomplete_chunks": high_risk,
+        "chunks_missing_echo": len(explicit_missing_echo) + legacy_echo_only,
+    }
+
+
 def _phase_report(john_dir: Path, phase: str) -> dict:
     phase_dir = john_dir / "events" / phase
     events = 0
@@ -123,6 +160,7 @@ def _phase_report(john_dir: Path, phase: str) -> dict:
 
     checkpoint = john_dir / "checkpoints" / phase / "state.json"
     state = _read_json(checkpoint) if checkpoint.is_file() else None
+    chunk_counts = _checkpoint_chunk_counts(state)
 
     gates = []
     gates_dir = john_dir / "checkpoints" / phase / "gates"
@@ -153,7 +191,8 @@ def _phase_report(john_dir: Path, phase: str) -> dict:
         "distinct_subagents": len(subagents),
         "event_types": dict(sorted(event_types.items())),
         "checkpoint_present": state is not None,
-        "incomplete_chunks": len(state.get("incomplete_chunks") or []) if state else None,
+        "incomplete_chunks": chunk_counts["incomplete_chunks"],
+        "chunks_missing_echo": chunk_counts["chunks_missing_echo"],
         "gate_runs": len(gates),
         "gates": gates,
     }
@@ -264,14 +303,33 @@ def main():
         else 0
     )
 
+    manifest = _manifest(john_dir, applied_metadata)
+    skill_invocations = _skill_invocations(john_dir)
+
+    # Phase provenance: the `phases` list above is event/checkpoint-backed ONLY.
+    # current_phase and skill-log are weaker signals (pointers/attributions),
+    # not a complete history oracle. Surface the evidence boundary rather than
+    # letting a reader mistake the phase list for the full run history. PLAN.md
+    # and arbitrary generated artifacts are intentionally not parsed here.
+    current_phase = manifest.get("current_phase")
+    skill_log_phases = {p for p in skill_invocations["per_phase"] if p != "(unattributed)"}
+    phase_provenance = {
+        "event_checkpoint_backed": sorted(phase_names),
+        "current_phase": current_phase,
+        "current_phase_backed": (current_phase in phase_names) if current_phase else None,
+        "skill_log_phases": sorted(skill_log_phases),
+        "skill_log_unbacked": sorted(skill_log_phases - phase_names),
+    }
+
     scorecard = {
         "rubric_version": RUBRIC_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "project_root": str(root),
-        "manifest": _manifest(john_dir, applied_metadata),
+        "manifest": manifest,
         "phases": phases,
         "zero_event_phases": zero_event_phases,
-        "skill_invocations": _skill_invocations(john_dir),
+        "phase_provenance": phase_provenance,
+        "skill_invocations": skill_invocations,
         "lessons": _lessons(john_dir),
         "interventions": "n/a (requires transcript analysis)",
         "produced_skills": produced_skills,
@@ -294,7 +352,7 @@ def _human_summary(sc: dict) -> str:
         + (f" | template: {m['template']['template_name']} {m['template']['template_version']}" if m.get("template") else ""),
         f"  inputs: {m['input_files']} files ({m['input_total_bytes']} bytes) | current phase: {m['current_phase'] or '?'}",
         "",
-        "Phases:",
+        "Phases (event/checkpoint-backed — not the full run history):",
     ]
     if not sc["phases"]:
         lines.append("  (none — no events or checkpoints recorded)")
@@ -309,6 +367,17 @@ def _human_summary(sc: dict) -> str:
         )
     if sc["zero_event_phases"]:
         lines.append(f"  ⚠ zero-event phases: {', '.join(sc['zero_event_phases'])}")
+    pp = sc["phase_provenance"]
+    if pp.get("skill_log_unbacked"):
+        lines.append(
+            f"  NOTE: phase attributed in skill-log but no event/checkpoint recorded: "
+            f"{', '.join(pp['skill_log_unbacked'])}"
+        )
+    if pp.get("current_phase") and pp.get("current_phase_backed") is False:
+        lines.append(
+            f"  NOTE: current_phase references '{pp['current_phase']}' with no "
+            f"event/checkpoint recorded"
+        )
     lines += [
         "",
         f"Skill invocations: {si['total']}"
