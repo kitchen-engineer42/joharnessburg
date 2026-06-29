@@ -37,6 +37,10 @@ class TestWorkspaceStatus(unittest.TestCase):
             self.assertEqual(inv["parsed_dirs"], 0)
             self.assertEqual(inv["events_phases"], [])
             self.assertEqual(inv["produced_skills"], {"claude": 0, "codex": 0})
+            self.assertEqual(out["phase_provenance"]["current_phase"], "bootstrap")
+            self.assertFalse(out["phase_provenance"]["current_phase_backed"])
+            self.assertEqual(out["phase_provenance"]["skill_log_phases"], [])
+            self.assertEqual(out["phase_provenance"]["skill_log_unbacked"], [])
 
     def test_status_works_from_project_subdirectory(self):
         # v0.2.3: CLI scripts walk up to the nearest .john/ — running from a
@@ -69,6 +73,46 @@ class TestWorkspaceStatus(unittest.TestCase):
             self.assertEqual(inv["input_files"], 2)
             self.assertEqual(inv["events_phases"], ["extract"])
             self.assertEqual(inv["knowledge_entries"], 1)
+
+    def test_status_exposes_current_phase_backing(self):
+        with tempfile.TemporaryDirectory() as td:
+            tdp = Path(td)
+            rc, _, _ = run_script("init_workspace.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            ws_path = tdp / ".john" / "workspace.json"
+            ws = json.loads(ws_path.read_text())
+            ws["current_phase"] = "extract"
+            ws_path.write_text(json.dumps(ws))
+            (tdp / ".john" / "events" / "extract").mkdir()
+            skill_log = tdp / ".john" / "skill-log"
+            skill_log.mkdir(exist_ok=True)
+            (skill_log / "app-design.json").write_text(json.dumps({
+                "schema_version": 1,
+                "timestamp": "2026-06-12T00:00:00+00:00",
+                "skill": "john:app-design-thinking",
+                "phase": "app-design",
+            }))
+
+            rc, out, err = run_script("workspace_status.py", cwd=tdp)
+            self.assertEqual(rc, 0, f"stderr: {err}")
+            pp = out["phase_provenance"]
+            self.assertEqual(pp["event_checkpoint_backed"], ["extract"])
+            self.assertEqual(pp["current_phase"], "extract")
+            self.assertTrue(pp["current_phase_backed"])
+            self.assertEqual(pp["skill_log_phases"], ["app-design"])
+            self.assertEqual(pp["skill_log_unbacked"], ["app-design"])
+            self.assertNotIn("not backed", err)
+            self.assertIn("skill-log", err)
+
+            ws["current_phase"] = "app-build"
+            ws_path.write_text(json.dumps(ws))
+            rc, out, err = run_script("workspace_status.py", cwd=tdp)
+            self.assertEqual(rc, 0)
+            pp = out["phase_provenance"]
+            self.assertEqual(pp["current_phase"], "app-build")
+            self.assertFalse(pp["current_phase_backed"])
+            self.assertEqual(pp["skill_log_unbacked"], ["app-design"])
+            self.assertIn("current_phase has no event/checkpoint backing", err)
 
     def test_status_errors_on_missing_workspace_json(self):
         with tempfile.TemporaryDirectory() as td:
