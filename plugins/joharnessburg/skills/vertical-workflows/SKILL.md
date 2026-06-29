@@ -91,7 +91,7 @@ Scale is the obvious win; **accuracy at scale is the bigger one, and it's John's
 You are back in the main session ([[ralph-loop]]). Do not report the phase done from the script's summary alone:
 
 1. Run `reduce_events.py` for the phase.
-2. Read `<project>/.john/checkpoints/<phase>/state.json` — check `incomplete_chunks`, coverage, quarantined events.
+2. Read `<project>/.john/checkpoints/<phase>/state.json` — check `incomplete_chunks` (chunks missing `chunk_complete` — possibly-unfinished work) and `chunks_missing_echo` (INFO; echo-only audit gap, *not* incomplete — don't re-extract these), coverage, quarantined events.
 3. Fold `schema_observation`s and failures into PLAN.md's Log + Open Decisions.
 4. Re-dispatch any missing/failed units (a small follow-up workflow or inline) if coverage is short.
 5. Then mark the phase done and advance.

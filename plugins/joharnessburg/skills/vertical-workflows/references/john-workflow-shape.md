@@ -54,7 +54,7 @@ WORKFLOW extract-sweep(project_root):
 The workflow's return is a convenience summary, not truth. In [[ralph-loop]]:
 
 1. `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py extract` — fold the events the workers wrote.
-2. Read `<project>/.john/checkpoints/extract/state.json`: check `incomplete_chunks`, `events_quarantined`, coverage.
+2. Read `<project>/.john/checkpoints/extract/state.json`: check `incomplete_chunks` (missing `chunk_complete`) and `chunks_missing_echo` (INFO; echo-only gap, not incomplete), `events_quarantined`, coverage.
 3. Fold `schema_observations` + failures into PLAN.md (Log + Open Decisions).
 4. Re-dispatch missing/failed chunks if coverage is short (a small follow-up run, or inline).
 5. Mark the phase done; advance.

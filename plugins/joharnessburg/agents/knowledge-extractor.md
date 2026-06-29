@@ -52,9 +52,12 @@ Filename: `<subagent-id>-echo.json`.
 Required keys: `event_type`, `chunk_id`, `summary`.
 
 This is the self-correction echo: it catches misreads, encoding bugs, and
-wrong-chunk dispatches cheaply. The reducer's completeness check expects every
-chunk to have BOTH a `chunk_echo` and a `chunk_complete` — skipping the echo
-lands your chunk in the checkpoint's `incomplete_chunks` noise.
+wrong-chunk dispatches cheaply. Emit BOTH a `chunk_echo` and a `chunk_complete`.
+The reducer's completeness check splits severity: a chunk that skipped its
+`chunk_complete` lands in `incomplete_chunks` (reads as possibly-unfinished work),
+while one that has `chunk_complete` but skipped the echo lands in
+`chunks_missing_echo` (an INFO / audit-trail note, *not* incomplete). The echo is
+cheap insurance — don't skip it.
 
 ### Event 1 — One `entry_extracted` event per knowledge entry
 

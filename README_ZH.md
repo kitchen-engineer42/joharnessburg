@@ -238,6 +238,7 @@ LICENSE                         # MIT
 
 - [@HalfMoon001](https://github.com/HalfMoon001) —— 对 John 进行了大量端到端实测，并完成了 `job-runtime` skill 背后的分析（[#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)）：产出应用的长耗时 I/O 任务模式（任务注册表、槽位租约、排队/生成双预算、可恢复进度）正是基于她的测试与 issue 梳理而规约成形。
 - [@oubeichen](https://github.com/oubeichen) —— Codex 适配层（Codex 插件 manifest + 本地 marketplace、项目 hooks、命令镜像 skill，以及转换后的自定义 agent），以及 internal-leak guard 与 display-first lens 背后的 `app_first_contracts.py` 工具。
+- [@Ruilin-mmwa](https://github.com/Ruilin-mmwa) —— 状态汇报的清晰度修复（[#4](https://github.com/kitchen-engineer42/joharnessburg/issues/4) / [#5](https://github.com/kitchen-engineer42/joharnessburg/pull/5)）：拆分 chunk 完成度的严重级别（`incomplete_chunks` 与 `chunks_missing_echo`），并显式标注阶段来源（phase provenance），让只读状态界面不再显得比实际更告警、更"完整"。
 
 ## 许可
 

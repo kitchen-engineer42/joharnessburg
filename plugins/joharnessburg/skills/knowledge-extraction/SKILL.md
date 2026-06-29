@@ -49,7 +49,7 @@ For small corpora (<10 chunks), inline extraction in the main agent context is f
 
 Borrowed from mathlab's "ops[0] echoes the problem" trick: have each extraction subagent's first action be to **echo back its understanding of the chunk** before extracting from it. This catches misreading, character encoding bugs, and chunks-handed-to-the-wrong-subagent failures cheaply.
 
-Mechanically: the briefing includes the instruction *"Before extracting any entries, emit an event of type `chunk_echo` with a 2-3 sentence summary of what this chunk says. Then proceed."* The reducer folds the echoes into the checkpoint (and its completeness check flags chunks missing one); YOU spot-check them there — a wildly off-base echo flags a chunk for re-extraction.
+Mechanically: the briefing includes the instruction *"Before extracting any entries, emit an event of type `chunk_echo` with a 2-3 sentence summary of what this chunk says. Then proceed."* The reducer folds the echoes into the checkpoint; its completeness check splits severity — a chunk missing `chunk_complete` lands in `incomplete_chunks` (possibly-unfinished work, worth a look before advancing), while a chunk that only skipped its echo lands in `chunks_missing_echo` (an INFO/audit note, *not* a reason to re-extract). YOU spot-check the echoes there — a wildly off-base echo flags a chunk for re-extraction.
 
 Cost: one event per chunk's worth of summarization. Cheap compared to re-running an extraction that silently extracted from the wrong chunk.
 

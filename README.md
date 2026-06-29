@@ -237,6 +237,7 @@ LICENSE                         # MIT
 
 - [@HalfMoon001](https://github.com/HalfMoon001) — heavy field-testing of John end-to-end, and the analysis behind the `job-runtime` skill ([#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)): the produced-app long-running I/O job pattern (task registry, slot leases, split queue/generation budgets, resumable progress) was specified from her testing and issue work.
 - [@oubeichen](https://github.com/oubeichen) — the Codex adapter (Codex plugin manifest + local marketplace, project hooks, command-mirror skills, and the converted custom agents), and the `app_first_contracts.py` tooling behind the internal-leak guard and the display-first lens.
+- [@Ruilin-mmwa](https://github.com/Ruilin-mmwa) — the status-reporting clarity fixes ([#4](https://github.com/kitchen-engineer42/joharnessburg/issues/4) / [#5](https://github.com/kitchen-engineer42/joharnessburg/pull/5)): splitting chunk-completeness severity (`incomplete_chunks` vs `chunks_missing_echo`) and surfacing phase provenance, so the read-only status surfaces stop reading as more alarming or more complete than they are.
 
 ## License
 
