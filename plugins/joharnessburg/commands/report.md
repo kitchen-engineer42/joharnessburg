@@ -12,6 +12,14 @@ When this command fires:
 
    On `success: false` ("No .john/ directory"), tell the user there's no workspace to report on — `/john:init` first.
 
+   Then emit the auditor manifests (idempotent, zero-token; same `--applied-metadata` note as above):
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/emit_manifests.py" --applied-metadata "${CLAUDE_PLUGIN_ROOT}/.applied-metadata.json"
+   ```
+
+   This writes `<project>/.john/PROVENANCE.json` (run identity — John version, template name+version, corpus inputs, observed phases, run window) and `SELF_EVAL_MANIFEST.json` (how to re-run the scorecard, where reports live), so the finished run is legible to an external auditor and John's own evolution tooling without reading app code. A missing `.applied-metadata.json` is fine — a vanilla run emits both with template fields null. (Where a produced app wrote its *results* is template-defined; John core does not emit that manifest.)
+
 2. Assemble the report at `<project>/.john/reports/<YYYY-MM-DD>-run-report.md`, following the format in the `skill-evolution` skill's `references/run-report-format.md` (1 page: manifest, scorecard highlights, outcome summary, candidate lessons, deviations). Create the `reports/` directory if missing. The scorecard JSON is the evidence backbone; your judgment supplies the outcome summary and the lesson selection — pick the few lessons whose `scope_guess` is `template` or `core` and whose evidence held up.
 
 3. **Walk the scrub-and-generalize checklist** (bottom of the format reference) over the draft — the report is built to LEAVE this project, so it must carry no corpus content, client identifiers, or local filesystem paths. Restate any lesson that fails the check so it would hold for the next corpus of the domain.
