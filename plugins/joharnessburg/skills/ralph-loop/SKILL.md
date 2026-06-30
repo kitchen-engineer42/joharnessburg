@@ -76,6 +76,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/reduce_events.py" extract --expect-entrie
 
 Exit code 3 means **far short** (under ~90% of the expected minimum): the phase is NOT done, no matter how complete the work *feels*. Don't mark it done — surface the actual-vs-expected delta in PLAN.md's Log, find what was missed (crashed subagents? skipped chunks? a workflow agent whose events never landed?), and re-dispatch. This gate is deterministic — it exists precisely because both you and an LLM auditor can sincerely believe a truncated phase is complete. `--verify-knowledge` warnings (orphans / missing-on-disk) are report-only; read them before advancing, but they don't block.
 
+**The rush signal.** Not every phase ends at a counted gate — but the same trap applies without one. "Phase N feels mostly done, let me start prepping N+1" is the rushing tell, not progress: done-criteria are quality conditions, not a file checklist, so a `spec.md` that exists but is half-empty, or entries the gate counted but you never spot-checked, is an unfinished phase wearing a finished phase's clothes. When you notice yourself reaching ahead, stop and re-read the current phase's done-criteria — clear them before you touch the next phase.
+
 ## Surviving context compaction
 
 When Claude Code compacts your context mid-session:

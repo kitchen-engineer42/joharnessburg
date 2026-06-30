@@ -70,6 +70,8 @@ You MUST brief every subagent with the context it needs to do its job. If you do
 
 Underspec any of those and you'll regret it. Over-brief is fine — the subagent reads it once at the top and ignores what's not relevant.
 
+**Parallel ≠ finished.** Running five subagents at once *feels* like fast progress, but a wave of green digests is not a completed phase — it's five claims you haven't checked. Before you advance, spot-review each return against its briefing: did the digest actually answer the job, do the event counts and IDs line up, does the output shape match the schema? When something's off, re-dispatching with a sharper briefing beats hand-patching the result. The firewall is a context boundary, not a progress bar.
+
 ## The horizontal × vertical matrix in practice
 
 Inside one phase, the fan-out shape:

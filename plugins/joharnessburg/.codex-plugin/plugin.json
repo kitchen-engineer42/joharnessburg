@@ -1,6 +1,6 @@
 {
   "name": "john",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "John - a Codex and Claude Code harness for building knowledge-dense apps from unstructured source material through knowledge phases and app phases.",
   "author": {
     "name": "kitchen-engineer42"

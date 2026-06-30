@@ -30,6 +30,8 @@ If no endurance goal is set, the project's intent from PLAN.md's top section ser
 
 An endurance goal also changes one default: **assume the session is workflow-configured** (`/effort ultracode`, dynamic workflows available) and don't pause a long run to re-confirm config — see [[vertical-workflows]]. The user who set an endurance goal prepared the session; interrupting hours of autonomy to ask about a setting defeats the mode. If the Workflow tool is genuinely absent, fall back to inline dispatch and log it in PLAN.md instead of stopping.
 
+**Wording shapes behavior.** Frame the goal as scope **+** discipline, not scope alone. A pure-scope goal — "complete the entire plan," "finish everything" — quietly biases toward checking phases off fast, and an "and verify carefully" tacked onto the same sentence gets read as decoration. Pair the scope with the bar it must clear: "complete phases 1-3, every done-criterion met before advancing" or "implement strictly from the skill references, quality over speed." Two genuinely-met phases beat five checked-off shells; the goal is a compass for direction, not a deadline that licenses cutting corners. (If you're *setting* the goal for the user, prefer this framing; if it's already set as pure scope, read it that way — as direction, not as permission to rush.)
+
 ### 2. Filesystem offload for large tool results
 
 When a tool returns a result that feels heavy (multi-KB parsed data, verbose error trace, raw PDF text), don't keep it in conversation context. Write it to `<project>/.john/trace/<id>.txt` and reference the path; leave a head+tail digest in your context. John's PostToolUse hook auto-wires this for results past a size threshold; do it manually for anything the hook doesn't catch but that still feels large.
