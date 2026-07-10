@@ -42,7 +42,7 @@ metadata:
 ## Body conventions
 
 - **Imperative voice** ("when you see X, do Y") not descriptive ("the skill describes X").
-- **Explain *why***, not just *what*. Future-Claude reading this should understand the rationale, not just the rule.
+- **Explain *why***, not just *what*. A future agent reading this should understand the rationale, not just the rule.
 - **≤ 500 lines** ideal. If longer, push detail into `references/`.
 - **Cross-link via `[[other-skill-name]]`** to sibling skills.
 

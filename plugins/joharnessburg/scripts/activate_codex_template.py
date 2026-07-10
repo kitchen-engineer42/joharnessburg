@@ -217,8 +217,10 @@ def main() -> None:
         f"cd {shlex.quote(str(project_root))}",
         "codex plugin marketplace add .",
         f"codex plugin add {listing_name}@{marketplace.get('name', 'john-project')}",
+        "Run `codex plugin list` and verify the applied John listing is installed.",
         "In the Codex App plugin UI, disable john@joharnessburg for this project session; do not run vanilla and applied John together.",
         f"In the Codex App plugin UI, enable {listing_name}@{marketplace.get('name', 'john-project')} for this project.",
+        "Open `/hooks`, inspect the applied John's hook definition, and trust it only after review; activation does not trust hooks automatically.",
         "Restart Codex in this project so plugin skills, hooks, and agents reload.",
     ]
     emit(
@@ -232,6 +234,7 @@ def main() -> None:
             "git_exclude_updated": exclude_updated,
             "git_exclude_warning": exclude_warning,
             "vanilla_exclusion_required": True,
+            "global_state_changed": False,
             "instructions": instructions,
         }
     )

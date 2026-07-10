@@ -16,7 +16,7 @@ metadata:
 
 # phase-design
 
-You are layer-2 Claude designing phases for your user's project. The phases will live in their `<project>/PLAN.md` and drive every loop iteration via [[ralph-loop]].
+You are the John-equipped agent designing phases for the user's project. The phases will live in `<project>/PLAN.md` and drive every loop iteration via [[ralph-loop]].
 
 **Phases are suggestions, not enforcement.** John's stance is phases-as-skills with template override room — the engine doesn't gate on phase boundaries; the floor is disk-verifiable artifacts (see [[workspace-discipline]]). You're designing scaffolding that helps work decompose cleanly, not laws that punish deviation. Templates may radically reshape the phase list; users may request changes mid-flight; corpora may surprise you. Stay wide.
 
@@ -48,7 +48,7 @@ These are starting points, not requirements. The user or the active template ove
 | 4 | chunk | Break large docs into tree of progressive-disclosure chunks. | Short-file-set corpus needs onion-*wrapper* (assemble) instead — see [[chunking]]. |
 | 5 | extract | Sweep chunks for knowledge entries. Subagent fan-out. Open with a **schema pilot** (diverse 10–20 chunk sample against the draft schema, per [[schema-design]]) before committing the full fan-out; for large corpora the pilot can be its own thin phase. | Knowledge IS the corpus (e.g., already-structured data). |
 | 6 | rewrite + cross-link | Progressive disclosure, dedup, cross-link. | Single-entry corpus. |
-| 7 | package | Emit SKILL.md to `<project>/.claude/skills/`. | Knowledge goes somewhere else (e.g., a database). |
+| 7 | package | Emit byte-identical SKILL.md trees to `<project>/.claude/skills/` and `<project>/.agents/skills/`. | Knowledge goes somewhere else (e.g., a database). |
 
 When deciding knowledge phases for a specific project, walk this list and ask "does this project need this phase?" Drop or merge accordingly.
 

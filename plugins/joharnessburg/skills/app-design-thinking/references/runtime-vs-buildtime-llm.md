@@ -14,7 +14,7 @@ The LLM runs while John is producing the app. Each invocation is **one-off** —
 
 **Implications:**
 
-- **Costs are one-off.** You can afford SOTA models (Claude Opus, GPT-5.5) because each generation runs once.
+- **Costs are one-off.** You can afford a stronger available model because each generation runs once.
 - **Output can be heavyweight.** Build-time LLMs can produce structured plans, multi-step reasoning, long-form content.
 - **Errors are recoverable.** If the build LLM makes a mistake, you re-run it before shipping. End-users don't see failures.
 - **Declarative output is fine.** You can let the model produce free-form JSON/markdown/code; downstream tooling parses it.

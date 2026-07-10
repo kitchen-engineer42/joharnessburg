@@ -71,7 +71,7 @@ Chunk size is downstream-driven. Smaller chunks → more subagents in the extrac
 
 - Single-document corpora where the doc already fits one context.
 - Pre-structured input (e.g., a database export that arrives as one entry per row).
-- Some "wide tunnel" projects where the user wants Claude to read the entire corpus in one pass — rare, expensive, but valid.
+- Some "wide tunnel" projects where the user wants the John-equipped agent to read the entire corpus in one pass — rare, expensive, but valid.
 
 If you skip chunking, note it in PLAN.md's chunk phase and proceed to [[knowledge-extraction]] with the raw parsed output.
 

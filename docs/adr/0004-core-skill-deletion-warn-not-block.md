@@ -1,3 +1,0 @@
-# Templates may delete John's core skills — loudly, with a stated reason, never blocked
-
-Templates can `_delete` any core skill, including load-bearing ones (using-john, ralph-loop, event-log-and-reducer, workspace-discipline, context-management, subagent-dispatch, skill-evolution since v0.3.1). Deliberate trim-downs are legitimate — a minimal static-page template may not want the full machinery — so the guard warns rather than blocks: core deletions require a same-line `# reason` in `skills/_delete`, and the apply prints the skill's load-bearing role plus the remaining skills that still reference it. Hard-blocking was rejected because the whole template system exists to let templates reshape John; the protection is a paper trail, not a wall.

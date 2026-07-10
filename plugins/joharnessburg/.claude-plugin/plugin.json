@@ -1,6 +1,6 @@
 {
   "name": "john",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "John \u2014 a Claude Code and Codex harness for building knowledge-dense apps. Wraps the agent with skills, hooks, commands, and a small toolkit so it can take unstructured input through knowledge phases (knowledge engineering) and app phases (app building) in one long-running session; includes a deterministic internal-leak guard for the produced app's public UI.",
   "author": {
     "name": "kitchen-engineer42"

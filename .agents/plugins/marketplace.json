@@ -1,11 +1,12 @@
 {
   "name": "joharnessburg",
   "interface": {
-    "displayName": "joharnessburg"
+    "displayName": "John — Knowledge-Dense App Builder"
   },
   "plugins": [
     {
       "name": "john",
+      "description": "Build knowledge-dense apps from unstructured source material with Claude Code or Codex.",
       "source": {
         "source": "local",
         "path": "./plugins/joharnessburg"

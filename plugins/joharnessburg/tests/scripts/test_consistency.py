@@ -22,6 +22,7 @@ from pathlib import Path
 from tests._helpers import SCRIPTS_DIR
 
 PLUGIN_ROOT = SCRIPTS_DIR.parent
+REPO_ROOT = PLUGIN_ROOT.parents[1]
 
 
 class TestScriptsCompile(unittest.TestCase):
@@ -120,6 +121,73 @@ class TestCoreSkillsConsistency(unittest.TestCase):
                     f"CORE_SKILLS names '{name}' but skills/{name}/ does not "
                     f"exist — the core-delete guard is silently dead for it",
                 )
+
+
+class TestReleaseSurfaceConsistency(unittest.TestCase):
+    CONTROL_SKILLS = {
+        "using-john",
+        "init-workspace",
+        "workspace-status",
+        "endurance-goal",
+        "archive-workspace",
+    }
+
+    def test_nested_manifest_versions_match(self):
+        claude = json.loads(
+            (PLUGIN_ROOT / ".claude-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+        codex = json.loads(
+            (PLUGIN_ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(claude["version"], codex["version"])
+        self.assertEqual(claude["version"], "0.5.1")
+
+    def test_control_skills_have_openai_metadata(self):
+        for name in sorted(self.CONTROL_SKILLS):
+            with self.subTest(skill=name):
+                path = PLUGIN_ROOT / "skills" / name / "agents/openai.yaml"
+                self.assertTrue(path.is_file(), f"missing {path}")
+                text = path.read_text(encoding="utf-8")
+                self.assertRegex(text, r'(?m)^  display_name: ".+"$')
+                self.assertRegex(text, r'(?m)^  short_description: ".{25,64}"$')
+                self.assertIn(f"${name}", text)
+
+    def test_run_report_has_provider_neutral_label(self):
+        text = (
+            PLUGIN_ROOT / "skills/codex-run-report/agents/openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn('display_name: "John: Run Report"', text)
+        self.assertNotIn("John Codex Run Report", text)
+
+    def test_stale_codex_development_adapters_are_absent(self):
+        self.assertFalse((REPO_ROOT / ".codex/migrate-to-codex-report.txt").exists())
+        for name in ("init", "status", "endurance", "archive"):
+            self.assertFalse(
+                (REPO_ROOT / f".agents/skills/source-command-{name}").exists()
+            )
+
+    def test_readmes_document_symmetric_plugin_operations(self):
+        readmes = [
+            (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+            (REPO_ROOT / "README_ZH.md").read_text(encoding="utf-8"),
+        ]
+        commands = (
+            "claude plugin marketplace add kitchen-engineer42/joharnessburg",
+            "claude plugin install john@joharnessburg",
+            "claude plugin marketplace update joharnessburg",
+            "claude plugin update john@joharnessburg",
+            "claude plugin list",
+            "codex plugin marketplace add kitchen-engineer42/joharnessburg",
+            "codex plugin add john@joharnessburg",
+            "codex plugin marketplace upgrade joharnessburg",
+            "codex plugin list",
+        )
+        for text in readmes:
+            for command in commands:
+                with self.subTest(command=command):
+                    self.assertIn(command, text)
+            self.assertIn("/hooks", text)
+            self.assertNotIn("docs/adr", text)
 
 
 if __name__ == "__main__":

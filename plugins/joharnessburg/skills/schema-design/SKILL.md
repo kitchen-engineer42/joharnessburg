@@ -20,7 +20,7 @@ This is the most consequential decision in the knowledge phases. Get it wrong-or
 
 - It's not picking from a closed menu. There is no "the John schema." Different projects want different shapes.
 - It's not a one-shot decision. The schema **evolves** through the early phases as the corpus reveals itself.
-- It's not a JSON spec for layer-2 Claude to autocomplete. It's a *taste call* the user owns.
+- It's not a JSON spec for the John-equipped agent to autocomplete. It's a *taste call* the user owns.
 
 ## The app-type definition cascade
 

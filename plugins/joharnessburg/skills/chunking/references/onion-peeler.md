@@ -9,7 +9,7 @@ Imagine the document as an onion:
 - **Middle layers**: H2/H3 sections with their own summaries. Read these for a topic and you know its outline.
 - **Core**: the actual paragraph text. Read this when you've decided to dig into a specific piece.
 
-Progressive disclosure means a reader (human or Claude) loads only the layers they need. The chunk tree encodes this: chunks at higher tree depths are summaries; chunks at lower depths are full content.
+Progressive disclosure means a reader (human or agent) loads only the layers they need. The chunk tree encodes this: chunks at higher tree depths are summaries; chunks at lower depths are full content.
 
 ## Why a tree, not a flat list
 

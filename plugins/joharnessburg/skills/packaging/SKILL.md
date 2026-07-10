@@ -1,6 +1,6 @@
 ---
 name: packaging
-description: Emit the cleaned, cross-linked, deduplicated knowledge from the rewrite phase as provider-discoverable skills at `<project>/.claude/skills/` for Claude Code and `<project>/.agents/skills/` for Codex. Use this skill whenever the knowledge phases wrap, when the user says "package the skills" / "ship the knowledge" / "finalize the knowledge phases" / "we're ready for the app phases," or when [[ralph-loop]] signals packaging is next. Make sure to invoke this skill before the app phases run — they read the produced skills as their starting context. This is the deliverable boundary between knowledge engineering and app building; getting it wrong means the app phases operate without a real knowledge source.
+description: Emit cleaned, cross-linked, deduplicated knowledge from the rewrite phase as provider-discoverable skills in the project's Claude Code and Codex skill trees. Use this skill whenever the knowledge phases wrap, when the user says "package the skills" / "ship the knowledge" / "finalize the knowledge phases" / "we're ready for the app phases," or when [[ralph-loop]] signals packaging is next. Make sure to invoke this skill before the app phases run — they read the produced skills as their starting context. This is the deliverable boundary between knowledge engineering and app building; getting it wrong means the app phases operate without a real knowledge source.
 metadata:
   triggers:
     - package the skills
@@ -47,7 +47,7 @@ A skill in Claude Code is one directory with at minimum a `SKILL.md`:
 
 The frontmatter has `name` and `description`. Optionally `metadata.triggers[]` for keyword-based auto-load. Body is markdown — what the agent should do/know.
 
-This is the same skill format John itself ships. Your packaging output is structurally identical to a John meta-skill or phase skill — the difference is who wrote it (humans for John core; layer-2 Claude during the knowledge phases for produced knowledge).
+This is the same skill format John itself ships. Your packaging output is structurally identical to a John meta-skill or phase skill — the difference is who wrote it (humans for John core; a John-equipped agent during the knowledge phases for produced knowledge).
 
 ## Mapping knowledge entries → skills
 
@@ -77,7 +77,7 @@ Two paths, depending on whether a template is active:
 
 **Template-defined packaging** (preferred when applicable). Active templates may ship `scripts/package_<domain>.py` inside the merged plugin. In Claude Code this is usually under `$CLAUDE_PLUGIN_ROOT/scripts/`; in Codex, resolve the plugin root from the loaded skill path or the source checkout. List `<plugin-root>/scripts/` for any `package_*.py`; if present, invoke it via Bash with the project root as an argument. The script handles the schema-specific mapping. For dual-provider projects, output must land in both `<project>/.claude/skills/` and `<project>/.agents/skills/`.
 
-**Inline packaging** (default when no template script is provided). Iterate over `<project>/.john/knowledge/<entry-id>/`, emit each entry as a skill following the conventions in `references/claude-code-skill-format.md`. Map per the patterns above (chunky vs granular). Straightforward but slower because each entry's emission is a Claude-driven decision rather than a deterministic script.
+**Inline packaging** (default when no template script is provided). Iterate over `<project>/.john/knowledge/<entry-id>/`, emit each entry as a skill following the conventions in `references/claude-code-skill-format.md`. Map per the patterns above (chunky vs granular). Straightforward but slower because each entry's emission is an agent judgment rather than a deterministic script.
 
 John core ships packaging as **skill-only** — there's no core packaging script. Template-specific packaging scripts are a template concern; expect inline packaging in most projects unless the active template provides its own.
 
@@ -104,7 +104,7 @@ If the user wants to ship the working state too (for transparency, reproducibili
 ## Quality checks before the phase is done
 
 1. **Every produced skill loads cleanly.** YAML frontmatter parses; body is valid markdown.
-2. **Descriptions are pushy.** Spot-check 5: would Claude reliably trigger this skill on a relevant prompt?
+2. **Descriptions are pushy.** Spot-check 5: would either supported runtime reliably trigger this skill on a relevant prompt?
 3. **Cross-links resolve.** `[[skill-name]]` references in bodies point to skills that actually exist.
 4. **No leaked workspace paths.** Skills shouldn't reference `<project>/.john/` (working state) or the user's input source paths — those don't matter to the runtime.
 4b. **Trained skills carry their provenance header.** Any worker skill that went through the training loop ([[skill-evolution]]) ships with its provenance comment (when trained, scorer, baseline → final scores) intact — that header is how the next builder knows the text was earned, not guessed.

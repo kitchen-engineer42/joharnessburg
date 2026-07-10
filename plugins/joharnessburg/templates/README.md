@@ -61,7 +61,7 @@ Required:
   "name": "your-template-name",
   "version": "0.1.0",
   "description": "What this template does and when to use it.",
-  "requires_john": "0.5.0",
+  "requires_john": "0.5.1",
   "providers": ["claude", "codex"]
 }
 ```

@@ -1,0 +1,4 @@
+interface:
+  display_name: "John: Endurance Goal"
+  short_description: "Set or inspect John's persistent finish line"
+  default_prompt: "Use $endurance-goal to set a durable finish line for this John run."

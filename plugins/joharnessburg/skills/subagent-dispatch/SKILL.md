@@ -14,20 +14,20 @@ metadata:
 
 Subagents are the vertical axis. Your main session is the horizontal axis. Getting the line between them right is what makes John work at hundreds of knowledge entries instead of melting your context.
 
-## Three tiers: inline subagent, one workflow, or batched workflows
+## Three tiers: inline subagent, one scale-out run, or batched runs
 
 Before *how* to dispatch, decide the **mechanism** by the size and shape of the fan-out:
 
 ```
-a few units, result needed in your context     → inline subagent (dispatch in waves yourself)
-dozens–hundreds, uniform per-entry work          → ONE dynamic workflow run   → see [[vertical-workflows]]
-thousands                                         → batched workflow runs per chunk-range,
-                                                     all writing to the same event log
+a few units, result needed in your context       → inline subagent (dispatch in waves yourself)
+dozens–hundreds, uniform per-entry work           → one provider-native scale-out run
+thousands                                         → batched scale-out runs per chunk-range,
+                                                       all writing to the same event log
 ```
 
-A **dynamic workflow** is a script you write (with your Workflow tool) that fans out the *same* subagents at scale, keeps their results off your context, adversarially cross-checks them, and returns only a summary. It's the right engine once a fan-out is large and uniform — exactly John's per-entry vertical axis. The mechanics, the John-shaped stages, and the event wiring are in [[vertical-workflows]]; this skill covers the inline tier and the briefing discipline that *both* tiers share (a workflow's workers need the same full briefing).
+A **scale-out run** fans out the same subagents, keeps their results off the main context, adversarially cross-checks them, and returns only a summary. In Claude Code, use a dynamic workflow per [[vertical-workflows]]. In Codex, use native waves over the durable run ledger per [[codex-vertical-workflows]]. This skill covers the inline tier and the briefing discipline all engines share.
 
-If the session isn't workflow-capable (no `ultracode`, feature disabled, older Claude Code), the upper tiers fall back to inline dispatch — same events, same reducer, same PLAN.md. Check this *before* the first fan-out and handle the two cases differently (misconfigured → stop-and-tell; feature-absent → announced fallback; endurance mode → assume configured and proceed): [[vertical-workflows]] has the rubric. Record the engine choice in PLAN.md either way. The rest of this skill is the inline mechanism and the briefing rules.
+In Claude Code, check dynamic-workflow availability before the first fan-out and follow [[vertical-workflows]] when it is misconfigured or absent. In Codex, create the run ledger first and dispatch native waves per [[codex-vertical-workflows]]. Both branches emit the same events and reduce to the same checkpoint. Record the engine choice in PLAN.md either way. The rest of this skill is the inline mechanism and the briefing rules.
 
 ## When to spawn a subagent
 
@@ -35,7 +35,7 @@ Three triggers, in order of clarity:
 
 1. **Per-entry work that fits one context window per entry but doesn't fit yours in aggregate.** Classic case: 200 chunks to extract knowledge from. Each chunk is small; 200 of them through your context is not.
 2. **Work where you want a context firewall.** Some tasks produce large intermediate state (a 50KB raw extraction) that you don't need in your context — you only need the digest. The subagent handles the raw; you see the summary.
-3. **Work that benefits from a tighter persona or cheaper model.** A subagent can be given a narrow role ("you are a knowledge extractor; here is the schema; here is one chunk; emit entries to the event log and return a one-line digest") that focuses its output. John core delegates model selection to Claude — Sonnet/Haiku are routinely used for subagents per task requirement, and you should request the cheapest viable model when dispatching. Templates that need workerLLMs (SiliconFlow, DeepSeek, etc. via cheap LLM clients) wire that themselves; John core uses Claude's tier defaults.
+3. **Work that benefits from a tighter persona or cheaper model.** A subagent can be given a narrow role ("you are a knowledge extractor; here is the schema; here is one chunk; emit entries to the event log and return a one-line digest") that focuses its output. John core delegates model selection to the active runtime; request the cheapest viable model when dispatching. Templates that need workerLLMs through external clients wire those themselves.
 
 ## When NOT to spawn a subagent
 
@@ -49,7 +49,7 @@ Three triggers, in order of clarity:
 
 This is the most common failure mode in John sessions: under-briefing.
 
-A subagent is a fresh Claude with no idea about your project. It does NOT inherit:
+A subagent is a fresh agent with no idea about your project. It does NOT inherit:
 - Your conversation with the user
 - PLAN.md content (unless you tell it about it)
 - The app-type definition decisions you made
@@ -94,11 +94,11 @@ The subagents never talk to each other directly. They only emit events. The redu
 
 **Why thousands actually scale**: the produced app has a *structure* where knowledge entries fit like *content* in a uniform way. Work units are homogeneous — "extract from chunk 042" is the same task shape as "extract from chunk 419"; the reducer folds them with identical logic. As long as the entry structure is uniform, the orchestration cost doesn't grow non-linearly with entry count. That's the architectural reason event-log+reducer beats file-locks at scale — see [[event-log-and-reducer]].
 
-**Tens of work units** (1-50): inline is fine — fan out in waves of ~10 concurrent through Claude Code's Task tool. Wait for each wave, then dispatch the next. Below a dozen or so, a workflow's runtime overhead isn't worth it.
+**Tens of work units** (1-50): inline is fine — fan out in bounded waves through the active runtime's subagent mechanism. Wait for each wave, then dispatch the next. Below a dozen or so, a scale-out run's overhead usually isn't worth it.
 
-**Hundreds** (50-500): this is workflow territory. One [[vertical-workflows]] run fans the units out off your context and cross-checks them; the runtime handles the 16-at-a-time batching for you. (Inline fallback if workflows are unavailable: batch into smaller work-unit ranges per subagent — "process chunks 100-110" rather than one per chunk — to keep the wave count manageable.)
+**Hundreds** (50-500): use a provider-native scale-out run. Claude Code uses [[vertical-workflows]]; Codex uses [[codex-vertical-workflows]] and its run ledger. If the provider's scale engine is unavailable, announce the fallback and batch smaller work-unit ranges per subagent.
 
-**Thousands** (500+): first rethink whether all work units are genuinely distinct (often they can be deduplicated or clustered upstream). If still genuinely thousands, run [[vertical-workflows]] in batches per chunk-range (a single workflow caps at 1,000 agents), each batch writing to the **same** event log; reduce once at the end. The append-only one-file-per-agent design means the batches don't contend. Cost considerations usually limit production runs to 50-300, but the architecture handles thousands without re-engineering.
+**Thousands** (500+): first rethink whether all work units are genuinely distinct. If they are, batch provider-native runs per chunk range, write every batch to the **same** event log, and reduce once at the end. Claude workflow limits and Codex ledger/reconciliation behavior stay provider-specific; the durable event contract does not.
 
 ## Returning condensed digests
 
@@ -118,13 +118,14 @@ If you find yourself needing the full content a subagent produced, you have two 
 
 ## Cheaper-model subagents
 
-Not yet a v1 default — John core uses Claude's default subagent model selection. But: an active template that uses workerLLMs (SiliconFlow, DeepSeek) for parallel work can ship a script that calls those providers via OpenAI-compatible API. The pattern is the same: brief them tightly, have them emit events, run the reducer.
+John core uses the active runtime's default subagent model selection. An active template that uses workerLLMs for parallel work can ship a script that calls them through an OpenAI-compatible API. The pattern is the same: brief them tightly, have them emit events, run the reducer.
 
-If a phase's work is well-defined enough for a cheap model, route it to one. If it requires judgment, use Claude. The boundary is taste; lean toward Claude unless cost demands otherwise.
+If a phase's work is well-defined enough for a cheap model, route it to one. If it requires judgment, use the strongest suitable available model. The boundary is taste; protect quality unless cost demands otherwise.
 
 ## Cross-references
 
-- [[vertical-workflows]] — the workflow tier (dozens+) and its John-shaped stages; this skill is the inline tier + shared briefing discipline
+- [[vertical-workflows]] — Claude Code's dynamic-workflow tier
+- [[codex-vertical-workflows]] — Codex native waves and durable run ledger
 - [[event-log-and-reducer]] — the coordination pattern for parallel subagents
 - [[ralph-loop]] — what dispatches the fan-out from main loop
 - [[phase-design]] — defining the work units up front in PLAN.md

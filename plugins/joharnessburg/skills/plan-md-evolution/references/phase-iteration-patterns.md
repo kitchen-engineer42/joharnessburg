@@ -37,7 +37,7 @@ Four patterns. Each has a "when" and a "how." All require a Log entry.
 2. Keep the Phase 4 section as a struck-through stub for traceability. (Markdown: `### ~~Phase 4: research and embed media (DROPPED)~~`)
 3. Adjust subsequent phases that depended on Phase 4's artifacts.
 
-Why keep the stub: a fresh-session Claude reading PLAN.md sees the historical context. Without the stub, the gap looks like an error.
+Why keep the stub: a fresh John-equipped session reading PLAN.md sees the historical context. Without the stub, the gap looks like an error.
 
 ## Insert
 

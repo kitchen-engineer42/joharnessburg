@@ -1,4 +1,4 @@
 interface:
-  display_name: "John Codex Run Report"
+  display_name: "John: Run Report"
   short_description: "Generate the provider-neutral John report"
-  default_prompt: "Generate the John run report for this Codex project."
+  default_prompt: "Use $codex-run-report to generate the John run report for this project."

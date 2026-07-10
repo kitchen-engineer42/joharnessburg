@@ -32,7 +32,7 @@ Tier 2's "no" pile is dropped without further consideration.
 
 ## Stage 3 — deep-read (SOTA LLM)
 
-For the "yes" and "maybe" pile, a SOTA model (Claude Sonnet/Opus) does a deep-read over both bodies:
+For the "yes" and "maybe" pile, a strong available model does a deep-read over both bodies:
 
 - Are the bodies actually describing the same fact / rule / story / etc.?
 - If yes, what's the merge action? (combine bodies, keep both sources; supersede one with the other; cross-link them as distinct views.)

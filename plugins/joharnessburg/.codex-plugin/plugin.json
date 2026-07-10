@@ -1,7 +1,7 @@
 {
   "name": "john",
-  "version": "0.5.0",
-  "description": "John - a Codex and Claude Code harness for building knowledge-dense apps from unstructured source material through knowledge phases and app phases.",
+  "version": "0.5.1",
+  "description": "John — a Claude Code and Codex harness for building knowledge-dense apps from unstructured source material through knowledge phases and app phases.",
   "author": {
     "name": "kitchen-engineer42"
   },
@@ -19,9 +19,9 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "John",
-    "shortDescription": "Build knowledge-dense apps from source documents",
-    "longDescription": "John helps Codex run long knowledge-engineering and app-building projects: parse source documents, chunk them, extract and rewrite knowledge, package the result, then build a standalone app from that knowledge.",
+    "displayName": "John — Knowledge-Dense App Builder",
+    "shortDescription": "Build knowledge-dense apps from source material",
+    "longDescription": "John helps Claude Code or Codex run long knowledge-engineering and app-building projects: parse source material, extract and package structured knowledge, then build and verify a standalone app from it.",
     "developerName": "kitchen-engineer42",
     "category": "Developer Tools",
     "capabilities": [
@@ -32,9 +32,9 @@
     "privacyPolicyURL": "https://github.com/kitchen-engineer42/joharnessburg",
     "termsOfServiceURL": "https://github.com/kitchen-engineer42/joharnessburg",
     "defaultPrompt": [
-      "Set up John in this project",
-      "Use John to build an app from these source documents",
-      "Show the current John workspace status"
+      "Initialize John in this project from my source material.",
+      "Use John to build and verify a knowledge-dense app from these inputs.",
+      "Show the current John workspace status and next phase."
     ],
     "brandColor": "#4B5563",
     "screenshots": []

@@ -1,3 +1,0 @@
-# John is open-source under MIT; domain templates may be private or commercial
-
-John started as an internal harness and was opened up (relicensed AGPL-3.0 → MIT at v0.1.22; the open-source posture locked in at v0.2.0): vanilla John's deliverables must run for any user with a fresh clone — no private infrastructure assumed. The trade-off was deliberate: the harness earns credit, community, and feedback; the value that stays closed lives in domain-specialized templates and hosted services built *on top of* John, which the MIT terms permit. Already-released AGPL-tagged versions remain available under AGPL.

@@ -30,13 +30,13 @@ Every iteration of substantive work in a John session takes the same shape:
 
 That's it. The rest of this skill is failure modes and nuance.
 
-**Templates may override this pattern.** The active template can define its own iteration model — substitute different phases, run a different loop shape, override what counts as "one unit." If a template ships its own loop instructions in `claude_addon.md` or a sibling skill, follow that instead. This skill is John's default; templates shape the variation. Always check PLAN.md and CLAUDE.md for template-specific overrides before assuming the default applies.
+**Templates may override this pattern.** The active template can define its own iteration model — substitute different phases, run a different loop shape, override what counts as "one unit." If a template ships loop instructions in `project_addon.md`, the active provider appendix, or a sibling skill, follow them. This skill is John's default; templates shape the variation. Always check PLAN.md plus the provider memory file (`CLAUDE.md` or `AGENTS.md`) before assuming the default applies.
 
 ## Why this loop
 
 Three reasons it works for John:
 
-- **PLAN.md is the durable contract.** When context compacts, when the session restarts, when the user opens a fresh Claude Code session to continue tomorrow — PLAN.md is what carries state forward. The loop's first step (re-read) makes the contract real.
+- **PLAN.md is the durable contract.** When context compacts, the session restarts, or the user opens a fresh John-equipped session tomorrow, PLAN.md carries state forward. The loop's first step makes that contract real.
 - **One unit per iteration prevents drift.** Trying to plan-then-execute three things at once is where agents lose coherence. One unit, finish it, write it down, move on.
 - **The Log section converts "I got stuck" from session-ending failure into a checkpoint.** Writing the blocker out is more valuable than burning context retrying.
 
@@ -80,7 +80,7 @@ Exit code 3 means **far short** (under ~90% of the expected minimum): the phase 
 
 ## Surviving context compaction
 
-When Claude Code compacts your context mid-session:
+When the active runtime compacts your context mid-session:
 
 - The endurance goal (pinned to system prompt via the SessionStart hook) survives.
 - The using-john skill description survives.
@@ -90,7 +90,7 @@ When Claude Code compacts your context mid-session:
 
 See [[context-management]] for the full pattern.
 
-## Surviving a fresh Claude Code session
+## Surviving a fresh John-equipped session
 
 Same recovery: re-read PLAN.md, check disk for what's done, advance from there. The user can `/clear` or close and reopen the session at any phase boundary. That's a feature, not a bug — John gracefully degrades to ralph-style fresh sessions when context fills.
 

@@ -56,7 +56,7 @@ Raw corpus text is allowed *inside* the ledger (it's project-local). It must be 
 
 When a skill's guidance actively fights this project (not just "could be better" — *fights*: you keep working around it), you may evolve it **for this project**:
 
-1. **Draft** the override (the project's `.claude/skills/<name>/` shadows the plugin copy) as a *bounded delta* from the original — change the passages that fight, keep the rest byte-identical. Note the diff and the evidence in the draft's header comment.
+1. **Draft** the override in the active provider's project skill tree as a *bounded delta* from the original. For a dual-provider project, publish the same bytes under `.claude/skills/<name>/` and `.agents/skills/<name>/`. Change only the passages that fight, and note the diff and evidence in the draft's header comment.
 2. **Apply at the next phase boundary, with the user's sign-off.** The draft rides the same seam as plan evolution — present it alongside the phase summary.
 3. **Endurance-mode exception**: if the session is in endurance mode, the user is away, and the blockage is real (you cannot proceed sensibly without the change), you may apply the override autonomously — *when the reason is strong enough to write down*. Log it (ledger + PLAN.md Log) at the moment you do it.
 4. **Always report** — before or after, the user hears about every override: what changed, why, the evidence. An unreported self-modification is a bug in your behavior, whatever its quality.

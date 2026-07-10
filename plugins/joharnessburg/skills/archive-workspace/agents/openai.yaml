@@ -1,0 +1,4 @@
+interface:
+  display_name: "John: Archive Workspace"
+  short_description: "Archive durable John project state safely"
+  default_prompt: "Use $archive-workspace to archive this completed John workspace."

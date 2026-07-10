@@ -12,7 +12,7 @@ metadata:
 
 # context-management
 
-John sessions are designed to run long. A knowledge-heavy project might span 4-8 hours of focused work. Claude Code's context window is large but not infinite. This skill is the five-part discipline that keeps you coherent across long runs and degrades you gracefully when context exhausts.
+John sessions are designed to run long. A knowledge-heavy project might span 4-8 hours of focused work. The active coding agent's context window is large but not infinite. This skill is the five-part discipline that keeps you coherent across long runs and degrades you gracefully when context exhausts.
 
 ## The five techniques
 
@@ -22,7 +22,7 @@ You should use all five. They compound.
 
 If the user has run `/john:endurance <goal>`, that goal is in `<project>/.john/workspace.json` and the SessionStart hook will inject it into your system prompt at the top of every session (and every post-compaction state). It survives compaction because the system prompt isn't windowed.
 
-Set the goal with `/john:endurance <goal>`. Inspect or clear with `/john:endurance` (no arg) or `/john:endurance --clear`.
+In Claude Code, set the goal with `/john:endurance <goal>` and inspect or clear it with `/john:endurance` or `/john:endurance --clear`. In Codex, invoke `endurance-goal` with the same intent.
 
 What this gives you: even after compaction wipes most of conversation history, the endurance-race direction is still in front of you. You know what you're working toward.
 
@@ -72,7 +72,7 @@ This is point one of [[ralph-loop]] and it's also a context-management technique
 
 If your context fills past ~80% and a compaction won't help (e.g., a single tool result was huge), the user can:
 
-- `/clear` the session and start a new Claude Code session in the same workspace.
+- In Claude Code, use `/clear`; in either runtime, start a fresh John-equipped session in the same workspace.
 - Or open a new terminal tab and start fresh.
 
 The next session, with John plugin loaded:
@@ -86,7 +86,7 @@ This is the snarktank/ralph fresh-instance pattern, available to John as a fallb
 
 **Survives:**
 - System prompt (endurance goal, skill descriptions)
-- Disk state (PLAN.md, .john/, .claude/skills/)
+- Disk state (`PLAN.md`, `.john/`, `.claude/skills/`, `.agents/skills/`)
 - The SessionStart hook's re-injected context
 
 **Does NOT survive:**
@@ -102,7 +102,7 @@ Options, in order of preference:
 
 1. **Push the rest of the phase to subagents.** If the remaining work is per-entry, fan out to subagents and let their digests come back. Their work doesn't cost your context.
 2. **Write what you have to disk and pause.** Write the partial state to a checkpoint, write a Log entry in PLAN.md ("Phase X is N% complete; next iteration resumes from event log up to subagent_id Y"), and stop. Next iteration picks up.
-3. **Ask the user to compact** (Claude Code's `/compact` command). They get to decide when.
+3. **Ask the user to compact** with the active runtime's compaction control (`/compact` in Claude Code). They get to decide when.
 4. **Last resort: ask the user to open a fresh session.** With PLAN.md and checkpoints on disk, this is recoverable, just costly.
 
 The worst option is to push through and have your context fill silently — your reasoning degrades before you notice, and the work product reflects it.
@@ -113,7 +113,7 @@ Some habits:
 
 - Don't paste the whole PLAN.md into the conversation; reference it by path and Read what you need.
 - Don't quote whole files at the user; quote the relevant lines.
-- Don't run subagents in your own context with `Bash` + a long prompt — use Task tool with a digest-returning agent.
+- Don't simulate subagents in your own context with `Bash` + a long prompt — use the runtime's subagent mechanism and request a digest.
 - Don't keep stale tool results in context — they linger forever otherwise.
 
 ## Cross-references

@@ -1,0 +1,4 @@
+interface:
+  display_name: "John: Workspace Status"
+  short_description: "Inspect John progress and choose the next phase"
+  default_prompt: "Use $workspace-status to show this John workspace's status and next phase."

@@ -1,257 +1,140 @@
-# joharnessburg
-
-**John** is the plugin (slash commands `/john:init`, `/john:status`, …); **joharnessburg** is the marketplace/repo it ships from — pronounced "jo-harness-burg" (the harness is in the middle), or "jo-hannesburg" if you prefer the city pun. Hence `claude plugin install john@joharnessburg`.
-
-John wraps Claude Code in skills, hooks, slash commands, and a small toolkit so it can take unstructured input (books, regulations, mixed docs) through the **knowledge phases** (knowledge engineering) and the **app phases** (app building) in one long-running session — and produce a working **knowledge-dense app**: an app that runs a fixed mechanism over many uniform knowledge entries, where the entries come from your corpus. Produced apps **run standalone by default** (locally, `.env`-configured, no external platform assumed); templates can add platform integration.
-
-The project's canonical vocabulary lives in [`CONTEXT.md`](CONTEXT.md); a handful of design decisions are recorded in [`docs/adr/`](docs/adr/).
+# John
 
 > 中文版: [`README_ZH.md`](README_ZH.md)
 
-## Install
+John turns unstructured source material into a working knowledge-dense app. It keeps knowledge engineering and app building in one durable run, coordinates large per-entry fan-outs, and leaves auditable events and checkpoints on disk.
+
+Use either **Claude Code or Codex**. Both are recommended runtimes over the same John plugin, skills, scripts, hooks, workspace state, and template format.
+
+## Install and update
 
 ### Claude Code
+
+Install and verify:
 
 ```sh
 claude plugin marketplace add kitchen-engineer42/joharnessburg
 claude plugin install john@joharnessburg
-
-# Verify
 claude plugin list
-# Expect: john@joharnessburg listed, status enabled
 ```
 
-### Codex
+Then run `/reload-plugins` in an active session, or start a fresh Claude Code session.
 
-This repo also ships a Codex plugin manifest and local marketplace:
-
-- Plugin manifest: `plugins/joharnessburg/.codex-plugin/plugin.json`
-- Codex marketplace: `.agents/plugins/marketplace.json`
-
-Local development install:
-
-```sh
-codex plugin marketplace add /path/to/joharnessburg
-```
-
-Then enable `john@joharnessburg` in the Codex App plugin UI. Codex does not run Claude slash commands directly; the command equivalents are exposed as skills:
-
-- `John: Init Workspace` — `/john:init`
-- `John: Workspace Status` — `/john:status`
-- `John: Endurance Goal` — `/john:endurance`
-- `John: Archive Workspace` — `/john:archive`
-- `Codex Run Report` — provider-neutral scorecard and manifests (`/john:report` equivalent)
-
-After install, the `using-john` skill auto-loads when you start a fresh Claude Code session. That's John's orientation entry point — Claude reads it and orients itself to the harness.
-
-John hooks execute local plugin scripts with the permissions of the active coding session. Review `plugins/joharnessburg/hooks/hooks.json` and the referenced scripts before enabling an untrusted fork. That file is the sole shipped hook declaration; Claude receives `updatedToolOutput`, while Codex-compatible calls receive `additionalContext` pointing to the same trace.
-
-## Quick start
-
-Open a fresh Claude Code session in a project directory. John's `using-john` skill should trigger on session-start; if not, ask Claude "what is John, how do I use it here?" — that phrasing triggers it.
-
-The natural flow for a new John project:
-
-1. **(Optional) Apply a template** for your app family before launching the session. See [Templates](#templates) below — install at `~/.claude/plugins/joharnessburg-templates/<name>/`, run its `apply.sh`, then launch Claude with `--plugin-dir`. Skip for vanilla John.
-2. **Scaffold a workspace** — in Claude Code, run `/john:init` (or just tell Claude "set up John in this dir"); in Codex, use `John: Init Workspace`. This creates `PLAN.md`, `CLAUDE.md`, `AGENTS.md`, and a `.john/` working directory in your project.
-3. **Drop your inputs** into `.john/input/` (PDFs, regulations, sample documents — whatever the produced app should be built from).
-4. **Tell Claude what kind of app to build**. Claude advances through the phases declared in `PLAN.md` via ralph_loop (the iterative driver), dispatches parallel subagents per phase, and ends with a working app.
-
-Along the way the session *learns from the run* (the `skill-evolution` skill, v0.3.x): lessons are distilled into `.john/lessons/` at phase boundaries, skill invocations and phase-gate verdicts are recorded for the deterministic process scorecard (`scripts/process_scorecard.py`), and — where a template ships a scorer — the produced app's workerLLM skills can be trained with a held-out-gated edit loop during the build.
-
-Other slash commands available after install:
-
-- `/john:status` — current phase + progress
-- `/john:report` — assemble the run report (scorecard + outcome + scrubbed lessons; the evidence a template owner aggregates — sharing is always manual)
-- `/john:archive` — archive a finished workspace
-- `/john:endurance` — set/clear the long-running goal (pinned into the system prompt; survives context compaction)
-
-## Running John with dynamic workflows
-
-John's vertical axis — fanning out hundreds-to-thousands of per-entry subagents (extract every chunk, apply every rule, render every slide) — maps directly onto Claude Code's **dynamic workflows**: Claude writes a script that runs the fan-out off its context, adversarially cross-checks the workers, and writes every result to John's event log. The `vertical-workflows` skill teaches Claude the John-shaped fan-out; you set the session up so it fires on the *right* phases and not on everything.
-
-**Requirements:** Claude Code with dynamic-workflows support (research preview; a recent build on a paid plan), feature enabled.
-
-**Recommended session config** (these are your moves — John reads them, it can't set them for you):
-
-1. **Turn on ultracode.** Run `/effort ultracode` at the start of the session. This is what lets Claude *author* a workflow autonomously; John's skills then steer it to the heavy fan-out phases and keep small/coupled/interactive work inline. Ultracode is **per-session** — it resets when you start a new session, so set it each time (it needs a model that supports `xhigh` effort).
-2. **Pre-seed your permission allowlist.** Workflow subagents inherit your tool allowlist; un-allowlisted Bash/web/MCP calls still prompt mid-run and will stall an unattended pipeline. Add the tools John's agents call (Read/Write/Grep/Glob/Bash + your workerLLM and ppx client calls) to your allowlist before a long run.
-
-> **On the keyword trigger — nothing to turn off.** Claude Code's per-prompt workflow trigger is now the word **`ultracode`** (it changed from `workflow` in a mid-2026 update, with Claude using judgment so an incidental mention no longer hijacks a run). John's skills and your messages say "workflow" constantly and that no longer starts a run — so `/effort ultracode` for the session is all you need; type `ultracode` in a prompt only when you want a one-off run.
-
-**Fallback:** none of this is required. If workflows aren't available (older Claude Code, feature off, not in ultracode), John runs the *same* fan-out as inline subagents — same events, same reducer, same `PLAN.md`, same output. Nothing below the execution line changes; you just don't get the off-context scale and the built-in cross-check. John checks availability before its first fan-out phase and tells you the recipe above if the session isn't configured.
-
-**Endurance mode note:** if you set an endurance goal (`/john:endurance <goal>`), John assumes you've done the config above and will *not* pause a long run to re-confirm it — set up the session first, then start the run.
-
-## Upgrade
+Update and verify:
 
 ```sh
 claude plugin marketplace update joharnessburg
 claude plugin update john@joharnessburg
-# Restart Claude Code for the new version to take effect.
+claude plugin list
 ```
 
-> Note: `claude plugin install` is a no-op when the plugin is already installed. Use `claude plugin update <plugin>@<marketplace>` for upgrades. Auto-update is OFF by default for third-party marketplaces; enable via the `/plugin` UI → Marketplaces → joharnessburg → Enable auto-update if you want it on.
+Run `/reload-plugins` or start a fresh session after the update.
 
-## Prerequisites
+### Codex
 
-- **Python 3.10+** — the plugin's toolkit scripts use stdlib only; system Python is fine.
-- For **non-PDF document parsing** (`markitdown_parse.py`): `pip install markitdown`.
-- For **PDF parsing**: an external `local_clients/ppx/` FastAPI server wrapping `memect-ppx`. See [Local clients](#local-clients) below.
-- For **workerLLM calls at runtime**: an external `local_clients/llm/` FastAPI server. Also under [Local clients](#local-clients).
+Install and verify:
 
-Both parser dependencies are optional. The plugin installs and `using-john` loads regardless; parser scripts fail loud with install instructions when invoked without their deps.
+```sh
+codex plugin marketplace add kitchen-engineer42/joharnessburg
+codex plugin add john@joharnessburg
+codex plugin list
+```
+
+Restart Codex or start a new task so the plugin reloads. Open `/hooks`, inspect John's hook definition, and trust it only after review; installing the plugin does not trust its hooks automatically.
+
+Update and verify:
+
+```sh
+codex plugin marketplace upgrade joharnessburg
+codex plugin add john@joharnessburg
+codex plugin list
+```
+
+`codex plugin add` is idempotent and refreshes the installed plugin from the upgraded marketplace snapshot. Review `/hooks` again if the definition changed, then restart Codex or start a new task.
+
+## Quick start
+
+Open your project in either runtime, initialize John with an optional input file or directory, confirm the generated `PLAN.md`, then describe the app you want. John advances through the knowledge and app phases while `.john/events/`, `.john/checkpoints/`, and `.john/runs/` preserve durable evidence.
+
+| Operation | Claude Code | Codex |
+|---|---|---|
+| Initialize | `/john:init <input-path>` | “Use `init-workspace` to initialize John from `<input-path>`.” |
+| Status | `/john:status` | “Use `workspace-status` to show the John workspace status.” |
+| Run report | `/john:report` | “Use `codex-run-report` to generate the John run report.” |
+| Endurance goal | `/john:endurance <goal>` | “Use `endurance-goal` to set `<goal>`.” |
+| Archive | `/john:archive [label]` | “Use `archive-workspace` to archive this John workspace.” |
+
+John initializes both `CLAUDE.md` and `AGENTS.md`, plus byte-identical project skill trees under `.claude/skills/` and `.agents/skills/` when knowledge is packaged.
+
+## Scale-out execution
+
+- **Claude Code:** `vertical-workflows` can author Claude dynamic workflows for large uniform fan-outs. When unavailable, the same work runs through inline subagent waves.
+- **Codex:** `codex-vertical-workflows` uses native subagent waves and the durable `.john/runs/` ledger for retries, reconciliation, status, and cancellation.
+
+Both paths emit the same events, pass the same extraction audits, reduce into the same checkpoints, and continue through the same `PLAN.md`.
 
 ## Templates
 
-Templates **specialize John for a family of apps**. A template is a *diff against original John* that purpose-builds the harness for one kind of pipeline (overriding some skills, adding new ones, shipping a starter `PLAN.md` skeleton).
-
-The three-step flow:
+A John template is a version-pinned diff that specializes the shared harness for one app family. Install it as a regular directory, apply it once, and use the resulting merged plugin; the same applied output serves both providers.
 
 ```sh
-# 1. Install the template (copy or symlink into user-scope template dir)
-cp -R /path/to/your-template ~/.claude/plugins/joharnessburg-templates/your-template
-
-# 2. Apply it (produces a merged plugin at ~/.claude/plugins/joharnessburg-applied/<name>/)
-~/.claude/plugins/joharnessburg-templates/your-template/apply.sh
-
-# 3. Launch Claude with the merged plugin
-cd /path/to/your-project
-claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
+cp -R /path/to/template ~/.claude/plugins/joharnessburg-templates/<name>
+~/.claude/plugins/joharnessburg-templates/<name>/apply.sh
 ```
 
-The merged plugin IS John for that session — all template skills load equally with the core ones; there's no second-class "template layer." Which template is loaded is fixed at session start; to switch, exit and relaunch with a different `--plugin-dir`. Multiple applied templates can coexist (parallel Claude sessions can use different ones).
-
-For a template that declares Codex support, keep the Claude apply output unchanged and activate the same merged plugin inside the target project:
+For **Claude Code**, launch the printed path:
 
 ```sh
-python3 /path/to/john/scripts/activate_codex_template.py \
-  --merged-plugin ~/.claude/plugins/joharnessburg-applied/your-template \
-  --project-root /path/to/your-project
+claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>
 ```
 
-Follow the printed project-local marketplace install/enable/restart instructions. The applied plugin must replace vanilla `john@joharnessburg` for that project session, not run beside it.
-
-To reset: `rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/` (or wipe all with `scripts/reset_john.py`) — **only when no session is using those dirs** (see the warning below). The next launch without `--plugin-dir` uses vanilla John.
-
-### Running several sessions at once (different templates, or vanilla too)
-
-Sessions are isolated by their `--plugin-dir`, so you can run many in parallel — different templates, with vanilla John alongside:
-
-- **One applied dir per template.** Apply each template once to its own `~/.claude/plugins/joharnessburg-applied/<name>/`, and launch each session with `--plugin-dir` at the matching dir. Each project keeps its own `.john/` workspace, independent of which template is loaded.
-- **Vanilla** launches from the plugin source itself (`claude --plugin-dir /path/to/joharnessburg/plugins/joharnessburg`), **not** from an applied dir — that also keeps `reset_john.py` from ever touching a vanilla session.
-- **⚠️ Never delete or reset an applied dir while a session is using it.** A `--plugin-dir` session reads that directory **live from disk** — hooks re-run their scripts on every tool call and skills load on demand — so deleting it mid-run (a stray `reset_john.py` or `rm -rf`) breaks every live session pointed at it: hooks fail "file not found", skills stop loading. Reset only after those sessions are closed. If it happens by accident, re-apply the same template to the same path; the live session recovers on its next action (or resume it with `claude --continue --plugin-dir <path>`).
-
-**Where to find templates**: This plugin ships no bundled examples — that keeps John's runtime focused on the one template you load (or none). Reference examples (functional demonstrators of the diff format) live in the companion tool **Hamster** ([github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)) under `examples/`. Real production templates ship separately from your team.
-
-To author your own template, see [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md) for the diff-script architecture, directory anatomy, and `apply.sh` mechanics. For a guided, Claude-driven authoring experience, use Hamster — it ships skills + a methodology that walk Claude Code through building a template from raw inputs.
-
-## Local clients
-
-For LLM calls + PDF parsing, John talks to **external FastAPI servers** that you run alongside the plugin. They live OUTSIDE the plugin (workspace-level) so you can swap providers without changing John itself.
-
-The plugin's `parsing` + `workerllm-runtime` skills teach Claude to call them via env-var-configured URLs:
-
-- `$JOHN_LLM_CLIENT_URL` (default `http://localhost:8500`) — workerLLM client (wraps SiliconFlow + DeepSeek today).
-- `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`) — PDF parser client (wraps `memect-ppx`, the `ppx` parser engine at [github.com/kitchen-engineer42/ppx](https://github.com/kitchen-engineer42/ppx)).
-
-When your team ships its own production servers (on-prem or different providers), swap these env vars — nothing inside John changes.
-
-### One-time setup (per machine)
-
-These clients are gitignored external workspace services: a fresh John clone is
-not self-contained and does not provision them. Obtain the separately pinned
-client directories and PPX engine snapshot from your team, place them under the
-workspace paths expected by `setup_john.sh`, and use [`uv`](https://docs.astral.sh/uv/)
-with the committed frozen locks. The setup script refuses missing directories;
-it does not clone or update dependencies for you.
+For **Codex**, activate that same merged plugin in the target project:
 
 ```sh
-# 1. Verify the separately provisioned local_clients/{llm,ppx} directories exist.
-# 2. Run the workspace setup script — frozen installs only.
-cd /path/to/john-workspace
-./setup_john.sh
-# First run will create .env from .env.example; fill in SILICONFLOW_API_KEY + DEEPSEEK_API_KEY.
-# .env is created/repaired with mode 0600 and secrets are never printed.
+python3 ~/.claude/plugins/joharnessburg-applied/<name>/scripts/activate_codex_template.py \
+  --merged-plugin ~/.claude/plugins/joharnessburg-applied/<name> \
+  --project-root /path/to/project
 ```
 
-### Per-session launch
+Follow the printed steps: add the project-local marketplace, install the applied listing, verify it with `codex plugin list`, disable vanilla `john@joharnessburg` for that project, inspect and trust the applied hooks through `/hooks`, and restart Codex. Activation prepares project-local files only; it does not change personal marketplace or global plugin state automatically.
 
-```sh
-cd /path/to/john-workspace
-./start_john.sh
-# Waits for service-specific readiness; rolls both services back on partial failure.
+Do not delete an applied directory while a live session is using it. See the [template authoring guide](plugins/joharnessburg/templates/README.md) for the format and [Hamster](https://github.com/kitchen-engineer42/hamster) for dual-provider examples and a guided authoring workflow.
 
-# Then in your Claude Code shell (or persist in .zshrc / .bashrc):
-export JOHN_LLM_CLIENT_URL=http://localhost:8500
-export JOHN_PPX_CLIENT_URL=http://localhost:8501
+## Prerequisites and optional services
 
-# Launch Claude Code in your project:
-cd /path/to/your-project
-claude
+- Python 3.10+ for John's standard-library toolkit.
+- Optional `markitdown` for non-PDF conversion.
+- Optional PPX-compatible service at `$JOHN_PPX_CLIENT_URL` for high-fidelity PDFs.
+- Optional OpenAI-compatible workerLLM service at `$JOHN_LLM_CLIENT_URL` for produced apps that need runtime model calls.
+
+John installs and runs without the optional services. They are external URL contracts, not package dependencies.
+
+## Hook trust
+
+[`hooks/hooks.json`](plugins/joharnessburg/hooks/hooks.json) is John's sole hook declaration. Hooks execute the bundled scripts with the active coding session's permissions. Review this file and the referenced scripts before trusting an unfamiliar fork. Codex users must review and trust the current definition through `/hooks`; plugin installation or enablement alone is not trust.
+
+## Repository layout
+
+```text
+.claude-plugin/marketplace.json       Claude marketplace
+.agents/plugins/marketplace.json      Codex marketplace
+plugins/joharnessburg/
+  .claude-plugin/plugin.json          Claude manifest
+  .codex-plugin/plugin.json           Codex manifest
+  hooks/                              shared hook declaration
+  skills/                             shared + provider adapter skills
+  commands/                           Claude slash commands
+  agents/                             canonical Markdown agents
+  codex/agents/                       generated Codex agents
+  scripts/                            deterministic toolkit
+  templates/                          apply script and authoring guide
+CONTEXT.md                            canonical vocabulary
 ```
 
-To stop:
+## Credits
 
-```sh
-cd /path/to/john-workspace
-./stop_john.sh
-```
-
-### Smoke test (verify the chain works end-to-end)
-
-```sh
-# Liveness, then readiness + provider capabilities
-curl -s http://localhost:8500/healthz | jq
-curl -s http://localhost:8500/readyz | jq
-
-# Actual LLM call (should return "OK" or similar)
-curl -s http://localhost:8500/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"deepseek-v4-flash","messages":[{"role":"user","content":"reply with just OK"}]}' | jq
-
-# ppx liveness and readiness
-curl -s http://localhost:8501/healthz | jq
-curl -s http://localhost:8501/readyz | jq
-```
-
-### Reference docs
-
-- `local_clients/llm/README.md` — LLM client install + API contract
-- `local_clients/ppx/README.md` — ppx client install + API contract
-- `plugins/joharnessburg/skills/workerllm-runtime/SKILL.md` — how the plugin teaches Claude to call these clients
-
-## What's in this repo
-
-```
-.claude-plugin/
-  marketplace.json              # Marketplace catalog (this repo is also a marketplace)
-plugins/
-  joharnessburg/                # The plugin itself
-    .claude-plugin/
-      plugin.json               # Claude Code plugin manifest
-    hooks/hooks.json            # Hook declarations (auto-registered on install)
-    skills/                     # John's meta-skills (loaded into John-wrapped Claude Code sessions)
-    commands/                   # Slash commands
-    scripts/                    # Small Python toolkit (ppx wrapper, event reducer, apply_template, etc.)
-    agents/                     # Subagent role definitions
-    templates/                  # Universal apply.sh + authoring guide (templates/README.md)
-CONTEXT.md                      # The project glossary — canonical vocabulary
-docs/adr/                       # Architecture decision records (short)
-README.md                       # This file
-README_ZH.md                    # 中文版
-LICENSE                         # MIT
-```
-
-## Acknowledgments
-
-- [@HalfMoon001](https://github.com/HalfMoon001) — heavy field-testing of John end-to-end, and the analysis behind the `job-runtime` skill ([#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)): the produced-app long-running I/O job pattern (task registry, slot leases, split queue/generation budgets, resumable progress) was specified from her testing and issue work.
-- [@oubeichen](https://github.com/oubeichen) — the Codex adapter (Codex plugin manifest + local marketplace, project hooks, command-mirror skills, and the converted custom agents), and the `app_first_contracts.py` tooling behind the internal-leak guard and the display-first lens.
-- [@Ruilin-mmwa](https://github.com/Ruilin-mmwa) — the status-reporting clarity fixes ([#4](https://github.com/kitchen-engineer42/joharnessburg/issues/4) / [#5](https://github.com/kitchen-engineer42/joharnessburg/pull/5)): splitting chunk-completeness severity (`incomplete_chunks` vs `chunks_missing_echo`) and surfacing phase provenance, so the read-only status surfaces stop reading as more alarming or more complete than they are.
-- [@AnselKocen](https://github.com/AnselKocen) — the long-session quality-trap warnings ([#3](https://github.com/kitchen-engineer42/joharnessburg/issues/3)): from real multi-template field use, the failure modes where extended sessions drift toward completion-speed over completion-quality (parallel ≠ reviewed, file-exists ≠ phase-done, skipping a skill's reference implementation, pure-scope endurance wording). Landed as soft, judgment-preserving guidance woven into the relevant skills.
+John is maintained by [kitchen-engineer42](https://github.com/kitchen-engineer42), with contributions and field evidence from [@HalfMoon001](https://github.com/HalfMoon001), [@oubeichen](https://github.com/oubeichen), [@Ruilin-mmwa](https://github.com/Ruilin-mmwa), and [@AnselKocen](https://github.com/AnselKocen).
 
 ## License
 
-John (joharnessburg) is released under the **MIT License** — see [`LICENSE`](LICENSE). Use it, fork it, build on it freely.
-
-Vanilla John and its companion tool Hamster are MIT. Domain-specialized variants built on top of John (e.g. KC Agent CLI) may be offered under separate commercial terms.
+MIT. See [`LICENSE`](LICENSE).

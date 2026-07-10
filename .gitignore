@@ -8,3 +8,6 @@ __pycache__/
 # John local workspace/output from ad-hoc shakedowns in this repo
 .john/
 john-archive-*.zip
+
+# Internal architecture decisions are retained only in the builder workspace.
+/docs/

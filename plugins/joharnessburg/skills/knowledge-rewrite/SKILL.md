@@ -39,7 +39,7 @@ Extraction is fan-out; rewrite is consolidation. The raw event log from [[knowle
 - Cross-refs (`related_to`, `depends_on`, etc., per schema)
 - Source pointer (chunk_id or source_ref)
 
-**Body** is the entry's full content. Loaded when the entry is actually consumed (by extraction subagents in a later phase, by the runtime, by Claude reading the deliverable). Includes:
+**Body** is the entry's full content. Loaded when the entry is actually consumed (by extraction subagents in a later phase, by the runtime, or by a John-equipped agent reading the deliverable). Includes:
 
 - Full claim / rule / story / etc.
 - Citations + verbatim quotes from the source
@@ -69,7 +69,7 @@ Three-fold reason dedup is hard:
 The two-tier dedup pattern handles this without false positives or false negatives at scale:
 
 - **Tier 1 (cheap)**: a small/cheap model (Haiku, or a workerLLM) does a quick-scan over header pairs from the same bucket. Asks: "Are these two entries describing the same thing?" Outputs yes/no/maybe.
-- **Tier 2 (expensive)**: for everything in tier-1's "maybe" or "yes" pile, a SOTA model (Claude Sonnet/Opus) does a deep-read over both bodies and decides definitively.
+- **Tier 2 (expensive)**: for everything in tier-1's "maybe" or "yes" pile, a strong available model does a deep-read over both bodies and decides definitively.
 
 Tier 1 filters out obvious non-duplicates cheaply (the bulk). Tier 2 spends real tokens only on plausible candidates. The ratio matters — in a typical run the vast majority of pairs are filtered cheaply by tier 1, and only a small fraction reach tier 2.
 

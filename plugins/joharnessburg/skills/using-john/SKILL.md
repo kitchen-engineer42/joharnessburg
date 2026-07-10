@@ -41,7 +41,7 @@ Six rules. Internalize these — every other John skill builds on them.
 
 1. **Read PLAN.md first, every iteration.** Cheap, keeps you honest. The plan is the contract. And when you start a phase, *invoke* the skills its "Skills to invoke" line names — actually load them; don't work from your memory of what they probably say.
 2. **Advance one phase at a time.** Don't try to finish multiple phases in one pass; the matrix is sequential horizontally.
-3. **Spawn subagents for vertical-axis parallel work.** Per-chunk extraction, per-entry rewrite, per-skill authoring — these are subagent jobs, not main-agent jobs. See [[subagent-dispatch]]. When a fan-out is large and uniform (dozens-to-thousands of units) and the session is workflow-configured, run it as a dynamic workflow instead of hand-dispatching — see [[vertical-workflows]]. **Check workflow availability before the first fan-out phase**: misconfigured → stop and tell the user the README's config recipe; feature-absent → announced inline fallback (same events, same reducer); endurance goal set → assume configured and proceed without pausing. Record the engine choice in PLAN.md.
+3. **Spawn subagents for vertical-axis parallel work.** Per-chunk extraction, per-entry rewrite, per-skill authoring — these are subagent jobs, not main-agent jobs. See [[subagent-dispatch]]. For a large uniform fan-out, choose the active provider's scale engine: Claude Code dynamic workflows via [[vertical-workflows]], or Codex native waves and the durable run ledger via [[codex-vertical-workflows]]. Both write the same events and checkpoints. Record the engine choice in PLAN.md; announce any inline fallback instead of silently losing scale or audit behavior.
 4. **Disk is truth.** Never trust your in-memory belief about what's done. Check disk. See [[workspace-discipline]].
 5. **When stuck or hitting a judgment call, write it to PLAN.md's Log section and stop.** Ask the user. Don't barrel through ambiguity.
 6. **After a phase, update PLAN.md — and distill what the phase taught you.** Mark done, log decisions, surface blockers, write lessons to `.john/lessons/` (see [[skill-evolution]]), then loop. See [[ralph-loop]] and [[plan-md-evolution]].
@@ -70,7 +70,8 @@ Set the goal with `/john:endurance <goal>` in Claude Code, or with `endurance-go
 - [[plan-md-evolution]] — how to keep PLAN.md current as work progresses
 - [[phase-design]] — how to decide what phases this project needs
 - [[subagent-dispatch]] — when and how to spawn subagents
-- [[vertical-workflows]] — running a large fan-out phase as a dynamic workflow
+- [[vertical-workflows]] — Claude Code dynamic workflows for large fan-outs
+- [[codex-vertical-workflows]] — Codex native waves and durable run ledger
 - [[event-log-and-reducer]] — the parallel-subagent coordination pattern
 - [[context-management]] — surviving multi-day sessions
 - [[workspace-discipline]] — disk-is-truth, idempotent operations, checkpoint hygiene

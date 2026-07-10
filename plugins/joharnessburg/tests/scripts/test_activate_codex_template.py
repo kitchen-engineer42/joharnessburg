@@ -15,7 +15,7 @@ def build_merged(root: Path, name: str = "research-kit") -> Path:
     merged = root / "merged"
     (merged / ".codex-plugin").mkdir(parents=True)
     (merged / ".codex-plugin/plugin.json").write_text(
-        json.dumps({"name": "john", "version": "0.5.0"})
+        json.dumps({"name": "john", "version": "0.5.1"})
     )
     (merged / ".applied-metadata.json").write_text(
         json.dumps({"template_name": name, "template_version": "1.2.3"})
@@ -53,6 +53,7 @@ class TestActivateCodexTemplate(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(payload["success"])
             self.assertTrue(payload["vanilla_exclusion_required"])
+            self.assertFalse(payload["global_state_changed"])
             destination = project / ".john-codex/plugins/research-kit"
             self.assertTrue((destination / ".codex-activation.json").is_file())
             self.assertTrue((project / ".codex/agents/researcher.toml").is_file())
@@ -74,6 +75,9 @@ class TestActivateCodexTemplate(unittest.TestCase):
             self.assertTrue(any("Restart Codex" in line for line in payload["instructions"]))
             self.assertIn("codex plugin marketplace add .", payload["instructions"])
             self.assertTrue(any(line.startswith("codex plugin add ") for line in payload["instructions"]))
+            self.assertTrue(any("codex plugin list" in line for line in payload["instructions"]))
+            self.assertTrue(any("/hooks" in line for line in payload["instructions"]))
+            self.assertTrue(any("disable john@joharnessburg" in line for line in payload["instructions"]))
 
     def test_force_preserves_user_agent_and_merges_existing_marketplace(self):
         with tempfile.TemporaryDirectory() as td:

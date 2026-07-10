@@ -1,6 +1,6 @@
 # progressive-disclosure-pattern — header vs body
 
-Every entry gets a header file and a body file (or equivalent split). This is the same pattern Claude Code skills use (frontmatter+description vs body) and the same pattern documents use (TOC vs chapters). It scales reading cost.
+Every entry gets a header file and a body file (or equivalent split). This is the same pattern provider-discoverable skills use (frontmatter+description vs body) and the same pattern documents use (TOC vs chapters). It scales reading cost.
 
 ## Why split
 
@@ -53,6 +53,6 @@ The pattern is canonical across our prior projects:
 
 - A predecessor pipeline: `header.md` + `content.md` per entry.
 - KC's rule format: rule metadata file + rule body file.
-- Claude Code skills: SKILL.md frontmatter + body.
+- Provider-discoverable skills: SKILL.md frontmatter + body.
 
 All instances of one underlying idea.

@@ -38,7 +38,7 @@ PLAN.md has these sections in this order. Some come from your conversation with 
 
 ## Knowledge inventory (from the knowledge phases)
 <initial: pointer to .john/input/ and a one-line corpus profile
- over time: pointer to <project>/.claude/skills/ once the knowledge phases ship>
+ over time: pointers to <project>/.claude/skills/ and <project>/.agents/skills/ once the knowledge phases ship>
 
 ## App-type definition
 - Knowledge format: <facts? rules? stories? wiki? mixed? — initial guess, may evolve>
@@ -112,7 +112,7 @@ PLAN.md is co-authored. Do NOT fill in everything unilaterally. The taste calls 
 A workable conversation flow (adapt freely):
 
 1. **Confirm project intent.** Echo back what you understood from `/john:init` and the user's framing. If anything's ambiguous, ask before sketching.
-2. **Check for an active template.** A template is active if the session launched with `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/` — its parent dir being `joharnessburg-applied/` is the signal. If so, `$CLAUDE_PLUGIN_ROOT/templates-active/plan_md_template.md` (if shipped by the template) is your skeleton; `/john:init` automatically uses it on workspace scaffold. Otherwise, you're sketching from scratch — confirm with the user.
+2. **Check for an active template.** In Claude Code, the applied `--plugin-dir` identifies it; in Codex, the project-local applied listing and `.codex-activation.json` do. If the active plugin contains `templates-active/plan_md_template.md`, use it as the skeleton; John initialization consumes it automatically. Otherwise, you're sketching from scratch — confirm with the user.
 3. **Drive the app-type definition conversation.** For the app phases especially: ask about the runtime shape (what's the produced app, who uses it, how do they interact?) — that drives schema and format decisions backward, and pipeline decisions forward. For app-shaped projects the **display-first lens** ([[app-design-thinking]]) is worth applying early — sketch what the end-user should see, and let it inform extraction before the schema locks. Keep any product questions to a *small* batch in plain user language (what should they experience? what tone?), never schema/JSON/chunking questions — a handful at most, then proceed on a defensible default and record it.
 4. **Sketch phases.** For the knowledge phases the suggested pipeline ([[phase-design]] documents it) is a decent default; for the app phases, phases emerge from the mechanism decision.
 5. **Show the draft, ask for taste corrections.** Don't commit to disk until the user has read and approved the app-type definition section and the first 2-3 phases.
@@ -121,7 +121,7 @@ After the first PLAN.md write, [[plan-md-evolution]] takes over — keep PLAN.md
 
 ## The knowledge → app boundary within one PLAN.md
 
-PLAN.md spans both halves of John in one document. Phases 1-N typically handle knowledge engineering (producing artifacts in `<project>/.claude/skills/`); phases N+1 to M typically handle app building (producing the deliverable app). The boundary is natural — it's where the *Knowledge inventory* section transitions from "pointer to .john/input/" to "pointer to .claude/skills/". Keep the Knowledge inventory live: update it when the knowledge phases ship, so the app phases inherit the produced skills as their starting context.
+PLAN.md spans both halves of John in one document. Phases 1-N typically handle knowledge engineering (producing byte-identical artifacts in `<project>/.claude/skills/` and `<project>/.agents/skills/`); phases N+1 to M typically handle app building. The boundary is natural — it's where the *Knowledge inventory* transitions from raw input to provider-discoverable skills. Keep that inventory live so the app phases inherit the produced knowledge as their starting context.
 
 ## After this skill ends
 

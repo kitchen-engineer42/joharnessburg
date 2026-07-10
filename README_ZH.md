@@ -1,247 +1,140 @@
-# joharnessburg
+# John
 
-**John** 是插件名（slash commands 为 `/john:init`、`/john:status` 等）；**joharnessburg** 是它的分发 marketplace / 仓库名——读作 "jo-harness-burg"（harness 在中间），或者按城市谐音读 "jo-hannesburg" 也行。所以安装命令是 `claude plugin install john@joharnessburg`。
+> English: [`README.md`](README.md)
 
-John 通过 skills、hooks、slash commands 和一套小工具包装 Claude Code，让它能在一个长时间运行的会话中完成从非结构化输入（书籍、法规、混合文档）经 **knowledge phases（知识工程）** 到 **app phases（应用构建）** 的全流程，最终产出一个 **knowledge-dense app**：一个用固定机制（mechanism）运行大量均匀知识条目（entries）的应用——条目来自你的语料。产出的应用**默认独立运行**（本地启动、`.env` 配置、不假设任何外部平台）；模板可以叠加平台集成。
+John 把非结构化源材料转化为可工作的知识密集型应用。它在一次可持续的运行中贯通知识工程与应用构建，协调大规模逐条目扇出，并把可审计的事件与检查点留在磁盘上。
 
-项目的规范词汇表在 [`CONTEXT.md`](CONTEXT.md)；若干设计决策记录在 [`docs/adr/`](docs/adr/)。
+你可以选择 **Claude Code 或 Codex**。两者都是推荐运行时，共用同一个 John 插件、skills、脚本、hooks、workspace 状态和模板格式。
 
-> English README: [`README.md`](README.md)
-
-## 安装
+## 安装与更新
 
 ### Claude Code
+
+安装并验证：
 
 ```sh
 claude plugin marketplace add kitchen-engineer42/joharnessburg
 claude plugin install john@joharnessburg
-
-# 验证
 claude plugin list
-# 期望看到：john@joharnessburg 出现在列表里，状态为 enabled
 ```
 
-### Codex
+然后在当前会话运行 `/reload-plugins`，或启动一个新的 Claude Code 会话。
 
-本仓库同时提供 Codex 插件 manifest 和本地 marketplace：
-
-- 插件 manifest：`plugins/joharnessburg/.codex-plugin/plugin.json`
-- Codex marketplace：`.agents/plugins/marketplace.json`
-
-本地开发安装：
-
-```sh
-codex plugin marketplace add /path/to/joharnessburg
-```
-
-然后在 Codex App 的插件界面启用 `john@joharnessburg`。Codex 中没有 Claude slash command 运行时；对应入口以 skill 形式暴露：
-
-- `John: Init Workspace` —— `/john:init`
-- `John: Workspace Status` —— `/john:status`
-- `John: Endurance Goal` —— `/john:endurance`
-- `John: Archive Workspace` —— `/john:archive`
-- `Codex Run Report` —— provider-neutral scorecard 与 manifests（等价于 `/john:report`）
-
-John 的 hook 会以当前编码会话的权限执行本地插件脚本。启用不受信任的 fork 前，请审阅 `plugins/joharnessburg/hooks/hooks.json` 及其引用脚本；这是唯一的 hook 声明源。
-
-安装完成后，新开一个 Claude Code 会话时 `using-john` skill 会自动加载——这是 John 的入口定向 skill，Claude 读到它就开始进入 John 的工作模式。
-
-## 快速开始
-
-在项目目录中打开一个新的 Claude Code 会话。`using-john` skill 应该会在会话开始时触发；如果没有，你也可以直接问 Claude "John 是什么？我在这个目录里怎么用？"——这种话术也能触发它。
-
-新 John 项目的自然流程：
-
-1. **（可选）先应用模板** 来特化 app 家族。看下面的 [模板](#模板) 章节——把模板装到 `~/.claude/plugins/joharnessburg-templates/<name>/`，运行它的 `apply.sh`，然后用 `--plugin-dir` 启动 Claude。如果用 vanilla John，跳过这步。
-2. **创建 workspace** —— Claude Code 中运行 `/john:init`（或者直接告诉 Claude "在这个目录里设置 John"）；Codex 中使用 `John: Init Workspace`。这会在你的项目里创建 `PLAN.md`、`CLAUDE.md`、`AGENTS.md` 和一个 `.john/` 工作目录。
-3. **把输入材料放进** `.john/input/`（PDF、法规、样本文档——任何 produced app 需要的素材）。
-4. **告诉 Claude 你想构建什么 app**。Claude 会按 `PLAN.md` 里声明的 phase，通过 ralph_loop（迭代驱动器）逐步推进，每个 phase 派发并行的 subagent，最终产出一个可工作的 app。
-
-构建过程中，会话还会*从这次运行中学习*（`skill-evolution` skill，v0.3.x 起）：在 phase 边界把经验教训沉淀到 `.john/lessons/`；skill 调用与 phase 关卡判定会被记录下来，供确定性的 process scorecard（`scripts/process_scorecard.py`）读取；当模板带有 scorer 时，produced app 的 workerLLM skill 还能在构建期间通过留出集门控的编辑循环进行训练。
-
-安装后还有其它 slash command 可用：
-
-- `/john:status` —— 当前 phase + 进度
-- `/john:report` —— 生成 run report（scorecard + 结果 + 脱敏后的经验教训；模板维护者做模板演化要汇总的证据——分享永远由人手动进行）
-- `/john:archive` —— 归档已完成的 workspace
-- `/john:endurance` —— 设置/清除长跑目标（注入 system prompt，跨上下文压缩存活）
-
-## 用 dynamic workflows 运行 John
-
-John 的纵轴——把成百上千的单条目 subagent 扇出（抽取每个 chunk、对每个章节套用每条规则、渲染每张幻灯片）——正好对应 Claude Code 的 **dynamic workflows**：Claude 写一个脚本，在它的上下文之外跑这个扇出，让 worker 之间相互对抗式交叉校验，并把每条结果写进 John 的 event log。`vertical-workflows` skill 教会 Claude 这种 John 形态的扇出；你负责把会话配置好，让 workflow 在**该用的 phase** 上触发，而不是到处乱触发。
-
-**前置条件：** 支持 dynamic workflows 的 Claude Code（research preview；付费计划上的较新版本），并已启用该功能。
-
-**推荐的会话配置**（这些是你的操作——John 会读取它们，但无法替你设置）：
-
-1. **打开 ultracode。** 会话开始时运行 `/effort ultracode`。这才是让 Claude 自主**编写** workflow 的开关；之后 John 的 skills 会把它引导到重型扇出 phase，并把小规模/强耦合/需交互的工作留在内联处理。ultracode 是**单会话**的——新开会话会重置，所以每次都要重设（需要支持 `xhigh` effort 的模型）。
-2. **预置你的权限白名单。** workflow 的 subagent 继承你的工具白名单；不在白名单里的 Bash/web/MCP 调用仍会在运行中弹出确认，会卡住无人值守的流水线。长跑前，把 John 的 agent 会用到的工具（Read/Write/Grep/Glob/Bash + 你的 workerLLM 和 ppx 客户端调用）加进白名单。
-
-> **关于关键词触发——无需关闭任何东西。** Claude Code 的单条 prompt workflow 触发词现在是 **`ultracode`**（2026 年中的一次更新把它从 `workflow` 改了过来，并让 Claude 自行判断，偶然提到不再会误触发一次运行）。John 的 skills 和你的消息里频繁出现 "workflow"，这不再会启动运行——所以会话层面只需 `/effort ultracode` 即可；只有当你想要一次性运行时，才在 prompt 里打 `ultracode`。
-
-**降级回退：** 以上都不是必需的。如果 workflows 不可用（较旧的 Claude Code、功能未开、不在 ultracode），John 会用内联 subagent 跑**同样的**扇出——同样的 events、同样的 reducer、同样的 `PLAN.md`、同样的产出。执行层以下什么都不变；你只是拿不到脱离上下文的规模和内建的交叉校验。John 会在第一个扇出 phase 之前检查可用性；如果会话没配置好，它会把上面的配置步骤告诉你。
-
-**耐久模式注意：** 如果你设置了耐久目标（`/john:endurance <goal>`），John 会**假设你已经完成了上面的配置**，长跑过程中不会停下来再次确认——先配置会话，再启动长跑。
-
-## 升级
+更新并验证：
 
 ```sh
 claude plugin marketplace update joharnessburg
 claude plugin update john@joharnessburg
-# 重启 Claude Code 让新版本生效。
+claude plugin list
 ```
 
-> 注意：`claude plugin install` 在插件已安装的情况下是 no-op。升级用 `claude plugin update <plugin>@<marketplace>`。第三方 marketplace 默认关闭自动更新；可以通过 `/plugin` UI → Marketplaces → joharnessburg → Enable auto-update 打开。
+更新后运行 `/reload-plugins`，或启动新会话。
 
-## 依赖
+### Codex
 
-- **Python 3.10+** —— 插件的工具脚本只用标准库；系统自带的 Python 就够用。
-- 非 PDF 文档解析（`markitdown_parse.py`）：`pip install markitdown`。
-- PDF 解析：插件外部的 `local_clients/ppx/` FastAPI 服务器，封装 `memect-ppx`。详见下面的 [本地客户端](#本地客户端)。
-- 运行时的 workerLLM 调用：插件外部的 `local_clients/llm/` FastAPI 服务器。也在 [本地客户端](#本地客户端) 里。
+安装并验证：
 
-两个解析器依赖都是可选的。插件无论如何都能安装，`using-john` skill 也能加载；只在调用解析器脚本时，如果依赖缺失，脚本会大声报错并给出安装命令。
+```sh
+codex plugin marketplace add kitchen-engineer42/joharnessburg
+codex plugin add john@joharnessburg
+codex plugin list
+```
+
+重启 Codex 或新建任务，让插件重新加载。打开 `/hooks`，检查 John 的 hook 定义，确认后再信任；安装插件不会自动信任它的 hooks。
+
+更新并验证：
+
+```sh
+codex plugin marketplace upgrade joharnessburg
+codex plugin add john@joharnessburg
+codex plugin list
+```
+
+`codex plugin add` 是幂等操作，会从升级后的 marketplace 快照刷新已安装插件。如果 hook 定义发生变化，再次通过 `/hooks` 审阅，然后重启 Codex 或新建任务。
+
+## 快速开始
+
+用任一运行时打开项目，用可选的输入文件或目录初始化 John，确认生成的 `PLAN.md`，然后描述你想构建的应用。John 会推进知识与应用阶段，同时由 `.john/events/`、`.john/checkpoints/` 和 `.john/runs/` 保存持久证据。
+
+| 操作 | Claude Code | Codex |
+|---|---|---|
+| 初始化 | `/john:init <input-path>` | “使用 `init-workspace` 从 `<input-path>` 初始化 John。” |
+| 查看状态 | `/john:status` | “使用 `workspace-status` 显示 John workspace 状态。” |
+| 运行报告 | `/john:report` | “使用 `codex-run-report` 生成 John run report。” |
+| 耐久目标 | `/john:endurance <goal>` | “使用 `endurance-goal` 设置 `<goal>`。” |
+| 归档 | `/john:archive [label]` | “使用 `archive-workspace` 归档这个 John workspace。” |
+
+John 会同时初始化 `CLAUDE.md` 和 `AGENTS.md`；知识打包时，还会在 `.claude/skills/` 与 `.agents/skills/` 下生成字节一致的项目 skill 树。
+
+## 扩展执行
+
+- **Claude Code：** `vertical-workflows` 可为大规模、均匀的扇出编写 Claude dynamic workflows；不可用时，同样的工作通过内联 subagent 波次执行。
+- **Codex：** `codex-vertical-workflows` 使用原生 subagent 波次和持久的 `.john/runs/` ledger，支持重试、对账、状态与取消。
+
+两条路径产生相同的 events，通过相同的抽取审计，归约为相同的 checkpoints，并沿同一个 `PLAN.md` 继续推进。
 
 ## 模板
 
-模板**让 John 针对一类 app 进行特化**。一个模板是**对原始 John 的 diff**，purpose-build 整个 harness 来服务某一类流水线（覆盖某些 skills、添加新的、附带一份初始 `PLAN.md` 骨架）。
-
-三步流程：
+John 模板是一个带版本固定的 diff，用于让共享 harness 适配某一类应用。把模板安装为普通目录、应用一次，然后使用生成的合并插件；同一个 applied 输出服务两个 provider。
 
 ```sh
-# 1. 安装模板（拷贝到 user-scope 的模板目录；信任边界不接受软链）
-cp -R /path/to/your-template ~/.claude/plugins/joharnessburg-templates/your-template
-
-# 2. 应用模板（产出合并后的插件到 ~/.claude/plugins/joharnessburg-applied/<name>/）
-~/.claude/plugins/joharnessburg-templates/your-template/apply.sh
-
-# 3. 用合并后的插件启动 Claude
-cd /path/to/your-project
-claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
+cp -R /path/to/template ~/.claude/plugins/joharnessburg-templates/<name>
+~/.claude/plugins/joharnessburg-templates/<name>/apply.sh
 ```
 
-合并后的插件**就是**那个会话的 John —— 模板的 skill 跟核心 skill 同等加载，没有"模板层"这种二等概念。哪个模板被加载是会话启动时固定的；要切换，退出当前会话用不同的 `--plugin-dir` 重新启动。多个 applied 模板可以共存（并行的 Claude 会话可以用不同模板）。
-
-声明支持 Codex 的模板仍然先走同一个 `apply.sh`，再在目标项目中运行 John 的 `activate_codex_template.py`。它只会在项目内生成 `.john-codex/` 插件和 `.agents/plugins/marketplace.json`，并打印安装、启用、重启步骤；不会自动修改个人 marketplace 或全局启用状态。该项目会话里 applied John 必须替代 vanilla John，不能同时运行。
-
-重置：`rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/`（或用 `scripts/reset_john.py` 全清）——**仅在没有会话正在使用这些目录时**（见下方警告）。下次不带 `--plugin-dir` 启动就是 vanilla John。
-
-### 同时跑多个会话（不同模板，或同时跑 vanilla）
-
-会话之间靠各自的 `--plugin-dir` 相互隔离，所以你可以并行跑很多个——不同模板，也可以同时跑 vanilla John：
-
-- **每个模板一个 applied 目录。** 每个模板各应用一次到自己的 `~/.claude/plugins/joharnessburg-applied/<name>/`，每个会话用对应目录的 `--plugin-dir` 启动。每个项目各自有独立的 `.john/` 工作区，跟加载了哪个模板无关。
-- **vanilla** 直接从插件源码目录启动（`claude --plugin-dir /path/to/joharnessburg/plugins/joharnessburg`），**不要**从 applied 目录启动——这样 `reset_john.py` 也永远不会动到 vanilla 会话。
-- **⚠️ 绝不要在某个 applied 目录正被会话使用时删除或重置它。** `--plugin-dir` 会话是从该目录**实时读盘**的——hook 在每次工具调用时都会重新执行其脚本，skill 也按需加载——所以运行途中删掉它（误跑 `reset_john.py` 或 `rm -rf`）会让所有指向它的活跃会话崩掉：hook 报 "file not found"、skill 加载失败。只在这些会话都关闭后再重置。万一误删了，把同一个模板重新应用到同一路径即可；活跃会话会在下一次动作时自动恢复（或用 `claude --continue --plugin-dir <path>` 重新接上）。
-
-**去哪儿找模板**：本插件不内置示例——这能让 John 的运行时聚焦于你加载的那一个模板（或者完全不用模板）。功能演示性质的参考示例（展示 diff 格式）放在配套工具 **Hamster**（[github.com/kitchen-engineer42/hamster](https://github.com/kitchen-engineer42/hamster)）的 `examples/` 目录下。生产模板由你的团队单独交付。
-
-要自己写模板，看 [`plugins/joharnessburg/templates/README.md`](plugins/joharnessburg/templates/README.md)——里面写了 diff-script 架构、目录结构、`apply.sh` 机制。如果你想要一种有引导的、Claude 驱动的模板写作体验，用 Hamster——它内置了 skills 和方法论，能带 Claude Code 从原始输入开始一步步构建模板。
-
-## 本地客户端
-
-LLM/PPX 客户端是 gitignored 的外部 workspace 服务，不属于 John 仓库依赖；新 clone 并不自带它们。`/healthz` 只表示进程存活，真正使用前必须检查 `/readyz` 返回 HTTP 200、`status: ready`、服务名和 capabilities。当前版本只允许 loopback 绑定。
-
-对于 LLM 调用 + PDF 解析，John 通过**外部 FastAPI 服务器**通信——这些服务器跟插件并行运行。它们在**插件外部**（workspace 级别），这样换 provider 不影响 John 本身。
-
-插件的 `parsing` + `workerllm-runtime` skill 教 Claude 通过环境变量配置的 URL 调用它们：
-
-- `$JOHN_LLM_CLIENT_URL`（默认 `http://localhost:8500`）—— workerLLM 客户端（当前封装 SiliconFlow + DeepSeek）。
-- `$JOHN_PPX_CLIENT_URL`（默认 `http://localhost:8501`）—— PDF 解析客户端（封装 `memect-ppx`，即 `ppx` 解析引擎，仓库在 [github.com/kitchen-engineer42/ppx](https://github.com/kitchen-engineer42/ppx)）。
-
-想换成你自己的生产服务器（on-prem 或别的 provider）？只要 HTTP 契约一致，把这两个环境变量换掉就行——John 内部不需要任何改动。
-
-### 一次性安装（每台机器一次）
-
-前提：装了 [`uv`](https://docs.astral.sh/uv/)。先从团队获取独立固定版本的 `local_clients/{llm,ppx}` 与 PPX 引擎快照，并放到 `setup_john.sh` 期望的位置。脚本只执行 frozen lock 安装；目录缺失时会退出并打印精确的 provisioning 提示，不会自行 clone 或更新依赖。
+对于 **Claude Code**，启动输出中给出的路径：
 
 ```sh
-# 1. 确认团队预先配置的 local_clients/{llm,ppx} 目录存在。
-# 2. 运行 frozen 安装
-cd /path/to/john-workspace
-./setup_john.sh
-# 首次运行会从 .env.example 创建 .env，并提示你填入密钥。
-# 编辑 .env，填入 SILICONFLOW_API_KEY 和 DEEPSEEK_API_KEY，再次运行 setup_john.sh。
-# .env 会以 0600 创建或修复，密钥不会打印到终端。
+claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>
 ```
 
-### 每个会话的启动
+对于 **Codex**，在目标项目中激活同一个合并插件：
 
 ```sh
-cd /path/to/john-workspace
-./start_john.sh
-# 等待各服务 ready；任一服务失败时回滚本次启动的全部进程。
-
-# 然后在你打算用 Claude Code 的 shell 中（或持久化到 .zshrc / .bashrc）：
-export JOHN_LLM_CLIENT_URL=http://localhost:8500
-export JOHN_PPX_CLIENT_URL=http://localhost:8501
-
-# 在你的项目目录下启动 Claude Code：
-cd /path/to/your-project
-claude
+python3 ~/.claude/plugins/joharnessburg-applied/<name>/scripts/activate_codex_template.py \
+  --merged-plugin ~/.claude/plugins/joharnessburg-applied/<name> \
+  --project-root /path/to/project
 ```
 
-停止：
+按输出步骤操作：添加项目本地 marketplace、安装 applied listing、用 `codex plugin list` 验证、在该项目中禁用 vanilla `john@joharnessburg`、通过 `/hooks` 检查并信任 applied hooks，然后重启 Codex。激活只准备项目本地文件；它不会自动修改个人 marketplace 或全局插件状态。
 
-```sh
-cd /path/to/john-workspace
-./stop_john.sh
-```
+不要在活跃会话仍在使用时删除 applied 目录。模板格式见[模板撰写指南](plugins/joharnessburg/templates/README.md)；双 provider 示例与引导式撰写流程见 [Hamster](https://github.com/kitchen-engineer42/hamster)。
 
-### 端到端验证
+## 前置条件与可选服务
 
-```sh
-# LLM 客户端健康检查 + 提供商清单
-curl -s http://localhost:8500/healthz | jq
-curl -s http://localhost:8500/readyz | jq
+- Python 3.10+，用于 John 的标准库工具。
+- 可选的 `markitdown`，用于非 PDF 转换。
+- 可选的 PPX 兼容服务，通过 `$JOHN_PPX_CLIENT_URL` 处理高保真 PDF。
+- 可选的 OpenAI 兼容 workerLLM 服务，通过 `$JOHN_LLM_CLIENT_URL` 支持 produced app 的运行时模型调用。
 
-# 实际调用一次 LLM（应该返回 "OK" 或类似内容）
-curl -s http://localhost:8500/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"deepseek-v4-flash","messages":[{"role":"user","content":"reply with just OK"}]}' | jq
+没有这些可选服务，John 仍可安装和运行。它们是外部 URL 契约，不是软件包依赖。
 
-# ppx 客户端健康检查（应当报告 "ppx: available"）
-curl -s http://localhost:8501/healthz | jq
-curl -s http://localhost:8501/readyz | jq
-```
+## Hook 信任
 
-### 参考文档
+[`hooks/hooks.json`](plugins/joharnessburg/hooks/hooks.json) 是 John 唯一的 hook 声明。Hooks 会以当前 coding session 的权限执行随附脚本。信任陌生 fork 前，请审阅该文件及其引用脚本。Codex 用户必须通过 `/hooks` 审阅并信任当前定义；仅安装或启用插件不等于信任 hooks。
 
-- `local_clients/llm/README.md` —— LLM 客户端的安装 + API 契约
-- `local_clients/ppx/README.md` —— ppx 客户端的安装 + API 契约
-- `plugins/joharnessburg/skills/workerllm-runtime/SKILL.md` —— 插件中的 skill 如何指导 Claude 调用这些客户端
+## 仓库结构
 
-## 仓库内容
-
-```
-.claude-plugin/
-  marketplace.json              # Marketplace 目录（这个 repo 同时充当 marketplace）
-plugins/
-  joharnessburg/                # 插件本体
-    .claude-plugin/
-      plugin.json               # Claude Code 插件 manifest
-    hooks/hooks.json            # Hook 声明（安装时自动注册）
-    skills/                     # John 的 meta-skill（加载进 John 包装的 Claude Code 会话）
-    commands/                   # Slash command
-    scripts/                    # 小型 Python 工具包（ppx 包装、事件 reducer、apply_template 等）
-    agents/                     # Subagent 角色定义
-    templates/                  # 通用 apply.sh + 撰写指南（templates/README.md）
-CONTEXT.md                      # 项目词汇表——规范用语
-docs/adr/                       # 架构决策记录（简短）
-README.md                       # 英文版
-README_ZH.md                    # 本文件
-LICENSE                         # MIT
+```text
+.claude-plugin/marketplace.json       Claude marketplace
+.agents/plugins/marketplace.json      Codex marketplace
+plugins/joharnessburg/
+  .claude-plugin/plugin.json          Claude manifest
+  .codex-plugin/plugin.json           Codex manifest
+  hooks/                              共享 hook 声明
+  skills/                             共享与 provider adapter skills
+  commands/                           Claude slash commands
+  agents/                             规范 Markdown agents
+  codex/agents/                       生成的 Codex agents
+  scripts/                            确定性工具
+  templates/                          apply 脚本与撰写指南
+CONTEXT.md                            规范词汇
 ```
 
 ## 致谢
 
-- [@HalfMoon001](https://github.com/HalfMoon001) —— 对 John 进行了大量端到端实测，并完成了 `job-runtime` skill 背后的分析（[#2](https://github.com/kitchen-engineer42/joharnessburg/issues/2)）：产出应用的长耗时 I/O 任务模式（任务注册表、槽位租约、排队/生成双预算、可恢复进度）正是基于她的测试与 issue 梳理而规约成形。
-- [@oubeichen](https://github.com/oubeichen) —— Codex 适配层（Codex 插件 manifest + 本地 marketplace、项目 hooks、命令镜像 skill，以及转换后的自定义 agent），以及 internal-leak guard 与 display-first lens 背后的 `app_first_contracts.py` 工具。
-- [@Ruilin-mmwa](https://github.com/Ruilin-mmwa) —— 状态汇报的清晰度修复（[#4](https://github.com/kitchen-engineer42/joharnessburg/issues/4) / [#5](https://github.com/kitchen-engineer42/joharnessburg/pull/5)）：拆分 chunk 完成度的严重级别（`incomplete_chunks` 与 `chunks_missing_echo`），并显式标注阶段来源（phase provenance），让只读状态界面不再显得比实际更告警、更"完整"。
-- [@AnselKocen](https://github.com/AnselKocen) —— 长会话质量陷阱提醒（[#3](https://github.com/kitchen-engineer42/joharnessburg/issues/3)）：源自多模板的真实实测，归纳出长会话容易"以完成速度压过完成质量"的若干失效模式（并行 ≠ 已复核、文件存在 ≠ 阶段完成、跳过 skill 的参考实现、纯范围式的耐力目标措辞）。已作为柔性、保留判断空间的提示融入相关 skill。
+John 由 [kitchen-engineer42](https://github.com/kitchen-engineer42) 维护，并得到 [@HalfMoon001](https://github.com/HalfMoon001)、[@oubeichen](https://github.com/oubeichen)、[@Ruilin-mmwa](https://github.com/Ruilin-mmwa) 与 [@AnselKocen](https://github.com/AnselKocen) 的贡献和实测证据支持。
 
 ## 许可
 
-John（joharnessburg）以 **MIT 许可证**发布——见 [`LICENSE`](LICENSE)。自由使用、fork、在其上构建。
-
-vanilla John 及其配套工具 Hamster 均为 MIT。在 John 之上构建的领域特化变体（例如 KC Agent CLI）可能以单独的商业条款提供。
+MIT。见 [`LICENSE`](LICENSE)。

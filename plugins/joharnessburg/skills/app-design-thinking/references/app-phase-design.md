@@ -8,7 +8,7 @@ For apps where the output is a static deliverable (slides, portfolio, wiki, vote
 
 ```
 1. scaffold — set up framework/project structure, install deps
-2. wire content layer — pull entries from .claude/skills/, structure into the runtime's data model
+2. wire content layer — pull entries from the active provider's project skill tree, structure into the runtime's data model
 3. wire layout/rendering — pages, components, templates
 4. assemble — produce the final static output (HTML, JSON, etc.)
 5. preview + iterate — natural-language edits, deterministic guardrails
@@ -25,7 +25,7 @@ For apps where the end-user interacts repeatedly (games, chat, verifier):
 1. scaffold
 2. wire core mechanics — the central loop the user interacts with
 3. wire data layer — runtime state, persistence
-4. seed content — pull from .claude/skills/ into the runtime
+4. seed content — pull from the active provider's project skill tree into the runtime
 5. wire runtime LLM (if applicable) — provider abstraction, prompts, fallback
 6. wire UX — error states, edge cases, polish
 7. wire observability — telemetry (if production)
@@ -44,7 +44,7 @@ For apps that do a specific bounded thing on demand (verifier, parser builder, t
 ```
 1. scaffold
 2. wire I/O — define what the user provides and what they get back
-3. wire core logic — pull the relevant skills from .claude/skills/
+3. wire core logic — pull the relevant skills from the active provider's project skill tree
 4. test against known inputs — produce a confidence threshold
 5. wire interface — CLI, web, or API
 6. deploy
@@ -60,7 +60,7 @@ Start by asking [[app-design-thinking]]'s four runtime questions, then walk the 
 
 Phases are closer to phases-as-skills, but leave room for a template to overwrite them. John provides the most general level of phase as a suggestive, not enforcing, guideline.
 
-Don't write rigid phase definitions. Write phase intents + done criteria; let layer-2 Claude (and the user) judge when each is satisfied. See [[phase-design]] for the general rubric and [[workspace-discipline]]'s "verify done criteria" pattern.
+Don't write rigid phase definitions. Write phase intents + done criteria; let the John-equipped agent and user judge when each is satisfied. See [[phase-design]] for the general rubric and [[workspace-discipline]]'s "verify done criteria" pattern.
 
 ## Subagent fan-out in the app phases
 

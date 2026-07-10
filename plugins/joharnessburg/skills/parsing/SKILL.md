@@ -1,6 +1,6 @@
 ---
 name: parsing
-description: Turn raw input materials (PDFs, DOCX, mixed docs) into structured markdown for the rest of John's pipeline. Use whenever the project's `.john/input/` has unparsed files, when a phase needs to read source documents, or when the user mentions parsing/OCR/ingestion. Teaches a probe-first capability ladder — Claude-native reading → markitdown in-process → ppx when present — and when to escalate because results aren't good enough for the job, not just absent; fails loud with install hints when dependencies are missing.
+description: Turn raw input materials (PDFs, DOCX, mixed docs) into structured markdown for the rest of John's pipeline. Use whenever the project's `.john/input/` has unparsed files, when a phase needs to read source documents, or when the user mentions parsing/OCR/ingestion. Teaches a probe-first capability ladder — agent-native reading → markitdown in-process → ppx when present — and when to escalate because results aren't good enough for the job, not just absent; fails loud with install hints when dependencies are missing.
 metadata:
   triggers:
     - parse documents
@@ -30,7 +30,7 @@ Echo what you found ("32 PDFs (~8 scanned), 5 DOCX, ppx reachable at :8501") bef
 
 Three rungs, cheapest first. The default path for a fresh `git clone` of John (no servers running) is rungs 0–1 — **never block on rung 2 being absent**.
 
-- **Tier 0 — Claude-native.** You read text, markdown, code, and simple/small PDFs directly. For small or already-clean inputs, no parser at all: copy into `parsed/` with a `metadata.json` for consistency (or reference the file directly at the chunking step).
+- **Tier 0 — agent-native.** Read text, markdown, code, and simple/small PDFs directly. For small or already-clean inputs, use no parser at all: copy into `parsed/` with a `metadata.json` for consistency (or reference the file directly at the chunking step).
 - **Tier 1 — markitdown, the universal in-process default.** `${CLAUDE_PLUGIN_ROOT}/scripts/markitdown_parse.py`. DOCX, PPTX, XLSX, HTML, plain formats. Pure Python, no server. See `references/markitdown-recipe.md`.
 - **Tier 2 — ppx, the high-fidelity PDF path when present.** `${CLAUDE_PLUGIN_ROOT}/scripts/ppx_parse.py`, a thin HTTP client to the server at `$JOHN_PPX_CLIENT_URL` (default `http://localhost:8501`). Layout-aware parsing, table/figure structure, OCR routing for scans, structured `doc.json` alongside `doc.md`. Use it for all PDFs **when the readiness probe passed**; otherwise PDFs fall to Tier 1/0 with the quality caveat below. Pass a destination that does not yet exist—the client and service publish the complete artifact set atomically, and an existing destination is a conflict. The URL is the contract — any backend speaking the same HTTP shape can serve this rung (see `references/parser-backend-swapping.md`).
 
@@ -42,7 +42,7 @@ When the corpus is mixed (most real ones), route **per file**, not per batch. Yo
 
 A rung can succeed and still be the wrong rung. The escalation test is not "did I get output?" but "**is the output good enough for what downstream phases need from it?**"
 
-Concrete case: a doc-verification project whose rules require extracting entities from complex tables and charts. Claude-native (or a text-layer parse) will read the running prose perfectly and *fail completely* on the table structure — silently, producing markdown that looks fine. ppx is built for exactly that. If downstream knowledge depends on tables, figures, or layout, that *requirement* — not a visible error — is what sends PDFs to Tier 2.
+Concrete case: a doc-verification project whose rules require extracting entities from complex tables and charts. Agent-native reading (or a text-layer parse) may read the running prose perfectly and *fail completely* on table structure — silently, producing markdown that looks fine. ppx is built for exactly that. If downstream knowledge depends on tables, figures, or layout, that *requirement* — not a visible error — sends PDFs to Tier 2.
 
 So before settling routing, ask: what does the knowledge schema need from these documents? Prose-only → low rungs are fine. Structured regions (tables, charts, forms, multi-column layouts) → route those files to ppx, and if ppx isn't available, tell the user what quality they're giving up rather than silently shipping degraded parses.
 

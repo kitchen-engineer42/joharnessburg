@@ -25,7 +25,7 @@ A factual statement, a relational pair, a procedural how-to, and a meta-note all
 
 - **Relational typing**. The 13 explicit relation types from the research taxonomy (`is-a`, `has-a`, `part-of`, `causes`, ...) became free-form strings in `custom_attributes`. Cross-link queries became substring matches.
 - **Meta entries as first-class objects**. The "eureka" / "mapping" / "glossary" categories from the research taxonomy don't have a natural home in the SKU schema. They get jammed in.
-- **Skill format adherence**. Procedural SKUs claim to be skills but lack the Claude Code SKILL.md frontmatter conventions; they're skill-shaped JSON, not skills.
+- **Skill format adherence**. Procedural SKUs claim to be skills but lack the shared SKILL.md frontmatter conventions; they're skill-shaped JSON, not skills.
 
 ## Why it happened
 

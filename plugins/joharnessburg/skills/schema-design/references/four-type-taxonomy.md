@@ -8,7 +8,7 @@ A research-stage predecessor pipeline modeled knowledge as four distinct types. 
 
 2. **Relational** — typed relationships between entities + a label tree + glossary. `is-a`, `has-a`, `part-of`, `causes`, `caused-by`, `requires`, `enables`, `contradicts`, `related-to`, `depends-on`, `regulates`, `implements`, `example-of`. Used when the project's value is showing how entities connect — knowledge graphs, ontology pages, lookup tables of cross-references.
 
-3. **Procedural** — skills in Claude Code's SKILL.md format. Reusable how-to procedures. Used when the project's value is *teaching the runtime* (or downstream Claude) to do something repeatedly. Often becomes the deliverable for distillation projects.
+3. **Procedural** — provider-discoverable SKILL.md packages. Reusable how-to procedures. Used when the project's value is *teaching the runtime* or a downstream agent to do something repeatedly. Often becomes the deliverable for distillation projects.
 
 4. **Meta** — cross-cutting insights, glossary entries, "eureka" observations. Header: classification (`mapping`, `eureka`, `glossary`, ...) + summary. Body: the insight + which other entries it bears on. Used to capture the connective tissue that isn't an entry per se but matters for navigation and reasoning.
 

@@ -15,7 +15,7 @@ metadata:
 
 # app-design-thinking
 
-The knowledge phases produced a knowledge inventory at `<project>/.claude/skills/`. Now the question is: **what app do we build with it, and how do we build it?** That's the third and fourth links of the app-type definition cascade — app mechanism (how the produced app works for end-users) and build pipeline (phases that build it). This skill teaches how to settle those two decisions from the knowledge already extracted.
+The knowledge phases produced byte-identical knowledge inventories at `<project>/.claude/skills/` and `<project>/.agents/skills/`. Now the question is: **what app do we build with them, and how do we build it?** That's the third and fourth links of the app-type definition cascade — app mechanism and build pipeline. This skill teaches how to settle those decisions from the knowledge already extracted.
 
 [[schema-design]] is this skill's twin in the knowledge phases — same methodology, different links in the cascade. Both teach taste, neither prescribes.
 
@@ -45,7 +45,7 @@ Common pipeline patterns (see `references/app-phase-design.md`):
 
 - **Scaffold** — set up the app's basic structure (framework choice, project layout, dependencies).
 - **Wire core mechanics** — implement the app's central loop (rule application, game logic, slide rendering).
-- **Seed content from skills** — pull knowledge entries out of `<project>/.claude/skills/` into the app's data layer.
+- **Seed content from skills** — pull knowledge entries from the active provider's project skill tree into the app's data layer; the Claude and Codex trees should be byte-identical.
 - **Wire runtime LLM** (if applicable) — provider abstraction, system prompts, error handling.
 - **Wire the job runtime** (if end-users wait on long generation) — task registry, bounded worker pool, progress + cancellation endpoints; see [[job-runtime]].
 - **Polish** — UX details, error states, edge cases.

@@ -64,7 +64,7 @@ Cost: one event per chunk's worth of summarization. Cheap compared to re-running
 
 ## Model tier per chunk
 
-John core uses Claude's defaults: Opus for the main agent, Sonnet/Haiku for subagents per task. For extraction subagents:
+John core uses the active runtime's model routing. For extraction subagents:
 
 - **Sonnet** is usually right. Extraction needs decent reading comprehension + schema adherence; Sonnet has both.
 - **Haiku** works for highly structured chunks (e.g., extracting facts from a clean table). Cheap, fast.
@@ -98,7 +98,7 @@ If coverage is weak (some chunks empty), decide: re-extract with better briefing
 - **Schema design.** That's [[schema-design]]; do that first.
 - **Chunk creation.** That's [[chunking]].
 - **Cross-linking + dedup.** That's [[knowledge-rewrite]], the next phase.
-- **Final emission as Claude Code skills.** That's [[packaging]].
+- **Final emission as provider-discoverable skills.** That's [[packaging]].
 
 ## Cross-references
 

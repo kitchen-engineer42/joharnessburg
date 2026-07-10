@@ -70,7 +70,7 @@ PLAN.md has three sections that record state-over-time: **Log** (what happened),
 
 - **Reasoning chains** ("I thought X but then Y so therefore Z"). Keep entries factual; rationale is OK in one line but not multi-paragraph reasoning. That belongs in the body of a Log entry or in a separate scratch doc.
 - **Verbose error traces**. Offload to `<project>/.john/trace/` per [[context-management]] and reference by path.
-- **User conversation transcripts**. The PLAN.md captures *decisions*, not *discussion*. The conversation lives in Claude Code's chat history.
+- **User conversation transcripts**. PLAN.md captures *decisions*, not *discussion*. The conversation stays in the active runtime's chat history.
 
 ## When the Log gets long
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "John: Init Workspace"
+  short_description: "Create John project state from source inputs"
+  default_prompt: "Use $init-workspace to initialize John in this project from my source inputs."

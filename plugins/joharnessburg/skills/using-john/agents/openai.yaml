@@ -1,0 +1,4 @@
+interface:
+  display_name: "John: Using John"
+  short_description: "Orient a John-equipped app-building session"
+  default_prompt: "Use $using-john to orient this John session and identify the next step."

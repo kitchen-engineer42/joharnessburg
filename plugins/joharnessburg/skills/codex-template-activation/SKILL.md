@@ -19,6 +19,11 @@ every instruction exactly. The script materializes the plugin under
 `.john-codex/plugins/<template>/`, merges `.agents/plugins/marketplace.json`,
 and adds `.john-codex/` to the repository-local Git exclude when possible.
 
+The printed handoff verifies the installed listing, disables vanilla John for
+this project, enables the applied listing, reviews and trusts its current hook
+definition through `/hooks`, and restarts Codex. Treat all five as required;
+installation alone neither enables the correct project state nor trusts hooks.
+
 Do not edit a personal marketplace or global enablement automatically. Explain
 that applied John replaces vanilla John for this project session; enabling both
 creates duplicate hooks and ambiguous methodology.

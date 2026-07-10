@@ -1,6 +1,6 @@
 # parser-backend-swapping — the URL is the contract
 
-Layer-2 Claude doesn't need to think about this often, but it's worth knowing it exists.
+The John-equipped build agent doesn't need to think about this often, but it's worth knowing the boundary exists.
 
 ## Today (local default)
 
@@ -12,9 +12,9 @@ The server lives outside the plugin (workspace tooling, not shipped with John) a
 
 ## Swapping the backend
 
-Any hosted parse service that speaks the same HTTP contract can replace the local server — point `$JOHN_PPX_CLIENT_URL` at it and restart Claude. Same script name, same CLI surface, same JSON output shape, different backend (a production deployment would typically add queuing, retries, and caching behind the same contract). No code change in John.
+Any hosted parse service that speaks the same HTTP contract can replace the local server — point `$JOHN_PPX_CLIENT_URL` at it and restart the coding runtime. Same script name, same CLI surface, same JSON output shape, different backend. No code change in John.
 
-## Implications for layer-2 Claude
+## Implications for the John-equipped agent
 
 **None, mostly.** The script's CLI signature and JSON output shape are the contract; the internals are not. Don't write extraction logic that depends on:
 

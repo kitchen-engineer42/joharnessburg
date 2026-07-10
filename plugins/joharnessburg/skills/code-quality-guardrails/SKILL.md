@@ -130,7 +130,7 @@ If cross-validation finds high-severity issues, pause the loop and surface them 
 
 ## Cost note
 
-Deterministic checks are essentially free (grep, build, lint). Cross-validation costs Claude tokens per invocation — significant on a large produced app. Default: deterministic always; cross-validation opt-in per phase. Templates may make it default-on for production-bound app types.
+Deterministic checks are essentially free (grep, build, lint). Cross-validation costs model tokens per invocation — significant on a large produced app. Default: deterministic always; cross-validation opt-in per phase. Templates may make it default-on for production-bound app types.
 
 ## Cross-references
 

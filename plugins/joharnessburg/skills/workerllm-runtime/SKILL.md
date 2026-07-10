@@ -1,6 +1,6 @@
 ---
 name: workerllm-runtime
-description: When a produced app needs to call workerLLMs at runtime (e.g., a doc-verification check_R<id>.py asking DeepSeek for a judgment call, or a slide-renderer asking Qwen to summarize a chunk), wire it to call John's local LLM client server. Triggers on "call workerLLM", "runtime LLM call", "call DeepSeek", "call SiliconFlow", "produced app needs an LLM", or any pattern where a produced app needs reasoning beyond Claude's main API. Teaches the standalone OpenAI-compatible call shape against `$JOHN_LLM_CLIENT_URL`.
+description: When a produced app needs to call workerLLMs at runtime (e.g., a doc-verification check script asking a low-cost model for a judgment call, or a slide renderer summarizing a chunk), wire it to John's local LLM client server. Triggers on "call workerLLM", "runtime LLM call", "call DeepSeek", "call SiliconFlow", "produced app needs an LLM", or any pattern where a produced app needs reasoning beyond the build agent. Teaches the standalone OpenAI-compatible call shape against `$JOHN_LLM_CLIENT_URL`.
 metadata:
   triggers:
     - workerllm
@@ -16,13 +16,13 @@ metadata:
 
 # workerllm-runtime
 
-When you're authoring a produced app that needs to call an LLM at runtime — NOT the layer-2 Claude session itself, but the *app's own runtime when its end-users use it* — wire it to John's local LLM client server. The client is OpenAI-compatible; same SDK that points at api.openai.com works against `$JOHN_LLM_CLIENT_URL`.
+When you're authoring a produced app that needs to call an LLM at runtime — not the John-equipped build session itself, but the *app's own runtime when its end-users use it* — wire it to John's local LLM client server. The client is OpenAI-compatible; the same SDK that points at api.openai.com works against `$JOHN_LLM_CLIENT_URL`.
 
 ## When to use this (vs alternatives)
 
 - **Use this skill** for standalone produced apps that need workerLLMs at runtime. Examples: a doc-verification rule's `check_R<id>.py` that asks a model for a judgment call; a slide-renderer that asks for a one-sentence summary; a chatbot's main loop.
 - **Hosted-platform deployments are template territory.** If the produced app is destined to run inside a hosted multi-tenant platform (proxy-mediated keys, metered billing), the platform's template supplies that pattern. Because this skill's call shape is plain OpenAI-compatible, migrating is just changing `base_url` — design the app so that's the only thing that moves.
-- **Don't use this** for in-Claude-session subagent dispatch. That's [[subagent-dispatch]] — uses the Agent tool, not LLM APIs.
+- **Don't use this** for build-session subagent dispatch. That's [[subagent-dispatch]] — use the coding runtime's agent mechanism, not LLM APIs.
 
 ## The call shape
 
@@ -74,7 +74,7 @@ The example column is just what John's bundled local client routes by default �
 
 ## When NOT to use this skill
 
-- For Claude's own reasoning in the layer-2 session, just use Claude's native tools (Read, Edit, Skill, etc.). The workerLLM client is for the *produced app's runtime*, not Claude's authoring time.
+- For reasoning in the John-equipped build session, use the coding runtime's native tools. The workerLLM client is for the *produced app's runtime*, not authoring time.
 - For prompts that need Anthropic-specific features (extended thinking, computer use, etc.), call Anthropic's API directly from the produced app with its own API key (out of this skill's scope; the local client doesn't proxy Anthropic).
 - For one-shot prompts where the latency of a local-server roundtrip matters more than the abstraction (rare).
 
@@ -84,5 +84,5 @@ The example column is just what John's bundled local client routes by default �
 
 ## Cross-references
 
-- [[subagent-dispatch]] — for layer-2 Claude session work, not produced-app runtime.
+- [[subagent-dispatch]] — for John-equipped build-session work, not produced-app runtime.
 - [[job-runtime]] — when the LLM call lives inside a long-running produced-app job; the job's stage budget wraps this call shape (per-call timeout × retries must fit inside it).

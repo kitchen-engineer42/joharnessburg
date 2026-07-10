@@ -58,7 +58,7 @@ Before doing something destructive, irreversible, or hard-to-redo, leave a check
 - About to delete a directory of stale artifacts? Move it to `<project>/.john/checkpoints/<phase>/archived-<timestamp>/` instead — recovery is possible.
 - About to overwrite PLAN.md with a major restructure? Save the prior version as `<project>/.john/checkpoints/plan/PLAN-<timestamp>.md`.
 
-John's PreCompact hook does this automatically before Claude Code compacts context. You should do it manually for the analogous moments in your work.
+John's PreCompact hook does this automatically before a supported runtime compacts context. Do it manually at analogous moments when hooks are unavailable or untrusted.
 
 ## Rule 4: Append-only event logs
 
@@ -79,7 +79,7 @@ Authoring good done criteria is [[phase-design]]'s job. Verifying that they're m
 Every phase in PLAN.md has a "Done criteria" line. It must be observable on disk. Examples:
 
 - ✓ "All chunks in `chunks_index.json` have a corresponding entry in `<project>/.john/checkpoints/extract/state.json` (verified by ID match)."
-- ✓ "`<project>/.claude/skills/<skill-name>/SKILL.md` exists for every entry in the packaged set, and each has YAML frontmatter with `name` and `description`."
+- ✓ "Matching `<project>/.claude/skills/<skill-name>/SKILL.md` and `<project>/.agents/skills/<skill-name>/SKILL.md` exist for every packaged entry, and each has YAML frontmatter with `name` and `description`."
 - ✓ "`<app-output>/<entry-point-file>` returns HTTP 200 when served via the test runner."
 
 NOT:
@@ -110,7 +110,7 @@ ls <project>/.john/checkpoints/<phase>/ 2>/dev/null
 ls <project>/.john/events/<phase>/<work-unit-type>/ | wc -l
 
 # What's been packaged?
-ls <project>/.claude/skills/ 2>/dev/null
+ls <project>/.claude/skills/ <project>/.agents/skills/ 2>/dev/null
 
 # Recent activity (workspace git, if tracked)
 cd <project> && git log --oneline -5 2>/dev/null

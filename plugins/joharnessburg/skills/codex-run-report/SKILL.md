@@ -1,6 +1,6 @@
 ---
 name: codex-run-report
-description: Generate John's process scorecard, auditor manifests, and shareable run report from a Codex project using the same provider-neutral scripts as Claude. Use when the user asks for a John report, run report, scorecard, provenance manifest, self-evaluation manifest, or evidence for template evolution while working in Codex.
+description: Generate John's process scorecard, auditor manifests, and shareable run report from a Codex project using John's provider-neutral scripts. Use when the user asks for a John report, run report, scorecard, provenance manifest, self-evaluation manifest, or evidence for template evolution while working in Codex.
 ---
 
 # Codex run report

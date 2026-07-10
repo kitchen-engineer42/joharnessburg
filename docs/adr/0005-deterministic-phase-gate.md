@@ -1,3 +1,0 @@
-# Phase advancement has a deterministic floor: the reducer's count gate
-
-John's enforcement is deliberately soft (skills suggest, the engine doesn't police) — with one exception: `reduce_events.py --expect-entries` compares unique claimed entry ids against the expected count from PLAN.md and refuses phase advancement (exit 3) on a large shortfall, with `--verify-knowledge` reconciling disk against the event log report-only. The exception exists because a silently truncated knowledge base is John's most expensive failure and the causes are infrastructure (killed sessions, lost events, concurrent writers) that neither the model nor an LLM auditor can rule out. The gate blocks *advancement*, not state derivation — the checkpoint is still written, and disk stays truth.

@@ -26,7 +26,7 @@ Each step is shaped by what came before:
 
 If you design the runtime before the schema, the schema gets forced to match an arbitrary app shape — over-fitting. If you design the schema before the format, the schema gets too general or too specific without knowing what kind of knowledge it serves.
 
-The user owns format. Claude can sketch options. Lock format first, then derive the rest.
+The user owns format. The John-equipped agent can sketch options. Lock format first, then derive the rest.
 
 ## Examples (cross-product to ground the cascade)
 

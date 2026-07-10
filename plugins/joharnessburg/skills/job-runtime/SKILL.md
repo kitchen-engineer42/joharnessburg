@@ -36,7 +36,7 @@ The gray zone is a single 5–30 second call. The deciding question: would a use
 
 ## Not [[vertical-workflows]], not the event log
 
-John has two kinds of long parallel work, and they live at different layers. [[vertical-workflows]] and [[event-log-and-reducer]] orchestrate *build-time* work: subagents fanning out inside the John session to build the app, coordinating through `.john/events/`. The job runtime ships *inside the produced app* and serves its end-users at app runtime — where Claude Code, subagents, and the event log don't exist. Don't reach for workflow machinery in produced-app code, and don't build a tasks table to coordinate build-time subagents. Same instinct, different layer, different machinery.
+John has two kinds of long parallel work, and they live at different layers. Provider-native scale-out plus [[event-log-and-reducer]] orchestrates *build-time* work: subagents fanning out inside the John session to build the app, coordinating through `.john/events/`. The job runtime ships *inside the produced app* and serves its end-users at app runtime — where the build agent, its subagents, and the event log don't exist. Don't reach for build-session orchestration in produced-app code, and don't build a tasks table to coordinate build-time subagents. Same instinct, different layer, different machinery.
 
 ## The shape of the runtime
 

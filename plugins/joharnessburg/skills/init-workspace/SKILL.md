@@ -17,6 +17,7 @@ project-local John state:
 - `.john/input/`
 - `PLAN.md`
 - `CLAUDE.md` if missing
+- `AGENTS.md` if missing
 
 ## Procedure
 
@@ -40,6 +41,7 @@ python3 "<plugin-root>/scripts/init_workspace.py" <input-path-if-any> <--force-i
    - `.john/` created
    - whether `PLAN.md` was written or preserved
    - whether `CLAUDE.md` was written or preserved
+   - whether `AGENTS.md` was written or preserved
    - which input files were copied
 
 5. After success, read the new `PLAN.md` and start the project-shaping
