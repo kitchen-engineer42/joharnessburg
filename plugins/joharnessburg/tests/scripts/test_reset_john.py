@@ -123,6 +123,29 @@ class TestResetJohn(unittest.TestCase):
             # Still there
             self.assertTrue((applied / "keep-me").exists())
 
+    def test_reset_rejects_parent_and_nested_symlink_boundaries(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            applied = root / "applied"
+            applied.mkdir()
+            alias = root / "alias"
+            alias.symlink_to(applied, target_is_directory=True)
+            rc, out, _ = run_reset("--yes", applied_parent_override=alias)
+            self.assertEqual(rc, 1)
+            self.assertFalse(out["success"])
+
+            external = root / "external.txt"
+            external.write_text("keep")
+            target = applied / "marked"
+            target.mkdir()
+            (target / ".applied-metadata.json").write_text("{}")
+            (target / "link").symlink_to(external)
+            rc, out, _ = run_reset("--yes", applied_parent_override=applied)
+            self.assertEqual(rc, 0)
+            self.assertTrue(target.exists())
+            self.assertEqual(external.read_text(), "keep")
+            self.assertIn("marked", " ".join(out["skipped"]))
+
 
 if __name__ == "__main__":
     unittest.main()

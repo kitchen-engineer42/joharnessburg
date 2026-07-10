@@ -32,6 +32,7 @@ Exit codes:
 
 import argparse
 import json
+import shlex
 import sys
 import traceback
 from datetime import datetime, timezone
@@ -40,6 +41,7 @@ from pathlib import Path
 from john_paths import find_john_root
 
 SCHEMA_VERSION = 1
+SELF_EVAL_SCHEMA_VERSION = 2
 
 
 def emit(payload, success=True, exit_code=0):
@@ -78,7 +80,7 @@ def _event_time_bounds(john_dir: Path):
     (None, None) when no events carry a timestamp. ISO 8601 strings sort
     chronologically, so lexical min/max is the run window."""
     events_dir = john_dir / "events"
-    stamps = []
+    stamps: list[tuple[datetime, str]] = []
     if events_dir.is_dir():
         for f in events_dir.rglob("*.json"):
             if not f.is_file() or "_quarantine" in f.relative_to(events_dir).parts:
@@ -87,10 +89,16 @@ def _event_time_bounds(john_dir: Path):
             if isinstance(data, dict):
                 ts = data.get("timestamp")
                 if isinstance(ts, str) and ts:
-                    stamps.append(ts)
+                    try:
+                        parsed = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                    except ValueError:
+                        continue
+                    if parsed.tzinfo is None:
+                        parsed = parsed.replace(tzinfo=timezone.utc)
+                    stamps.append((parsed.astimezone(timezone.utc), ts))
     if not stamps:
         return None, None
-    return min(stamps), max(stamps)
+    return min(stamps, key=lambda item: item[0])[1], max(stamps, key=lambda item: item[0])[1]
 
 
 def _corpus_inputs(john_dir: Path) -> list:
@@ -187,11 +195,19 @@ def main():
     }
 
     scorecard_script = Path(__file__).resolve().parent / "process_scorecard.py"
+    scorecard_argv = [
+        "python3",
+        str(scorecard_script),
+        "--root",
+        str(root),
+    ]
     self_eval = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": SELF_EVAL_SCHEMA_VERSION,
         "generated_at": now,
         "process_scorecard_script": "scripts/process_scorecard.py",
-        "process_scorecard_command": f"python3 {scorecard_script} --root {root}",
+        "process_scorecard_argv": scorecard_argv,
+        "process_scorecard_command": shlex.join(scorecard_argv),
+        "process_scorecard_command_deprecated": True,
         "run_report_location": ".john/reports/",
         "report_glob": "*.md",
         "report_format": "markdown",

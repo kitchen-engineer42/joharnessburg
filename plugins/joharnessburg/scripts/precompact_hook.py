@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from john_paths import find_john_root
+from path_safety import atomic_write_text
 
 
 RECENT_EVENTS_PER_PHASE = 20
@@ -92,7 +93,9 @@ def main():
 
     snapshot = {
         "snapshot_taken_at": datetime.now(timezone.utc).isoformat(),
-        "compaction_reason": data.get("compaction_reason") or data.get("reason"),
+        "compaction_reason": (
+            data.get("compaction_reason") or data.get("reason") or data.get("trigger")
+        ),
         "session_id": data.get("session_id"),
         "workspace_state": workspace_state,
         "plan_md_path": str(project_root / "PLAN.md") if (project_root / "PLAN.md").exists() else None,
@@ -109,7 +112,7 @@ def main():
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
     snapshot_path = snapshot_dir / f"precompact-{ts}.json"
     try:
-        snapshot_path.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
+        atomic_write_text(snapshot_path, json.dumps(snapshot, indent=2) + "\n")
     except OSError as exc:
         sys.stderr.write(f"WARN: could not write precompact snapshot: {exc}\n")
         emit({})
@@ -117,12 +120,15 @@ def main():
 
     # Emit observe response (allow compaction to proceed); include snapshot path
     # in hookSpecificOutput so the user can see it via telemetry / logs
-    emit({
-        "hookSpecificOutput": {
-            "hookEventName": "PreCompact",
-            "snapshotPath": str(snapshot_path),
-        }
-    })
+    if "turn_id" in data:
+        emit({"systemMessage": f"John precompaction snapshot: {snapshot_path}"})
+    else:
+        emit({
+            "hookSpecificOutput": {
+                "hookEventName": "PreCompact",
+                "snapshotPath": str(snapshot_path),
+            }
+        })
 
 
 if __name__ == "__main__":

@@ -40,8 +40,11 @@ Then enable `john@joharnessburg` in the Codex App plugin UI. Codex does not run 
 - `John: Workspace Status` — `/john:status`
 - `John: Endurance Goal` — `/john:endurance`
 - `John: Archive Workspace` — `/john:archive`
+- `Codex Run Report` — provider-neutral scorecard and manifests (`/john:report` equivalent)
 
 After install, the `using-john` skill auto-loads when you start a fresh Claude Code session. That's John's orientation entry point — Claude reads it and orients itself to the harness.
+
+John hooks execute local plugin scripts with the permissions of the active coding session. Review `plugins/joharnessburg/hooks/hooks.json` and the referenced scripts before enabling an untrusted fork. That file is the sole shipped hook declaration; Claude receives `updatedToolOutput`, while Codex-compatible calls receive `additionalContext` pointing to the same trace.
 
 ## Quick start
 
@@ -119,6 +122,16 @@ claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 
 The merged plugin IS John for that session — all template skills load equally with the core ones; there's no second-class "template layer." Which template is loaded is fixed at session start; to switch, exit and relaunch with a different `--plugin-dir`. Multiple applied templates can coexist (parallel Claude sessions can use different ones).
 
+For a template that declares Codex support, keep the Claude apply output unchanged and activate the same merged plugin inside the target project:
+
+```sh
+python3 /path/to/john/scripts/activate_codex_template.py \
+  --merged-plugin ~/.claude/plugins/joharnessburg-applied/your-template \
+  --project-root /path/to/your-project
+```
+
+Follow the printed project-local marketplace install/enable/restart instructions. The applied plugin must replace vanilla `john@joharnessburg` for that project session, not run beside it.
+
 To reset: `rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/` (or wipe all with `scripts/reset_john.py`) — **only when no session is using those dirs** (see the warning below). The next launch without `--plugin-dir` uses vanilla John.
 
 ### Running several sessions at once (different templates, or vanilla too)
@@ -146,25 +159,20 @@ When your team ships its own production servers (on-prem or different providers)
 
 ### One-time setup (per machine)
 
-Prerequisite: [`uv`](https://docs.astral.sh/uv/) installed. Get the John workspace bundle (which contains `local_clients/` + `setup_john.sh`) — contact the project owner for access if you don't already have it.
+These clients are gitignored external workspace services: a fresh John clone is
+not self-contained and does not provision them. Obtain the separately pinned
+client directories and PPX engine snapshot from your team, place them under the
+workspace paths expected by `setup_john.sh`, and use [`uv`](https://docs.astral.sh/uv/)
+with the committed frozen locks. The setup script refuses missing directories;
+it does not clone or update dependencies for you.
 
 ```sh
-# 1. Clone the ppx engine outside the workspace
-git clone https://github.com/kitchen-engineer42/ppx.git ~/code/ppx
-
-# 2. Run the workspace setup script — creates venvs + installs both clients
+# 1. Verify the separately provisioned local_clients/{llm,ppx} directories exist.
+# 2. Run the workspace setup script — frozen installs only.
 cd /path/to/john-workspace
 ./setup_john.sh
 # First run will create .env from .env.example; fill in SILICONFLOW_API_KEY + DEEPSEEK_API_KEY.
-
-# 3. Install the ppx engine into the ppx client's venv
-cd /path/to/john-workspace/local_clients/ppx
-uv pip install -e ~/code/ppx
-
-# 4. Verify
-cd /path/to/john-workspace
-./setup_john.sh
-# Should report: "memect-ppx is installed in the ppx client's venv."
+# .env is created/repaired with mode 0600 and secrets are never printed.
 ```
 
 ### Per-session launch
@@ -172,7 +180,7 @@ cd /path/to/john-workspace
 ```sh
 cd /path/to/john-workspace
 ./start_john.sh
-# Reports both clients' liveness; prints the env vars to export.
+# Waits for service-specific readiness; rolls both services back on partial failure.
 
 # Then in your Claude Code shell (or persist in .zshrc / .bashrc):
 export JOHN_LLM_CLIENT_URL=http://localhost:8500
@@ -193,16 +201,18 @@ cd /path/to/john-workspace
 ### Smoke test (verify the chain works end-to-end)
 
 ```sh
-# LLM client health + provider inventory
+# Liveness, then readiness + provider capabilities
 curl -s http://localhost:8500/healthz | jq
+curl -s http://localhost:8500/readyz | jq
 
 # Actual LLM call (should return "OK" or similar)
 curl -s http://localhost:8500/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model":"deepseek-v4-flash","messages":[{"role":"user","content":"reply with just OK"}]}' | jq
 
-# ppx client health (should say "ppx: available")
+# ppx liveness and readiness
 curl -s http://localhost:8501/healthz | jq
+curl -s http://localhost:8501/readyz | jq
 ```
 
 ### Reference docs

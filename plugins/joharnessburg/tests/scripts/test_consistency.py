@@ -12,7 +12,10 @@ Cheap structural guards for breakages no behavioral test sees:
 import json
 import py_compile
 import re
+import subprocess
+import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -33,6 +36,24 @@ class TestScriptsCompile(unittest.TestCase):
                         doraise=True,
                         cfile=str(Path(td) / f"{script.name}c"),
                     )
+
+
+class TestCodexAgentGeneration(unittest.TestCase):
+    def test_generated_agents_are_in_sync_and_valid_toml(self):
+        result = subprocess.run(
+            [sys.executable, str(SCRIPTS_DIR / "sync_codex_agents.py"), "--check"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for path in sorted((PLUGIN_ROOT / "codex/agents").glob("*.toml")):
+            parsed = tomllib.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(parsed["name"], path.stem)
+            self.assertIn("developer_instructions", parsed)
+
+    def test_shipped_hooks_have_no_duplicate_codex_declaration(self):
+        self.assertTrue((PLUGIN_ROOT / "hooks/hooks.json").is_file())
+        self.assertFalse((PLUGIN_ROOT / "hooks/codex-hooks.json").exists())
 
 
 class TestHooksJsonConsistency(unittest.TestCase):

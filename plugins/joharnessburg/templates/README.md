@@ -1,6 +1,6 @@
 # John templates — authoring guide
 
-A template is a **diff to original John** that customizes the plugin for a specific domain (slide decks, doc verification, mystery games, portfolio sites, etc.). John core stays unchanged; templates add/override/delete skills, ship a PLAN.md skeleton, and append project guidance to CLAUDE.md.
+A template is a **diff to original John** that customizes the plugin for a specific domain (slide decks, doc verification, mystery games, portfolio sites, etc.). John core stays unchanged; templates add/override/delete skills, ship a PLAN.md skeleton, and append shared or provider-specific project guidance. Templates without `providers` remain legacy Claude-only; dual-provider templates explicitly declare both Claude and Codex.
 
 This guide is for anyone authoring a template — internal team members, external contributors, or layer-2 Claude when the user says "let's make a template for X."
 
@@ -8,13 +8,14 @@ This guide is for anyone authoring a template — internal team members, externa
 
 The end-to-end flow:
 
-1. **Templates live at `~/.claude/plugins/joharnessburg-templates/<name>/`** as directories. Distribution: copy/symlink/git-clone into that location. (You can keep template sources in their own git repo and `ln -s` into the install dir.)
+1. **Templates live at `~/.claude/plugins/joharnessburg-templates/<name>/`** as regular directories. Distribution: copy or clone into that location. Trust-boundary symlinks are rejected.
 2. **Applying a template** runs `apply_template.py` (via the template's `apply.sh`). The script:
    - Copies the joharnessburg install to `~/.claude/plugins/joharnessburg-applied/<template-name>/`.
    - Overlays the template's diff (overrides + additions + deletes).
    - Writes `.applied-metadata.json` with provenance.
    - Prints the launch command on stderr at success.
 3. **Running John with the template**: `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<template-name>/`. The merged dir IS John for that session — all skills load equally, no special template layer. Which template is loaded is fixed at session start (CLAUDE_PLUGIN_ROOT) and cannot be hot-swapped mid-session.
+   For Codex, run `scripts/activate_codex_template.py` against that same merged directory. It creates a project-local plugin and marketplace, then prints explicit install/enable/restart steps; it never changes a personal marketplace or global enablement automatically.
 4. **Reset** = delete merged dirs. `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/reset_john.py` (or just `rm -rf ~/.claude/plugins/joharnessburg-applied/`).
 5. **Switching templates**: exit the current session, apply a different template (or reuse an existing merged dir), relaunch with the new `--plugin-dir`. No per-workspace "active template" state to worry about — the session's plugin is determined entirely by how you launched.
 6. **Parallel sessions, different templates**: each Claude Code session is independent. Multiple applied dirs at `~/.claude/plugins/joharnessburg-applied/<name>/` coexist freely; each parallel `claude --plugin-dir <one>` sees only that template's content.
@@ -32,8 +33,10 @@ The end-to-end flow:
 ```
 ~/.claude/plugins/joharnessburg-templates/<name>/
 ├── template.json                    # required: name, version, description, requires_john
-├── apply.sh                         # required (copy/symlink of joharnessburg/templates/apply.sh)
-├── claude_addon.md                  # optional: project-CLAUDE.md guidance, copied to templates-active/ in merged plugin
+├── apply.sh                         # required executable regular copy of joharnessburg/templates/apply.sh
+├── project_addon.md                 # optional: shared CLAUDE.md + AGENTS.md guidance
+├── claude_addon.md                  # optional: Claude-only project guidance
+├── agents_addon.md                  # optional: Codex-only project guidance
 ├── plan_md_template.md              # optional: starter PLAN.md, copied to templates-active/ for /john:init to consume
 ├── skills/
 │   ├── <new-skill>/                 # additive — new skill not in John core
@@ -45,6 +48,7 @@ The end-to-end flow:
 ├── scripts/                         # optional: additional Python scripts (additive, no override semantics)
 ├── commands/                        # optional: additional slash commands (additive)
 ├── agents/                          # optional: additional subagent role definitions (additive)
+├── codex/agents/                    # optional: additional Codex TOML agents (additive)
 └── workflows/                       # optional: saved dynamic-workflow scripts; installed into the project's .claude/workflows/ by /john:init
 ```
 
@@ -57,11 +61,12 @@ Required:
   "name": "your-template-name",
   "version": "0.1.0",
   "description": "What this template does and when to use it.",
-  "requires_john": ">=0.1.15"
+  "requires_john": "0.5.0",
+  "providers": ["claude", "codex"]
 }
 ```
 
-`name` must match the directory name. `requires_john` is checked at apply time (v0.2.0+): `>=X.Y.Z` (at-least) or bare `X.Y.Z` (exact) is compared against the installed John version, and a mismatch prints a prominent warning — **warn-only, the apply still proceeds**. Hamster's packager stamps it automatically; if you author by hand, pin the John version you actually built against.
+`name` must match the directory name and use lowercase letter/digit segments separated by single hyphens. `requires_john` is checked at apply time: `>=X.Y.Z` (at-least) or bare `X.Y.Z` (exact) is compared against the installed John version, and a mismatch prints a prominent warning — **warn-only, the apply still proceeds**. Hamster packages exact pins by default. `providers` may contain `claude`, `codex`, or both; absence deliberately means legacy Claude-only.
 
 ## Apply mechanics (precise)
 
@@ -75,7 +80,10 @@ When `apply_template.py` runs for your template:
 | `scripts/<name>.py` | Copied into the merged plugin's `scripts/`. NOT-OVERRIDE: shadowing a core script name is a warning + skip. Use different names. |
 | `commands/<name>.md` | Same NOT-OVERRIDE rule. |
 | `agents/<name>.md` | Same NOT-OVERRIDE rule. |
+| `codex/agents/<name>.toml` | Additive Codex agents copied with the template; existing user project agents are skipped during initialization/activation. Generate shared roles from canonical Claude Markdown with John's sync tool rather than maintaining a competing converter. |
+| `project_addon.md` | Copied to `templates-active/` and appended to newly scaffolded CLAUDE.md and AGENTS.md. |
 | `claude_addon.md` | Copied to `templates-active/claude_addon.md` in the merged plugin. Layer-2 Claude can `Read` it and apply its guidance. `/john:init` also surfaces it under the scaffolded CLAUDE.md's "From active template" section. |
+| `agents_addon.md` | Copied to `templates-active/agents_addon.md` and appended only to a newly scaffolded AGENTS.md. |
 | `plan_md_template.md` | Copied to `templates-active/plan_md_template.md`. `/john:init` uses it as the PLAN.md skeleton instead of the hardcoded default. |
 | `workflows/<name>.js` | Copied to `templates-active/workflows/` in the merged plugin, then installed by `/john:init` into the project's `.claude/workflows/` (skip-if-exists). Claude Code registers it as a `/<name>` command. |
 
@@ -107,7 +115,7 @@ Caveats — this is a research-preview surface, so keep it optional and graceful
    - Add new skills for steps John doesn't anticipate (slide-rendering, rule-extraction, etc.).
 4. **Write `claude_addon.md`** for taste preferences, terminology, what good output looks like.
 5. **Test the apply cycle**:
-   - Symlink your template dir into `~/.claude/plugins/joharnessburg-templates/<name>/`.
+   - Copy or clone your template dir into `~/.claude/plugins/joharnessburg-templates/<name>/`.
    - Run `./apply.sh` from the template dir.
    - Read the printed launch command and copy-paste it: `claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/<name>/`.
    - In a fresh test project, verify the new skills + overrides are loaded; check skills-analytics for invocations during a small task.
@@ -115,15 +123,15 @@ Caveats — this is a research-preview surface, so keep it optional and graceful
 
 ## Install location
 
-`~/.claude/plugins/joharnessburg-templates/<name>/` (user-scope; manual install via `cp -r` or `ln -s`). Distribution: git repos or zipped tarballs the team copies.
+`~/.claude/plugins/joharnessburg-templates/<name>/` (user-scope; install as a regular copied/cloned directory). Distribution: Git repositories or archives copied by the team.
 
-For your team: keep template source under git, symlink into the install location during development:
+For your team: keep template source under git and copy it into the install location during development:
 
 ```bash
-ln -s /path/to/your/template-source ~/.claude/plugins/joharnessburg-templates/<name>
+cp -R /path/to/your/template-source ~/.claude/plugins/joharnessburg-templates/<name>
 ```
 
-Edits to source files reflect immediately; just re-run apply.sh to rebuild the merged plugin.
+Re-copy changed source files, then re-run apply.sh to rebuild the merged plugin.
 
 ## Layer-2 framing for template authors
 

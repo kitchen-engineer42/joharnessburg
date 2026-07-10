@@ -35,6 +35,7 @@ Exit codes:
   1  expected failure (no .john/, no events for phase)
   2  unexpected exception / invalid --expect-entries spec
   3  count gate far short — calling skill must not advance the phase
+  4  required extraction coverage/grounding audit gate failed
 """
 
 import argparse
@@ -47,6 +48,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from john_paths import find_john_root
+from knowledge_inventory import disk_entry_ids
+from path_safety import (
+    atomic_write_text,
+    ensure_contained,
+    reject_tree_symlinks,
+    validate_work_id,
+)
 
 
 # An unparseable event file younger than this is treated as a write in
@@ -55,6 +63,20 @@ from john_paths import find_john_root
 # are quarantined — quarantine is permanent (idempotent-skip on re-runs), so
 # racing a mid-write file would silently lose a valid event.
 FRESH_GRACE_SECONDS = 5
+CANDIDATE_MUTATION_TYPES = {
+    "entry_extracted",
+    "entry_reextracted",
+    "entry_rewritten",
+    "entry_corrected",
+    "entry_superseded",
+    "entry_deleted",
+}
+AUDIT_EVENT_TYPES = {
+    "coverage_gap",
+    "coverage_audit_complete",
+    "grounding_flag",
+    "grounding_check_complete",
+}
 
 
 def emit(payload, success=True, exit_code=0):
@@ -83,10 +105,12 @@ def load_events(phase_dir: Path, *, quarantine: bool = True):
 
     Skips files inside `_quarantine/` subdirs (idempotent re-runs).
     """
+    reject_tree_symlinks(phase_dir, label="event log")
     quarantine_dir = phase_dir / "_quarantine"
     for evt_file in phase_dir.rglob("*.json"):
         if not evt_file.is_file():
             continue
+        ensure_contained(phase_dir, evt_file, label="event file")
         # Skip files already in _quarantine/ to keep re-runs idempotent
         try:
             evt_file.relative_to(quarantine_dir)
@@ -114,12 +138,13 @@ def load_events(phase_dir: Path, *, quarantine: bool = True):
                 # Move + write a .parse_error.txt sibling.
                 rel = evt_file.relative_to(phase_dir)
                 dest = quarantine_dir / rel
+                ensure_contained(quarantine_dir, dest, label="quarantine target")
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 try:
                     evt_file.rename(dest)
-                    (dest.parent / f"{dest.name}.parse_error.txt").write_text(
+                    atomic_write_text(
+                        dest.parent / f"{dest.name}.parse_error.txt",
                         f"JSONDecodeError at {datetime.now(timezone.utc).isoformat()}:\n{exc}\n",
-                        encoding="utf-8",
                     )
                     sys.stderr.write(
                         f"WARN: quarantined malformed event {evt_file} -> {dest}\n"
@@ -222,6 +247,19 @@ def _parse_expect(spec: str):
     return lo, hi
 
 
+def _event_entry_ids(event: dict) -> set[str]:
+    ids: set[str] = set()
+    payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+    for container in (payload, event):
+        one = container.get("entry_id")
+        if isinstance(one, str) and one:
+            ids.add(one)
+        many = container.get("entry_ids")
+        if isinstance(many, list):
+            ids.update(x for x in many if isinstance(x, str) and x)
+    return ids
+
+
 def _claimed_entry_ids(events: list) -> set:
     """Unique entry ids claimed across the phase's folded events.
 
@@ -234,56 +272,144 @@ def _claimed_entry_ids(events: list) -> set:
     for e in events:
         if not isinstance(e, dict):
             continue
-        payload = e.get("payload") if isinstance(e.get("payload"), dict) else {}
-        for container in (payload, e):
-            one = container.get("entry_id")
-            if isinstance(one, str) and one:
-                ids.add(one)
-            many = container.get("entry_ids")
-            if isinstance(many, list):
-                ids.update(x for x in many if isinstance(x, str) and x)
+        event_type = e.get("event_type")
+        # Legacy events without event_type remain readable. Typed audit events
+        # never count merely because they mention an entry ID.
+        if event_type in AUDIT_EVENT_TYPES:
+            continue
+        if event_type and event_type not in CANDIDATE_MUTATION_TYPES:
+            continue
+        ids.update(_event_entry_ids(e))
     return ids
 
 
-def _disk_entry_ids(knowledge_dir: Path) -> set:
-    """Entry ids present on disk (report-only heuristic).
+def _event_datetime(event: dict) -> datetime:
+    """Parse ISO timestamps into UTC-aware datetimes for correct offset order."""
+    value = event.get("timestamp")
+    if not isinstance(value, str) or not value:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
-    An entry is either:
-    - a directory that directly contains at least one regular file (entry id =
-      dir basename). Its OWN subdirectories (assets/, figures/, ...) are
-      entry-internal and NOT descended into — they are not separate entries;
-    - a top-level `*.md` file (entry id = file stem), covering flat
-      file-per-entry layouts.
 
-    Directories with no direct files are category nesting and are descended
-    into. Skips hidden names and `_quarantine/`. Returns empty set when the
-    dir is missing (graceful).
-    """
-    ids: set = set()
-    if not knowledge_dir.is_dir():
-        return ids
+def _chunk_id(event: dict) -> str | None:
+    value = event.get("chunk_id") or event.get("work_unit_id")
+    return value if isinstance(value, str) and value else None
 
-    def walk(d: Path, top: bool):
-        for child in sorted(d.iterdir()):
-            name = child.name
-            if name.startswith(".") or name == "_quarantine":
-                continue
-            if child.is_file():
-                if top and child.suffix == ".md":
-                    ids.add(child.stem)
-                continue
-            if child.is_dir():
-                has_direct_file = any(
-                    g.is_file() and not g.name.startswith(".")
-                    for g in child.iterdir()
+
+def evaluate_extraction_audits(events: list[dict]) -> dict:
+    """Evaluate the latest non-stale coverage and grounding audit per chunk."""
+    by_chunk: dict[str, list[dict]] = {}
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        chunk_id = _chunk_id(event)
+        if chunk_id:
+            by_chunk.setdefault(chunk_id, []).append(event)
+
+    completed = sorted(
+        chunk_id
+        for chunk_id, chunk_events in by_chunk.items()
+        if any(e.get("event_type") == "chunk_complete" for e in chunk_events)
+    )
+    accepted: set[str] = set()
+    chunk_results: list[dict] = []
+    all_reasons: list[str] = []
+
+    for chunk_id in completed:
+        chunk_events = by_chunk[chunk_id]
+        candidates = [
+            e for e in chunk_events if e.get("event_type") in CANDIDATE_MUTATION_TYPES
+        ]
+        candidate_ids: set[str] = set()
+        for event in candidates:
+            if event.get("event_type") != "entry_deleted":
+                candidate_ids.update(_event_entry_ids(event))
+        mutation_at = max(
+            (_event_datetime(e) for e in candidates),
+            default=datetime.min.replace(tzinfo=timezone.utc),
+        )
+
+        def latest_fresh(event_type: str) -> dict | None:
+            choices = [
+                e
+                for e in chunk_events
+                if e.get("event_type") == event_type
+                and _event_datetime(e) > mutation_at
+            ]
+            return max(
+                choices,
+                key=lambda e: (_event_datetime(e), e.get("_source_file", "")),
+                default=None,
+            )
+
+        coverage = latest_fresh("coverage_audit_complete")
+        grounding = latest_fresh("grounding_check_complete")
+        reasons: list[str] = []
+        expected = len(candidate_ids)
+        if coverage is None:
+            reasons.append("missing or stale coverage_audit_complete")
+        else:
+            if coverage.get("verdict") != "complete" or coverage.get("gaps_found") != 0:
+                reasons.append("coverage audit reports gaps")
+            if coverage.get("entries_reviewed") != expected:
+                reasons.append(
+                    f"coverage checked {coverage.get('entries_reviewed')!r}; expected {expected}"
                 )
-                if has_direct_file:
-                    ids.add(name)  # entry dir; subdirs are entry-internal
-                else:
-                    walk(child, top=False)  # category nesting
+        if grounding is None:
+            reasons.append("missing or stale grounding_check_complete")
+        else:
+            checked = grounding.get("entries_checked")
+            weak = grounding.get("weak")
+            ungrounded = grounding.get("ungrounded")
+            grounded = grounding.get("grounded")
+            if checked != expected:
+                reasons.append(f"grounding checked {checked!r}; expected {expected}")
+            if weak != 0 or ungrounded != 0:
+                reasons.append("grounding audit reports weak or ungrounded entries")
+            if not all(isinstance(v, int) and v >= 0 for v in (checked, grounded, weak, ungrounded)):
+                reasons.append("grounding summary counts are invalid")
+            elif grounded + weak + ungrounded != checked:
+                reasons.append("grounding summary counts do not add up")
+        if coverage is not None and grounding is not None:
+            if coverage.get("entries_reviewed") != grounding.get("entries_checked"):
+                reasons.append("coverage and grounding checked-entry counts differ")
 
-    walk(knowledge_dir, top=True)
-    return ids
+        passed = not reasons
+        if passed:
+            accepted.update(candidate_ids)
+        else:
+            all_reasons.extend(f"{chunk_id}: {reason}" for reason in reasons)
+        chunk_results.append(
+            {
+                "chunk_id": chunk_id,
+                "status": "pass" if passed else "fail",
+                "candidate_entry_ids": sorted(candidate_ids),
+                "accepted_entry_ids": sorted(candidate_ids) if passed else [],
+                "latest_candidate_mutation_at": (
+                    mutation_at.isoformat() if candidates else None
+                ),
+                "reasons": reasons,
+            }
+        )
+
+    if not completed:
+        all_reasons.append("no completed chunks found")
+    return {
+        "required": True,
+        "status": "pass" if completed and not all_reasons else "fail",
+        "completed_chunks": len(completed),
+        "passed_chunks": sum(c["status"] == "pass" for c in chunk_results),
+        "failed_chunks": sum(c["status"] == "fail" for c in chunk_results),
+        "accepted_entry_ids": sorted(accepted),
+        "reasons": all_reasons,
+        "chunks": chunk_results,
+    }
 
 
 def reduce_phase(phase_dir: Path, project_root: Path, *, quarantine: bool = True):
@@ -319,12 +445,13 @@ def reduce_phase(phase_dir: Path, project_root: Path, *, quarantine: bool = True
             data = {"_payload": data, "_source_file": str(src.relative_to(project_root))}
         events.append(data)
 
-    # Deterministic sort. Primary: timestamp (lexicographic ISO 8601 sorts correctly).
+    # Deterministic sort. Parse timestamps so offset-bearing ISO strings sort by
+    # the instant they represent rather than by lexical spelling.
     # Secondary: _source_file (stable tiebreaker for identical timestamps + clock skew).
     # Wrapping above guarantees every entry is a dict, so no isinstance guard needed here.
     def sort_key(e):
         assert isinstance(e, dict), "load_events / reduce_phase wrapping invariant violated"
-        return (e.get("timestamp", ""), e.get("_source_file", ""))
+        return (_event_datetime(e), e.get("_source_file", ""))
 
     events.sort(key=sort_key)
 
@@ -352,6 +479,14 @@ def main():
     parser.add_argument(
         "phase",
         help="Phase name (matches directory under .john/events/). e.g., 'extract'",
+    )
+    parser.add_argument(
+        "--require-extraction-audits",
+        action="store_true",
+        help=(
+            "Require fresh zero-gap coverage and zero-weak/ungrounded audit "
+            "summaries for every completed chunk; failure exits 4."
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -396,7 +531,21 @@ def main():
         )
         return
 
-    phase_dir = john_dir / "events" / args.phase
+    try:
+        validate_work_id(args.phase, field="phase")
+        phase_dir = ensure_contained(
+            john_dir / "events",
+            john_dir / "events" / args.phase,
+            label="phase event directory",
+        )
+        checkpoint_dir = ensure_contained(
+            john_dir / "checkpoints",
+            john_dir / "checkpoints" / args.phase,
+            label="phase checkpoint directory",
+        )
+    except ValueError as exc:
+        err(str(exc), exit_code=1)
+        return
     if not phase_dir.exists():
         err(
             f"No events directory for phase '{args.phase}'. "
@@ -409,12 +558,23 @@ def main():
         phase_dir, cwd, quarantine=not args.dry_run
     )
 
-    checkpoint_dir = john_dir / "checkpoints" / args.phase
     state_file = checkpoint_dir / "state.json"
+
+    quality_gate = (
+        evaluate_extraction_audits(state["events"])
+        if args.require_extraction_audits
+        else {
+            "required": False,
+            "status": "not_required",
+            "accepted_entry_ids": [],
+            "reasons": [],
+        }
+    )
+    state["quality_gate"] = quality_gate
 
     if not args.dry_run:
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
-        state_file.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+        atomic_write_text(state_file, json.dumps(state, indent=2) + "\n")
 
     if quarantined:
         sys.stderr.write(
@@ -447,7 +607,11 @@ def main():
     exit_code = 0
     claimed = None
     if args.expect_entries is not None or args.verify_knowledge:
-        claimed = _claimed_entry_ids(state["events"])
+        claimed = (
+            set(quality_gate["accepted_entry_ids"])
+            if args.require_extraction_audits
+            else _claimed_entry_ids(state["events"])
+        )
 
     if args.expect_entries is not None:
         lo, hi = args.expect_entries
@@ -494,7 +658,13 @@ def main():
         kdir = Path(args.knowledge_dir)
         if not kdir.is_absolute():
             kdir = cwd / kdir
-        on_disk = _disk_entry_ids(kdir)
+        try:
+            kdir = ensure_contained(cwd, kdir, label="knowledge directory")
+            reject_tree_symlinks(kdir, label="knowledge directory")
+            on_disk = disk_entry_ids(kdir)
+        except ValueError as exc:
+            err(str(exc), exit_code=1)
+            return
         orphans = sorted(on_disk - claimed)
         missing = sorted(claimed - on_disk)
         if orphans:
@@ -524,7 +694,8 @@ def main():
             gates_dir.mkdir(parents=True, exist_ok=True)
             verdict_ts = datetime.now(timezone.utc).isoformat()
             ts_compact = verdict_ts.replace(":", "").replace("-", "").replace("+0000", "Z")
-            (gates_dir / f"{ts_compact}.json").write_text(
+            atomic_write_text(
+                gates_dir / f"{ts_compact}.json",
                 json.dumps(
                     {
                         "timestamp": verdict_ts,
@@ -533,15 +704,23 @@ def main():
                         "verify": verify,
                         "entries_claimed": len(claimed) if claimed is not None else None,
                         "events_folded": state["event_count"],
-                        "exit_code": exit_code,
+                        "quality_gate": quality_gate,
+                        "exit_code": 4 if quality_gate["status"] == "fail" else exit_code,
                     },
                     indent=2,
                 )
                 + "\n",
-                encoding="utf-8",
             )
         except OSError as exc:
             sys.stderr.write(f"WARN: could not persist gate verdict: {exc}\n")
+
+    if quality_gate["status"] == "fail":
+        exit_code = 4
+        sys.stderr.write(
+            "AUDIT GATE: failed — do not advance the phase. "
+            + "; ".join(quality_gate["reasons"])
+            + "\n"
+        )
 
     emit(
         {
@@ -558,6 +737,7 @@ def main():
             "entries_claimed": len(claimed) if claimed is not None else None,
             "gate": gate,
             "verify": verify,
+            "quality_gate": quality_gate,
         },
         success=(exit_code == 0),
         exit_code=exit_code,

@@ -111,6 +111,9 @@ class TestProcessScorecard(unittest.TestCase):
             self.assertEqual(si["total"], 2)
             self.assertEqual(si["per_skill"]["john:chunking"], 1)
             self.assertEqual(si["per_phase"]["(unattributed)"], 1)
+            self.assertEqual(
+                si["provider_capabilities"]["codex"]["status"], "unsupported"
+            )
 
             # Phase provenance — fixture's current_phase (extract) IS backed.
             pp = out["phase_provenance"]
@@ -123,6 +126,27 @@ class TestProcessScorecard(unittest.TestCase):
             self.assertEqual(out["lessons"]["total"], 1)
             self.assertEqual(out["lessons"]["by_scope"], {"template": 1})
             self.assertIn("n/a", out["interventions"])
+
+    def test_produced_skill_counts_deduplicate_and_report_parity(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _build_fixture(root)
+            for provider_root, names in (
+                (root / ".claude/skills", ("shared", "claude-only")),
+                (root / ".agents/skills", ("shared", "codex-only")),
+            ):
+                for name in names:
+                    (provider_root / name).mkdir(parents=True)
+            rc, out, err = run_script("process_scorecard.py", "--quiet", cwd=root)
+            self.assertEqual(rc, 0, err)
+            self.assertEqual(out["produced_skills"], 3)
+            self.assertEqual(
+                out["produced_skills_by_provider"], {"claude": 2, "codex": 2}
+            )
+            self.assertEqual(out["produced_skills_parity"]["status"], "drift")
+            self.assertEqual(
+                out["produced_skills_parity"]["claude_only"], ["claude-only"]
+            )
 
     def test_phase_provenance_flags_unbacked_current_phase(self):
         # current_phase advanced to an artifact-producing phase that wrote no

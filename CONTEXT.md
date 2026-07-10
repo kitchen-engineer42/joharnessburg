@@ -81,6 +81,12 @@ _Avoid_: levels/layers (collides with John's L1/L2/L3 layer vocabulary)
 **Run manifest**:
 The provenance a run carries so its evidence is attributable: John version (stamped into workspace.json at init), template name+version, corpus identity, configuration. No manifest, no attribution.
 
+**Run ledger**:
+`<project>/.john/runs/<phase>/<run-id>/` — immutable indexed work input plus attempt receipts, cancellation state, and deterministic reconciliation. A worker return is not completion until its referenced events exist, parse, match run/item identity, and include the required terminal event.
+
+**Provider parity**:
+The shared outcome contract across Claude Code and Codex: accepted events/checkpoints and produced-skill hashes match. Prompts, thread counts, timing, orchestration engines, and Claude-only Skill telemetry are provider-specific and are not parity criteria.
+
 **Process scorecard**:
 The deterministic, read-only, frozen-rubric report (`scripts/process_scorecard.py`) of how a run *behaved*: per-phase events and fan-out, gate runs and verdicts, skill invocations, lessons, silent skips. The process-quality signal for everything above the template ring; its rubric is amendable by maintainers only — no automated edit surface can change what it counts.
 

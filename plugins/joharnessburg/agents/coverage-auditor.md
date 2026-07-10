@@ -1,7 +1,7 @@
 ---
 name: coverage-auditor
 description: Use this agent in the adversarial cross-check stage of a fan-out phase to re-read ONE source chunk independently and find knowledge entries the extractor MISSED (MECE enforcement). It does not re-extract or rewrite — it audits coverage and emits coverage_gap events. Dispatch one per chunk (or per sampled chunk) in a vertical-workflows cross-check stage, separate from the extractor that produced the entries — separating the doer from the judge is the point.
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
@@ -16,7 +16,7 @@ This is John's moat: MECE coverage. Vanilla single-pass extraction reliably leav
 - **The chunk to audit**: path to the parsed source file (or path + range).
 - **The entries the extractor already produced for this chunk**: their IDs + a short form (so you know what's already covered). Usually a list pulled from `<project>/.john/events/extract/<chunk-id>/`.
 - **The project schema**: the field shape of an entry — so you judge "missed" against what *counts* as an entry for this project.
-- **The output directory**: where to write events (`<project>/.john/events/extract/<chunk-id>/`).
+- **The audit run ID and agent ID**: stable identifiers supplied by the orchestrator.
 - **What "complete coverage" means for this project**: comprehensive sweep ("every entry the chunk contains") vs goal-directed ("every entry needed to answer X").
 
 ## How to audit
@@ -28,11 +28,21 @@ This is John's moat: MECE coverage. Vanilla single-pass extraction reliably leav
 
 Be precise about what a gap is: a genuine schema-matching entry that was omitted. A paraphrase of an already-extracted entry is **not** a gap (that's the rewriter's dedup job, [[knowledge-rewrite]]). Don't pad the count.
 
-## What you produce — emit events
+## What you produce — append events through John
+
+Pipe each JSON object to the atomic writer; do not write event files directly:
+
+```sh
+printf '%s' '<json-object>' | python3 "${CLAUDE_PLUGIN_ROOT}/scripts/emit_event.py" \
+  --phase extract --work-unit-id '<chunk-id>' \
+  --agent-id '<agent-id>' --audit-run-id '<audit-run-id>'
+```
+
+The writer supplies `event_id`, UTC `timestamp`, `agent_id`, `audit_run_id`,
+and a collision-resistant filename. A retry therefore appends history instead
+of replacing the prior audit.
 
 ### One `coverage_gap` event per missed entry
-
-Filename: `coverage-gap-<n>.json`.
 
 ```json
 {
@@ -47,8 +57,6 @@ Filename: `coverage-gap-<n>.json`.
 Required keys: `event_type`, `chunk_id`, `missed_summary`, `source_excerpt`, `auditor_confidence`. `auditor_confidence` ∈ `"high" | "medium" | "low"`.
 
 ### One `coverage_audit_complete` summary per chunk
-
-Filename: `coverage-audit-complete.json`.
 
 ```json
 {
@@ -79,4 +87,4 @@ Every event file must be valid JSON — the reducer quarantines unparseable file
 
 ## Coordination
 
-Events go to `<project>/.john/events/extract/<chunk-id>/` only; never write canonical state directly. See [[event-log-and-reducer]] and [[vertical-workflows]].
+Use the writer for `<project>/.john/events/extract/<chunk-id>/` only; never write canonical state directly. See [[event-log-and-reducer]] and [[vertical-workflows]].

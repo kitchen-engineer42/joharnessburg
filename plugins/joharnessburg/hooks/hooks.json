@@ -1,5 +1,5 @@
 {
-  "description": "John (joharnessburg) hooks. SessionStart injects endurance goal + PLAN.md state into new sessions; PreCompact snapshots workspace state before context compaction; PostToolUse offloads large file-tool results to .john/trace/ and replaces them with head+tail digests, and records Skill invocations into .john/skill-log/ (process-scorecard instrumentation). All no-op when no .john/ directory is present at or above the current working directory (i.e., John isn't active for this project).",
+  "description": "John (joharnessburg) hooks. SessionStart injects provider-neutral endurance goal + PLAN.md state; PreCompact snapshots workspace state; PostToolUse offloads large file-tool results to .john/trace/ and returns Claude updatedToolOutput or Codex additionalContext pointing to the same digest. Skill invocation telemetry is Claude-only and is reported as unsupported on Codex. All hooks no-op when no .john/ exists at or above cwd. Hooks execute local code with the coding session's permissions; review this declaration and its scripts before trusting a fork.",
   "hooks": {
     "SessionStart": [
       {

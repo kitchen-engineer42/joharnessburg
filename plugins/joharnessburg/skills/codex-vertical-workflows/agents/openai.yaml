@@ -1,0 +1,4 @@
+interface:
+  display_name: "John Codex Vertical Workflows"
+  short_description: "Run John fan-out with native Codex agents"
+  default_prompt: "Execute this John vertical phase with native Codex subagents and the durable run ledger."

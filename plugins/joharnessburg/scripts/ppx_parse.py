@@ -21,12 +21,14 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import sys
 import traceback
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from pathlib import Path
 
 
@@ -87,7 +89,6 @@ def main():
         return
 
     out_dir = Path(args.output_dir).expanduser().resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     payload = {
         "input_path": str(src),
@@ -104,8 +105,21 @@ def main():
         url, data=data, headers={"Content-Type": "application/json"}, method="POST"
     )
 
+    hostname = urlsplit(url).hostname
+    loopback = hostname == "localhost"
+    if hostname and not loopback:
+        try:
+            loopback = ipaddress.ip_address(hostname).is_loopback
+        except ValueError:
+            loopback = False
+    opener = (
+        urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        if loopback
+        else urllib.request.build_opener()
+    )
+
     try:
-        with urllib.request.urlopen(req, timeout=600) as resp:
+        with opener.open(req, timeout=600) as resp:
             body = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         # HTTPError MUST be caught before URLError — it's a subclass of
@@ -136,6 +150,14 @@ def main():
     # Server returns ParseResult fields directly; pass through to stdout.
     if not body.get("success", False):
         err(f"ppx parse failed: {body.get('error', 'unknown error')}", exit_code=1)
+        return
+    required_artifacts = ("doc_md", "doc_json", "metadata_json")
+    missing = [name for name in required_artifacts if not body.get(name)]
+    if missing:
+        err(
+            "ppx parse response omitted required artifacts: " + ", ".join(missing),
+            exit_code=1,
+        )
         return
 
     emit(

@@ -23,10 +23,17 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 import traceback
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+from path_safety import (
+    atomic_write_text,
+    ensure_contained,
+    reject_tree_symlinks,
+    validate_template_slug,
+)
 
 
 SUBDIRS = [
@@ -185,7 +192,7 @@ def copy_input(src: Path, dest_dir: Path, copied: list, project_root: Path):
     if src.is_file():
         dest = dest_dir / src.name
         shutil.copy2(src, dest)
-        copied.append(str(dest.relative_to(project_root)))
+        copied.append(str(Path(".john/input") / src.name))
     elif src.is_dir():
         ignore_hidden = shutil.ignore_patterns(".*")
         for item in sorted(src.iterdir()):
@@ -194,10 +201,42 @@ def copy_input(src: Path, dest_dir: Path, copied: list, project_root: Path):
             target = dest_dir / item.name
             if item.is_file():
                 shutil.copy2(item, target)
-                copied.append(str(target.relative_to(project_root)))
+                copied.append(str(Path(".john/input") / item.name))
             elif item.is_dir():
                 shutil.copytree(item, target, ignore=ignore_hidden)
-                copied.append(str(target.relative_to(project_root)) + "/")
+                copied.append(str(Path(".john/input") / item.name) + "/")
+
+
+def _read_optional(directory: Path | None, filename: str) -> str | None:
+    if directory is None:
+        return None
+    candidate = directory / filename
+    if not candidate.is_file():
+        return None
+    content = candidate.read_text(encoding="utf-8")
+    return content if content.strip() else None
+
+
+def _append_addon(body: str, filename: str, content: str | None) -> str:
+    if content is None:
+        return body
+    return (
+        body
+        + "\n\n## From active template\n\n"
+        + "*Appended by `/john:init` from the merged template's "
+        + f"`templates-active/{filename}`. Treat as project memory.*\n\n"
+        + content.rstrip()
+        + "\n"
+    )
+
+
+def _is_managed_workspace(john_dir: Path) -> bool:
+    marker = john_dir / "workspace.json"
+    try:
+        data = json.loads(marker.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return isinstance(data, dict) and data.get("name") == "joharnessburg-workspace"
 
 
 def main():
@@ -226,198 +265,219 @@ def main():
     )
     args = p.parse_args()
 
-    cwd = Path.cwd()
+    cwd = Path.cwd().resolve()
     john_dir = cwd / ".john"
+    stage = cwd / f".john.stage-{uuid.uuid4().hex}"
+    backup = cwd / f".john.backup-{uuid.uuid4().hex}"
 
-    # Pre-flight: validate the input path BEFORE any mutation — a typo'd
-    # path combined with --force must not cost the user their existing
-    # .john/ contents.
+    # Validate every read source before creating staging state.
     input_src = None
     if args.input_path:
-        input_src = Path(args.input_path).expanduser().resolve()
+        raw_input = Path(args.input_path).expanduser()
+        if raw_input.is_symlink():
+            err(f"Input path may not be a symlink: {raw_input}")
+            return
+        input_src = raw_input.resolve()
         if not input_src.exists():
             err(f"Input path does not exist: {input_src}", exit_code=1)
             return
+        try:
+            reject_tree_symlinks(input_src, label="input corpus")
+        except ValueError as exc:
+            err(str(exc))
+            return
 
-    # Pre-flight: .john/ existence check
+    if john_dir.is_symlink():
+        err(f".john/ may not be a symlink: {john_dir}")
+        return
     if john_dir.exists() and not args.force:
         err(
             f".john/ already exists at {john_dir}. Use --force to recreate it, "
-            f"or delete it manually first.",
+            "or delete it manually first.",
             exit_code=1,
         )
         return
+    if john_dir.exists() and not _is_managed_workspace(john_dir):
+        err(
+            f"Refusing --force for {john_dir}: workspace.json lacks John's "
+            "provenance marker. Move it aside manually if replacement is intended."
+        )
+        return
 
-    preserved_input_src = None
-    if args.force and john_dir.exists():
-        # Preserve the user's corpus across --force: .john/input/ is
-        # user-supplied material, not derived state — destroying it once
-        # cost a real project its inputs.
-        input_dir = john_dir / "input"
-        if input_dir.is_dir() and any(input_dir.iterdir()):
-            tmp_parent = Path(tempfile.mkdtemp(prefix="john-init-preserve-"))
-            preserved_input_src = tmp_parent / "input"
-            shutil.move(str(input_dir), str(preserved_input_src))
-        shutil.rmtree(john_dir)
+    try:
+        templates_active = _resolve_templates_active()
+        if templates_active is not None:
+            reject_tree_symlinks(templates_active, label="active template metadata")
+        template_plan_md = _read_optional(templates_active, "plan_md_template.md")
+        project_addon = _read_optional(templates_active, "project_addon.md")
+        template_claude_addon = _read_optional(templates_active, "claude_addon.md")
+        template_agents_addon = _read_optional(templates_active, "agents_addon.md")
+    except (OSError, ValueError) as exc:
+        err(f"Active template validation failed: {exc}")
+        return
 
-    # Create the dir tree
-    john_dir.mkdir()
-    for sd in SUBDIRS:
-        (john_dir / sd).mkdir()
+    now = datetime.now(timezone.utc).isoformat()
+    date = now[:10]
+    project_name = args.project_name or cwd.name
+    plan_source = "template" if template_plan_md is not None else "default"
+    plan_body = (
+        template_plan_md.replace("{project_name}", project_name).replace("{date}", date)
+        if template_plan_md is not None
+        else PLAN_TEMPLATE.format(project_name=project_name, date=date)
+    )
+    claude_body = _append_addon(
+        CLAUDE_TEMPLATE.format(date=date), "project_addon.md", project_addon
+    )
+    # Preserve byte-identical legacy behavior when only claude_addon.md exists.
+    claude_body = _append_addon(claude_body, "claude_addon.md", template_claude_addon)
+    agents_body = _append_addon(
+        AGENTS_TEMPLATE.format(date=date), "project_addon.md", project_addon
+    )
+    agents_body = _append_addon(agents_body, "agents_addon.md", template_agents_addon)
 
+    copied: list[str] = []
     input_preserved = False
-    if preserved_input_src is not None:
-        shutil.rmtree(john_dir / "input")
-        shutil.move(str(preserved_input_src), str(john_dir / "input"))
-        shutil.rmtree(preserved_input_src.parent, ignore_errors=True)
-        input_preserved = True
-        sys.stderr.write(
-            "NOTE: existing .john/input/ contents were preserved across --force.\n"
+    created_files: list[Path] = []
+    prior_plan: str | None = None
+    prior_plan_existed = (cwd / "PLAN.md").exists()
+    workflows_installed: list[str] = []
+    workflows_skipped: list[str] = []
+    codex_agents_installed: list[str] = []
+    codex_agents_skipped: list[str] = []
+    published = False
+
+    try:
+        ensure_contained(cwd, stage, label="workspace staging")
+        stage.mkdir()
+        for subdir in SUBDIRS:
+            (stage / subdir).mkdir()
+
+        if john_dir.exists():
+            old_input = john_dir / "input"
+            if old_input.is_dir() and any(old_input.iterdir()):
+                reject_tree_symlinks(old_input, label="preserved input corpus")
+                shutil.copytree(old_input, stage / "input", dirs_exist_ok=True)
+                input_preserved = True
+        if input_src is not None:
+            copy_input(input_src, stage / "input", copied, cwd)
+
+        workspace_state = {
+            "name": "joharnessburg-workspace",
+            "schema_version": 1,
+            "initialized_at": now,
+            "created_by_john_version": _john_version(),
+            "current_phase": "bootstrap",
+            "session_metadata": {},
+        }
+        atomic_write_text(
+            stage / "workspace.json",
+            json.dumps(workspace_state, indent=2) + "\n",
         )
 
-    # workspace.json — initial state
-    # Note: the template, if any, is determined by the merged plugin the
-    # session launched with (CLAUDE_PLUGIN_ROOT), not by per-workspace state.
-    now = datetime.now(timezone.utc).isoformat()
-    workspace_state = {
-        "name": "joharnessburg-workspace",
-        "schema_version": 1,
-        "initialized_at": now,
-        "created_by_john_version": _john_version(),
-        "current_phase": "bootstrap",
-        "session_metadata": {},
-    }
-    (john_dir / "workspace.json").write_text(
-        json.dumps(workspace_state, indent=2) + "\n", encoding="utf-8"
-    )
+        if john_dir.exists():
+            john_dir.rename(backup)
+        stage.rename(john_dir)
+        published = True
 
-    # If running inside a merged template plugin, the plugin install ships a
-    # templates-active/ dir with plan_md_template.md + claude_addon.md.
-    # apply_template.py writes these. Prefer them over the hardcoded
-    # defaults so projects scaffolded via /john:init pick up the
-    # active template's intended skeleton automatically.
-    templates_active = _resolve_templates_active()
-    template_plan_md = None
-    template_claude_addon = None
-    if templates_active is not None:
-        candidate_plan = templates_active / "plan_md_template.md"
-        if candidate_plan.is_file():
-            try:
-                content = candidate_plan.read_text(encoding="utf-8")
-                if content.strip():
-                    template_plan_md = content
-            except OSError as exc:
-                sys.stderr.write(
-                    f"WARN: could not read {candidate_plan}: {exc}\n"
-                )
-        candidate_addon = templates_active / "claude_addon.md"
-        if candidate_addon.is_file():
-            try:
-                content = candidate_addon.read_text(encoding="utf-8")
-                if content.strip():
-                    template_claude_addon = content
-            except OSError as exc:
-                sys.stderr.write(
-                    f"WARN: could not read {candidate_addon}: {exc}\n"
-                )
+        plan_path = cwd / "PLAN.md"
+        plan_written = not plan_path.exists() or args.force
+        if plan_written:
+            if prior_plan_existed:
+                prior_plan = plan_path.read_text(encoding="utf-8")
+            atomic_write_text(plan_path, plan_body)
 
-    # PLAN.md — write if missing, overwrite if --force
-    plan_path = cwd / "PLAN.md"
-    project_name = args.project_name or cwd.name
-    date = now[:10]
-    plan_written = False
-    plan_source = "default"
-    if not plan_path.exists() or args.force:
-        if template_plan_md is not None:
-            # Targeted substitution, NOT str.format(): template plans
-            # routinely contain literal `{...}` in code snippets, which made
-            # .format() throw and fall back to raw content — shipping a
-            # PLAN.md with unsubstituted {project_name}/{date}.
-            body = template_plan_md.replace(
-                "{project_name}", project_name
-            ).replace("{date}", date)
-            plan_path.write_text(body, encoding="utf-8")
-            plan_source = "template"
-        else:
-            plan_path.write_text(
-                PLAN_TEMPLATE.format(project_name=project_name, date=date),
-                encoding="utf-8",
-            )
-        plan_written = True
+        claude_path = cwd / "CLAUDE.md"
+        claude_written = not claude_path.exists()
+        if claude_written:
+            atomic_write_text(claude_path, claude_body)
+            created_files.append(claude_path)
 
-    # CLAUDE.md — only write if missing; never overwrite (user may have content).
-    # If a template's claude_addon.md is available, append it under a clearly
-    # labeled section so layer-2 Claude can incorporate the addon as project memory.
-    claude_path = cwd / "CLAUDE.md"
-    claude_written = False
-    claude_addon_appended = False
-    if not claude_path.exists():
-        body = CLAUDE_TEMPLATE.format(date=date)
-        if template_claude_addon is not None:
-            body += (
-                "\n\n## From active template\n\n"
-                "*Appended by `/john:init` from the merged template's "
-                "`templates-active/claude_addon.md`. Treat as project memory.*\n\n"
-                + template_claude_addon.rstrip()
-                + "\n"
-            )
-            claude_addon_appended = True
-        claude_path.write_text(body, encoding="utf-8")
-        claude_written = True
+        agents_path = cwd / "AGENTS.md"
+        agents_written = not agents_path.exists()
+        if agents_written:
+            atomic_write_text(agents_path, agents_body)
+            created_files.append(agents_path)
 
-    # AGENTS.md — Codex project memory. Mirror the non-overwrite contract of
-    # CLAUDE.md so provider-specific notes stay user-owned after creation.
-    agents_path = cwd / "AGENTS.md"
-    agents_written = False
-    if not agents_path.exists():
-        agents_path.write_text(AGENTS_TEMPLATE.format(date=date), encoding="utf-8")
-        agents_written = True
+        if templates_active is not None:
+            wf_src = templates_active / "workflows"
+            if wf_src.is_dir():
+                wf_dest = cwd / ".claude" / "workflows"
+                for wf in sorted(wf_src.iterdir()):
+                    if not wf.is_file():
+                        continue
+                    target = wf_dest / wf.name
+                    if target.exists():
+                        workflows_skipped.append(wf.name)
+                        continue
+                    atomic_write_text(target, wf.read_text(encoding="utf-8"))
+                    created_files.append(target)
+                    workflows_installed.append(wf.name)
 
-    # Install template-shipped dynamic workflows into the project's
-    # .claude/workflows/ so Claude Code registers them as /<name> commands.
-    # A merged template's workflows ride in templates-active/workflows/ (written
-    # by apply_template.py). Claude Code reads saved workflows from the project's
-    # .claude/workflows/, not from the plugin — so this is where they must land.
-    # Skip-if-exists: never clobber a workflow the user has already saved/edited.
-    workflows_installed = []
-    workflows_skipped = []
-    if templates_active is not None:
-        wf_src = templates_active / "workflows"
-        if wf_src.is_dir():
-            wf_dest = cwd / ".claude" / "workflows"
-            wf_dest.mkdir(parents=True, exist_ok=True)
-            for wf in sorted(wf_src.iterdir()):
-                if not wf.is_file():
-                    continue
-                target = wf_dest / wf.name
+        codex_agent_src = Path(__file__).resolve().parent.parent / "codex" / "agents"
+        if codex_agent_src.is_dir():
+            reject_tree_symlinks(codex_agent_src, label="shipped Codex agents")
+            codex_agent_dest = cwd / ".codex" / "agents"
+            for source in sorted(codex_agent_src.glob("*.toml")):
+                validate_template_slug(source.stem, field="Codex agent name")
+                target = codex_agent_dest / source.name
                 if target.exists():
-                    workflows_skipped.append(wf.name)
+                    codex_agents_skipped.append(source.name)
                     continue
-                shutil.copy2(wf, target)
-                workflows_installed.append(wf.name)
+                atomic_write_text(target, source.read_text(encoding="utf-8"))
+                created_files.append(target)
+                codex_agents_installed.append(source.name)
 
-    # Copy input materials (if provided; path validated in pre-flight)
-    copied = []
-    if input_src is not None:
-        copy_input(input_src, john_dir / "input", copied, cwd)
+        if backup.exists():
+            shutil.rmtree(backup)
+        if input_preserved:
+            sys.stderr.write(
+                "NOTE: existing .john/input/ contents were preserved across --force.\n"
+            )
+    except Exception as exc:
+        for created in reversed(created_files):
+            created.unlink(missing_ok=True)
+        plan_path = cwd / "PLAN.md"
+        if prior_plan_existed and prior_plan is not None:
+            atomic_write_text(plan_path, prior_plan)
+        elif not prior_plan_existed:
+            plan_path.unlink(missing_ok=True)
+        if published and john_dir.exists():
+            shutil.rmtree(john_dir, ignore_errors=True)
+        if backup.exists() and not john_dir.exists():
+            backup.rename(john_dir)
+        if stage.exists():
+            shutil.rmtree(stage, ignore_errors=True)
+        err(f"Workspace initialization failed without changing prior state: {exc}")
+        return
 
     emit(
         {
             "project_root": str(cwd),
-            "john_dir": str(john_dir.relative_to(cwd)),
-            "plan_md": "PLAN.md" if plan_path.exists() else None,
+            "john_dir": ".john",
+            "plan_md": "PLAN.md",
             "plan_md_written": plan_written,
             "plan_md_source": plan_source,
             "claude_md": "CLAUDE.md" if claude_path.exists() else None,
             "claude_md_written": claude_written,
             "agents_md": "AGENTS.md" if agents_path.exists() else None,
             "agents_md_written": agents_written,
-            "claude_addon_appended": claude_addon_appended,
-            "templates_active_used": templates_active is not None and (
-                template_plan_md is not None or template_claude_addon is not None
+            "claude_addon_appended": claude_written and template_claude_addon is not None,
+            "project_addon_applied": project_addon is not None,
+            "agents_addon_appended": agents_written and template_agents_addon is not None,
+            "templates_active_used": templates_active is not None
+            and any(
+                value is not None
+                for value in (
+                    template_plan_md,
+                    project_addon,
+                    template_claude_addon,
+                    template_agents_addon,
+                )
             ),
             "workflows_installed": workflows_installed,
             "workflows_skipped": workflows_skipped,
+            "codex_agents_installed": codex_agents_installed,
+            "codex_agents_skipped": codex_agents_skipped,
             "copied_input": copied,
             "input_preserved": input_preserved,
             "active_template": None,
@@ -444,12 +504,20 @@ def _resolve_templates_active() -> Path | None:
     """
     override = os.environ.get("JOHN_TEMPLATES_ACTIVE")
     if override:
-        p = Path(override).expanduser().resolve()
+        raw = Path(override).expanduser()
+        if raw.is_symlink():
+            raise ValueError(f"active template root may not be a symlink: {raw}")
+        p = raw.resolve()
         return p if p.is_dir() else None
 
     plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
     if plugin_root:
-        p = Path(plugin_root).expanduser().resolve() / "templates-active"
+        raw = Path(plugin_root).expanduser()
+        if raw.is_symlink():
+            raise ValueError(f"plugin trust boundary may not be a symlink: {raw}")
+        p = raw.resolve() / "templates-active"
+        if p.is_symlink():
+            raise ValueError(f"active template root may not be a symlink: {p}")
         if p.is_dir():
             return p
 

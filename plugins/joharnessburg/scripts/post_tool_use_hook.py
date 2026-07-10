@@ -28,7 +28,6 @@ import json
 import os
 import sys
 import traceback
-from datetime import datetime, timezone
 from pathlib import Path
 
 from john_paths import find_john_root
@@ -139,12 +138,25 @@ def main():
     offload_display = Path(os.path.relpath(offload_path, cwd))
     digest = make_digest(tool_result, offload_display, tool_name)
 
-    emit({
-        "hookSpecificOutput": {
-            "hookEventName": "PostToolUse",
-            "updatedToolOutput": digest,
-        }
-    })
+    provider = str(data.get("provider") or data.get("client") or "").lower()
+    is_codex = provider == "codex" or "turn_id" in data
+    if is_codex:
+        emit(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PostToolUse",
+                    "additionalContext": digest,
+                },
+            }
+        )
+    else:
+        # Preserve Claude's replacement contract exactly.
+        emit({
+            "hookSpecificOutput": {
+                "hookEventName": "PostToolUse",
+                "updatedToolOutput": digest,
+            }
+        })
 
 
 if __name__ == "__main__":

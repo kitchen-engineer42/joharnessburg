@@ -66,6 +66,7 @@ class TestWorkspaceStatus(unittest.TestCase):
             (tdp / ".john" / "events" / "extract").mkdir()
             (tdp / ".john" / "events" / "extract" / "evt1.json").write_text("{}")
             (tdp / ".john" / "knowledge" / "entry-001").mkdir()
+            (tdp / ".john" / "knowledge" / "entry-001" / "entry.md").write_text("# entry")
 
             rc, out, _ = run_script("workspace_status.py", "--quiet", cwd=tdp)
             self.assertEqual(rc, 0)

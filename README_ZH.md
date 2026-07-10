@@ -40,6 +40,9 @@ codex plugin marketplace add /path/to/joharnessburg
 - `John: Workspace Status` —— `/john:status`
 - `John: Endurance Goal` —— `/john:endurance`
 - `John: Archive Workspace` —— `/john:archive`
+- `Codex Run Report` —— provider-neutral scorecard 与 manifests（等价于 `/john:report`）
+
+John 的 hook 会以当前编码会话的权限执行本地插件脚本。启用不受信任的 fork 前，请审阅 `plugins/joharnessburg/hooks/hooks.json` 及其引用脚本；这是唯一的 hook 声明源。
 
 安装完成后，新开一个 Claude Code 会话时 `using-john` skill 会自动加载——这是 John 的入口定向 skill，Claude 读到它就开始进入 John 的工作模式。
 
@@ -106,7 +109,7 @@ claude plugin update john@joharnessburg
 三步流程：
 
 ```sh
-# 1. 安装模板（拷贝或软链到 user-scope 的模板目录）
+# 1. 安装模板（拷贝到 user-scope 的模板目录；信任边界不接受软链）
 cp -R /path/to/your-template ~/.claude/plugins/joharnessburg-templates/your-template
 
 # 2. 应用模板（产出合并后的插件到 ~/.claude/plugins/joharnessburg-applied/<name>/）
@@ -118,6 +121,8 @@ claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 ```
 
 合并后的插件**就是**那个会话的 John —— 模板的 skill 跟核心 skill 同等加载，没有"模板层"这种二等概念。哪个模板被加载是会话启动时固定的；要切换，退出当前会话用不同的 `--plugin-dir` 重新启动。多个 applied 模板可以共存（并行的 Claude 会话可以用不同模板）。
+
+声明支持 Codex 的模板仍然先走同一个 `apply.sh`，再在目标项目中运行 John 的 `activate_codex_template.py`。它只会在项目内生成 `.john-codex/` 插件和 `.agents/plugins/marketplace.json`，并打印安装、启用、重启步骤；不会自动修改个人 marketplace 或全局启用状态。该项目会话里 applied John 必须替代 vanilla John，不能同时运行。
 
 重置：`rm -rf ~/.claude/plugins/joharnessburg-applied/<name>/`（或用 `scripts/reset_john.py` 全清）——**仅在没有会话正在使用这些目录时**（见下方警告）。下次不带 `--plugin-dir` 启动就是 vanilla John。
 
@@ -135,6 +140,8 @@ claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 
 ## 本地客户端
 
+LLM/PPX 客户端是 gitignored 的外部 workspace 服务，不属于 John 仓库依赖；新 clone 并不自带它们。`/healthz` 只表示进程存活，真正使用前必须检查 `/readyz` 返回 HTTP 200、`status: ready`、服务名和 capabilities。当前版本只允许 loopback 绑定。
+
 对于 LLM 调用 + PDF 解析，John 通过**外部 FastAPI 服务器**通信——这些服务器跟插件并行运行。它们在**插件外部**（workspace 级别），这样换 provider 不影响 John 本身。
 
 插件的 `parsing` + `workerllm-runtime` skill 教 Claude 通过环境变量配置的 URL 调用它们：
@@ -146,26 +153,16 @@ claude --plugin-dir ~/.claude/plugins/joharnessburg-applied/your-template
 
 ### 一次性安装（每台机器一次）
 
-前提：装了 [`uv`](https://docs.astral.sh/uv/)。你需要拿到 John workspace 包（里面包含 `local_clients/` 和 `setup_john.sh`）——如果还没有，联系项目所有者。
+前提：装了 [`uv`](https://docs.astral.sh/uv/)。先从团队获取独立固定版本的 `local_clients/{llm,ppx}` 与 PPX 引擎快照，并放到 `setup_john.sh` 期望的位置。脚本只执行 frozen lock 安装；目录缺失时会退出并打印精确的 provisioning 提示，不会自行 clone 或更新依赖。
 
 ```sh
-# 1. 把 ppx 引擎 clone 到 workspace 外面某个位置
-git clone https://github.com/kitchen-engineer42/ppx.git ~/code/ppx
-
-# 2. 运行 workspace 的安装脚本——创建 venv 并安装两个客户端
+# 1. 确认团队预先配置的 local_clients/{llm,ppx} 目录存在。
+# 2. 运行 frozen 安装
 cd /path/to/john-workspace
 ./setup_john.sh
 # 首次运行会从 .env.example 创建 .env，并提示你填入密钥。
 # 编辑 .env，填入 SILICONFLOW_API_KEY 和 DEEPSEEK_API_KEY，再次运行 setup_john.sh。
-
-# 3. 把 ppx 引擎安装到 ppx 客户端的 venv 中
-cd /path/to/john-workspace/local_clients/ppx
-uv pip install -e ~/code/ppx
-
-# 4. 验证
-cd /path/to/john-workspace
-./setup_john.sh
-# 应该报告："memect-ppx is installed in the ppx client's venv."
+# .env 会以 0600 创建或修复，密钥不会打印到终端。
 ```
 
 ### 每个会话的启动
@@ -173,7 +170,7 @@ cd /path/to/john-workspace
 ```sh
 cd /path/to/john-workspace
 ./start_john.sh
-# 会报告两个客户端的健康状态，并打印需要 export 的环境变量。
+# 等待各服务 ready；任一服务失败时回滚本次启动的全部进程。
 
 # 然后在你打算用 Claude Code 的 shell 中（或持久化到 .zshrc / .bashrc）：
 export JOHN_LLM_CLIENT_URL=http://localhost:8500
@@ -196,6 +193,7 @@ cd /path/to/john-workspace
 ```sh
 # LLM 客户端健康检查 + 提供商清单
 curl -s http://localhost:8500/healthz | jq
+curl -s http://localhost:8500/readyz | jq
 
 # 实际调用一次 LLM（应该返回 "OK" 或类似内容）
 curl -s http://localhost:8500/v1/chat/completions \
@@ -204,6 +202,7 @@ curl -s http://localhost:8500/v1/chat/completions \
 
 # ppx 客户端健康检查（应当报告 "ppx: available"）
 curl -s http://localhost:8501/healthz | jq
+curl -s http://localhost:8501/readyz | jq
 ```
 
 ### 参考文档

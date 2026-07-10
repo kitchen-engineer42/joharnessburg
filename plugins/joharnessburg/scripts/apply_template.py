@@ -31,8 +31,16 @@ import os
 import shutil
 import sys
 import traceback
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+from path_safety import (
+    atomic_write_text,
+    ensure_contained,
+    reject_tree_symlinks,
+    validate_template_slug,
+)
 
 
 # Core skills that are load-bearing for John itself (not domain skills that
@@ -119,7 +127,7 @@ def list_applied_templates(output_parent: Path) -> list[Path]:
     if not output_parent.is_dir():
         return []
     return sorted(
-        [d for d in output_parent.iterdir() if d.is_dir()],
+        [d for d in output_parent.iterdir() if d.is_dir() and not d.is_symlink()],
         key=lambda p: p.name,
     )
 
@@ -129,10 +137,55 @@ def load_template_json(template_root: Path) -> dict:
     if not tj.exists():
         return {}
     try:
-        return json.loads(tj.read_text(encoding="utf-8"))
+        data = json.loads(tj.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        sys.stderr.write(f"WARN: template.json is not valid JSON: {exc}\n")
-        return {}
+        raise ValueError(f"template.json is not valid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("template.json must contain a JSON object")
+    return data
+
+
+def validate_template_tree(template_root: Path, template_meta: dict) -> str:
+    """Validate all template-controlled names and trust-boundary paths."""
+    reject_tree_symlinks(template_root, label="template")
+    template_name = validate_template_slug(
+        template_meta.get("name") or template_root.name,
+        field="template name",
+    )
+    providers = template_meta.get("providers")
+    if providers is not None:
+        if (
+            not isinstance(providers, list)
+            or not providers
+            or any(p not in {"claude", "codex"} for p in providers)
+            or len(set(providers)) != len(providers)
+        ):
+            raise ValueError(
+                "template providers must be a non-empty, duplicate-free list "
+                "containing only 'claude' and/or 'codex'"
+            )
+
+    skills = template_root / "skills"
+    if skills.is_dir():
+        override_dir = skills / "_override"
+        if override_dir.is_dir():
+            for entry in override_dir.iterdir():
+                if entry.is_dir():
+                    validate_template_slug(entry.name, field="override skill name")
+        for entry in skills.iterdir():
+            if entry.name in {"_override", "_delete"}:
+                continue
+            if entry.is_dir():
+                validate_template_slug(entry.name, field="additive skill name")
+        delete_file = skills / "_delete"
+        if delete_file.exists():
+            if not delete_file.is_file():
+                raise ValueError("skills/_delete must be a regular file")
+            for line in delete_file.read_text(encoding="utf-8").splitlines():
+                name = line.partition("#")[0].strip()
+                if name:
+                    validate_template_slug(name, field="deleted skill name")
+    return template_name
 
 
 def _parse_version(s: str) -> tuple | None:
@@ -236,6 +289,8 @@ def copy_tree_overlay(src: Path, dst: Path, mode: str = "replace") -> tuple[list
         rel_dir = root_p.relative_to(src)
         for name in files:
             src_file = root_p / name
+            if src_file.is_symlink():
+                raise ValueError(f"template file may not be a symlink: {src_file}")
             dst_file = dst / rel_dir / name
             relpath_str = str((rel_dir / name))
             if mode == "additive_only" and dst_file.exists():
@@ -266,7 +321,9 @@ def apply_overrides(output_root: Path, template_root: Path) -> list[str]:
         if not skill_dir.is_dir():
             continue
         skill_name = skill_dir.name
+        validate_template_slug(skill_name, field="override skill name")
         target = output_root / "skills" / skill_name
+        ensure_contained(output_root / "skills", target, label="override target")
         if target.exists():
             shutil.rmtree(target)
         shutil.copytree(skill_dir, target)
@@ -297,7 +354,9 @@ def apply_deletes(output_root: Path, template_root: Path) -> tuple[list[str], li
         reason = comment.strip() or None
         if not name:
             continue  # blank line or full-line comment
+        validate_template_slug(name, field="deleted skill name")
         target = output_root / "skills" / name
+        ensure_contained(output_root / "skills", target, label="delete target")
         if not target.is_dir():
             sys.stderr.write(f"WARN: _delete entry '{name}' not found in core skills; skipping.\n")
             continue
@@ -346,7 +405,9 @@ def apply_additive_skills(output_root: Path, template_root: Path) -> list[str]:
             continue
         if not entry.is_dir():
             continue
+        validate_template_slug(entry.name, field="additive skill name")
         target = output_root / "skills" / entry.name
+        ensure_contained(output_root / "skills", target, label="additive skill target")
         if target.exists():
             sys.stderr.write(
                 f"WARN: additive skill '{entry.name}' would shadow an existing core skill. "
@@ -359,11 +420,16 @@ def apply_additive_skills(output_root: Path, template_root: Path) -> list[str]:
 
 
 def apply_template_metadata(output_root: Path, template_root: Path) -> dict:
-    """Copy claude_addon.md + plan_md_template.md into a templates-active/ subdir of the merged plugin."""
+    """Copy runtime guidance into templates-active/ in the merged plugin."""
     meta = {}
     target_dir = output_root / "templates-active"
     target_dir.mkdir(parents=True, exist_ok=True)
-    for fname in ("claude_addon.md", "plan_md_template.md"):
+    for fname in (
+        "project_addon.md",
+        "claude_addon.md",
+        "agents_addon.md",
+        "plan_md_template.md",
+    ):
         src = template_root / fname
         if src.is_file():
             shutil.copy2(src, target_dir / fname)
@@ -393,6 +459,66 @@ def apply_template_workflows(output_root: Path, template_root: Path) -> list[str
             shutil.copy2(entry, target_dir / entry.name)
             copied.append(entry.name)
     return copied
+
+
+def _publish_transaction(
+    stage: Path,
+    output_root: Path,
+    *,
+    force: bool,
+    reset_candidates: list[Path],
+) -> None:
+    """Atomically publish a staged plugin and restore prior state on failure."""
+    moved: list[tuple[Path, Path]] = []
+
+    def backup_path(path: Path, kind: str) -> Path:
+        return path.parent / f".{path.name}.{kind}-{uuid.uuid4().hex}"
+
+    try:
+        for candidate in reset_candidates:
+            if candidate == output_root:
+                continue
+            marker = candidate / ".applied-metadata.json"
+            if not marker.is_file():
+                sys.stderr.write(
+                    f"WARN: --reset-all skipping {candidate}: no "
+                    ".applied-metadata.json marker (not an applied template).\n"
+                )
+                continue
+            ensure_contained(output_root.parent, candidate, label="reset candidate")
+            reject_tree_symlinks(candidate, label="reset candidate")
+            backup = backup_path(candidate, "reset-backup")
+            candidate.rename(backup)
+            moved.append((candidate, backup))
+
+        if output_root.exists():
+            if not force:
+                raise ValueError(f"output dir {output_root} already exists")
+            marker = output_root / ".applied-metadata.json"
+            if not marker.is_file():
+                raise ValueError(
+                    f"Refusing to replace {output_root}: no "
+                    ".applied-metadata.json provenance marker"
+                )
+            reject_tree_symlinks(output_root, label="prior applied template")
+            backup = backup_path(output_root, "force-backup")
+            output_root.rename(backup)
+            moved.append((output_root, backup))
+
+        stage.rename(output_root)
+    except BaseException:
+        if output_root.exists() and output_root != stage:
+            # A failed post-publish operation must not hide the prior output.
+            if any(original == output_root for original, _ in moved):
+                shutil.rmtree(output_root, ignore_errors=True)
+        for original, backup in reversed(moved):
+            if backup.exists() and not original.exists():
+                backup.rename(original)
+        raise
+    else:
+        for _original, backup in moved:
+            if backup.is_dir():
+                shutil.rmtree(backup, ignore_errors=True)
 
 
 def main(argv: list[str] | None = None):
@@ -426,17 +552,29 @@ def main(argv: list[str] | None = None):
     )
     args = parser.parse_args(argv)
 
-    template_root = Path(args.template_root).expanduser().resolve()
+    raw_template_root = Path(args.template_root).expanduser()
+    if raw_template_root.is_symlink():
+        err(f"Template root may not be a symlink: {raw_template_root}")
+        return
+    template_root = raw_template_root.resolve()
     if not template_root.is_dir():
         err(f"Template root does not exist or is not a directory: {template_root}")
         return
 
-    template_meta = load_template_json(template_root)
-    template_name = template_meta.get("name") or template_root.name
+    try:
+        template_meta = load_template_json(template_root)
+        template_name = validate_template_tree(template_root, template_meta)
+    except (OSError, ValueError) as exc:
+        err(str(exc))
+        return
 
     # Resolve John install
     if args.john_install:
-        john_install = Path(args.john_install).expanduser().resolve()
+        raw_john_install = Path(args.john_install).expanduser()
+        if raw_john_install.is_symlink():
+            err(f"John install may not be a symlink: {raw_john_install}")
+            return
+        john_install = raw_john_install.resolve()
     else:
         john_install = resolve_john_install()
     if not john_install or not john_install.is_dir():
@@ -446,17 +584,32 @@ def main(argv: list[str] | None = None):
             "or pass --john-install <path>.",
         )
         return
+    try:
+        reject_tree_symlinks(john_install, label="John install")
+    except ValueError as exc:
+        err(str(exc))
+        return
 
     # Warn-only version pin (template.json requires_john vs installed version)
     version_check = check_version_pin(template_meta, john_install)
 
     # Resolve output
     output_parent = resolve_output_parent()
-    output_root = (
-        Path(args.output).expanduser().resolve()
-        if args.output
-        else output_parent / template_name
-    )
+    if args.output:
+        raw_output = Path(args.output).expanduser()
+        if raw_output.is_symlink():
+            err(f"Applied output may not be a symlink: {raw_output}")
+            return
+        output_root = raw_output.resolve()
+    else:
+        output_root = output_parent / template_name
+    output_parent = output_root.parent.resolve()
+    output_parent.mkdir(parents=True, exist_ok=True)
+    try:
+        ensure_contained(output_parent, output_root, label="applied output")
+    except ValueError as exc:
+        err(str(exc))
+        return
 
     # Multi-applied policy:
     # Each applied template dir is an independent merged plugin; parallel Claude Code
@@ -464,20 +617,7 @@ def main(argv: list[str] | None = None):
     # without interference (per-session isolation, no shared mutable runtime state).
     # So we DON'T refuse when other templates are already applied — we just allow.
     # `--reset-all` is still available for users who DO want a clean slate.
-    if args.reset_all:
-        existing = list_applied_templates(output_parent)
-        other_existing = [d for d in existing if d != output_root]
-        for d in other_existing:
-            # Same provenance guard as reset_john.py: only delete dirs that
-            # carry the applied-template marker, so a mis-set applied parent
-            # (e.g. via $JOHN_APPLIED_PARENT) can't wipe unrelated directories.
-            if not (d / ".applied-metadata.json").exists():
-                sys.stderr.write(
-                    f"WARN: --reset-all skipping {d}: no .applied-metadata.json "
-                    f"marker (not an applied template).\n"
-                )
-                continue
-            shutil.rmtree(d)
+    reset_candidates = list_applied_templates(output_parent) if args.reset_all else []
 
     # Force-overwrite check for the SAME template
     if output_root.exists() and not args.force:
@@ -499,49 +639,45 @@ def main(argv: list[str] | None = None):
         return
 
     if output_root.exists():
-        # Safety guard: with --force we are about to delete output_root. Only do
-        # that when it is clearly an applied-template dir — under the applied
-        # parent, or already carrying our provenance marker. This stops a stray
-        # `--output ~/code/myproject --force` from wiping an unrelated directory.
-        is_under_parent = output_parent in output_root.parents
         has_marker = (output_root / ".applied-metadata.json").exists()
-        if not (is_under_parent or has_marker):
+        if not has_marker:
             err(
-                f"Refusing to delete {output_root}: it is neither under the applied "
-                f"parent ({output_parent}) nor an existing applied template "
-                f"(no .applied-metadata.json). Point --output under {output_parent}, "
-                f"or remove the directory yourself first.",
+                f"Refusing to delete or replace {output_root}: no "
+                ".applied-metadata.json provenance marker. Remove the directory "
+                "yourself or choose another --output.",
             )
             return
-        shutil.rmtree(output_root)
 
-    # 1. Copy John install to output
-    shutil.copytree(john_install, output_root, symlinks=True)
+    # Build the complete merged plugin in a same-parent staging directory.
+    stage = output_parent / f".{output_root.name}.stage-{uuid.uuid4().hex}"
+    ensure_contained(output_parent, stage, label="staging output")
+    try:
+        shutil.copytree(john_install, stage)
 
-    # 2. Apply diff
-    deleted, core_deletions = apply_deletes(output_root, template_root)
-    overridden = apply_overrides(output_root, template_root)
-    added = apply_additive_skills(output_root, template_root)
+        # Apply the validated diff only to staging.
+        deleted, core_deletions = apply_deletes(stage, template_root)
+        overridden = apply_overrides(stage, template_root)
+        added = apply_additive_skills(stage, template_root)
 
     # Also copy template's scripts/, commands/, agents/ (additive-only — NOT
     # an override surface; collisions with core files are skipped + warned).
-    additive_dirs_copied: dict = {}
-    additive_collisions: dict = {}
-    for sub in ("scripts", "commands", "agents"):
-        src = template_root / sub
-        if src.is_dir():
-            copied_paths, collisions = copy_tree_overlay(
-                src, output_root / sub, mode="additive_only"
-            )
-            additive_dirs_copied[sub] = copied_paths
-            if collisions:
-                additive_collisions[sub] = collisions
+        additive_dirs_copied: dict = {}
+        additive_collisions: dict = {}
+        for sub in ("scripts", "commands", "agents", "codex"):
+            src = template_root / sub
+            if src.is_dir():
+                copied_paths, collisions = copy_tree_overlay(
+                    src, stage / sub, mode="additive_only"
+                )
+                additive_dirs_copied[sub] = copied_paths
+                if collisions:
+                    additive_collisions[sub] = collisions
 
-    template_metadata = apply_template_metadata(output_root, template_root)
-    workflows_copied = apply_template_workflows(output_root, template_root)
+        template_metadata = apply_template_metadata(stage, template_root)
+        workflows_copied = apply_template_workflows(stage, template_root)
 
     # 3. Write applied-metadata
-    metadata = {
+        metadata = {
         "template_name": template_name,
         "template_version": template_meta.get("version"),
         "template_root_at_apply": str(template_root),
@@ -556,10 +692,23 @@ def main(argv: list[str] | None = None):
         "template_files_copied": template_metadata,
         "workflows_copied": workflows_copied,
         "version_check": version_check,
-    }
-    (output_root / ".applied-metadata.json").write_text(
-        json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
-    )
+            "providers": template_meta.get("providers", ["claude"]),
+        }
+        atomic_write_text(
+            stage / ".applied-metadata.json",
+            json.dumps(metadata, indent=2) + "\n",
+        )
+        _publish_transaction(
+            stage,
+            output_root,
+            force=args.force,
+            reset_candidates=reset_candidates,
+        )
+    except (OSError, ValueError, shutil.Error) as exc:
+        if stage.exists():
+            shutil.rmtree(stage, ignore_errors=True)
+        err(f"Template application failed without changing prior state: {exc}")
+        return
 
     launch_command = f"claude --plugin-dir {output_root}"
     sys.stderr.write(

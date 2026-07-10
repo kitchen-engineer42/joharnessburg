@@ -150,26 +150,45 @@ def validate_intent_questions(payload: dict[str, Any]) -> list[str]:
     if payload.get("version") != QUESTIONS_VERSION:
         errors.append(f"version must be {QUESTIONS_VERSION}")
 
+    batch_id = payload.get("question_batch_id")
+    if not isinstance(batch_id, str) or not batch_id.strip():
+        errors.append("question_batch_id must be a non-empty string")
+    reason = payload.get("reason")
+    if reason is not None and (not isinstance(reason, str) or not reason.strip()):
+        errors.append("reason must be a non-empty string when provided")
+
     max_questions = payload.get("max_questions", 4)
-    if not isinstance(max_questions, int) or max_questions < 1 or max_questions > 4:
+    max_questions_valid = (
+        isinstance(max_questions, int)
+        and not isinstance(max_questions, bool)
+        and 1 <= max_questions <= 4
+    )
+    if not max_questions_valid:
         errors.append("max_questions must be an integer from 1 to 4")
 
     questions = payload.get("questions")
     if not isinstance(questions, list) or not questions:
         errors.append("questions must be a non-empty list")
         return errors
-    if len(questions) > min(max_questions, 4):
+    question_limit = max_questions if max_questions_valid else 4
+    if len(questions) > question_limit:
         errors.append("questions length exceeds max_questions or global limit 4")
 
+    question_ids: set[str] = set()
     for idx, question in enumerate(questions):
         prefix = f"questions[{idx}]"
         if not isinstance(question, dict):
             errors.append(f"{prefix} must be an object")
             continue
-        if not question.get("id"):
-            errors.append(f"{prefix}.id is required")
-        if not question.get("prompt"):
-            errors.append(f"{prefix}.prompt is required")
+        question_id = question.get("id")
+        if not isinstance(question_id, str) or not question_id.strip():
+            errors.append(f"{prefix}.id must be a non-empty string")
+        elif question_id in question_ids:
+            errors.append(f"{prefix}.id must be unique")
+        else:
+            question_ids.add(question_id)
+        if not isinstance(question.get("prompt"), str) or not question["prompt"].strip():
+            errors.append(f"{prefix}.prompt must be a non-empty string")
         if question.get("free_text_allowed") is not True:
             errors.append(f"{prefix}.free_text_allowed must be true")
         options = question.get("options")
@@ -177,15 +196,23 @@ def validate_intent_questions(payload: dict[str, Any]) -> list[str]:
             errors.append(f"{prefix}.options must contain at least two options")
             continue
         recommended_count = 0
+        option_ids: set[str] = set()
         for option_idx, option in enumerate(options):
             option_prefix = f"{prefix}.options[{option_idx}]"
             if not isinstance(option, dict):
                 errors.append(f"{option_prefix} must be an object")
                 continue
-            if not option.get("id"):
-                errors.append(f"{option_prefix}.id is required")
-            if not option.get("label"):
-                errors.append(f"{option_prefix}.label is required")
+            option_id = option.get("id")
+            if not isinstance(option_id, str) or not option_id.strip():
+                errors.append(f"{option_prefix}.id must be a non-empty string")
+            elif option_id in option_ids:
+                errors.append(f"{option_prefix}.id must be unique within the question")
+            else:
+                option_ids.add(option_id)
+            if not isinstance(option.get("label"), str) or not option["label"].strip():
+                errors.append(f"{option_prefix}.label must be a non-empty string")
+            if "recommended" in option and not isinstance(option["recommended"], bool):
+                errors.append(f"{option_prefix}.recommended must be boolean")
             if option.get("recommended") is True:
                 recommended_count += 1
         if recommended_count > 1:
@@ -342,9 +369,29 @@ def scan_ui_leaks(root: Path, *, language: str = "source_language") -> dict[str,
         )
 
     violations = []
-    for path in iter_text_files(root):
+    if root.is_symlink() or not root.exists() or not (root.is_file() or root.is_dir()):
+        return {
+            "version": "john.ui_leak_scan.v1",
+            "success": False,
+            "source_heuristic": True,
+            "rendered_browser_verification_required": True,
+            "files_scanned": 0,
+            "bytes_scanned": 0,
+            "violations": [
+                {
+                    "file": str(root),
+                    "line": 0,
+                    "category": "invalid_target",
+                    "match": "target must be an existing regular file or directory",
+                }
+            ],
+        }
+    files = list(iter_text_files(root))
+    bytes_scanned = 0
+    for path in files:
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
+            bytes_scanned += len(text.encode("utf-8"))
         except OSError as exc:
             violations.append(
                 {
@@ -367,9 +414,22 @@ def scan_ui_leaks(root: Path, *, language: str = "source_language") -> dict[str,
                             "match": match.group(0),
                         }
                     )
+    if not files or bytes_scanned == 0:
+        violations.append(
+            {
+                "file": str(root),
+                "line": 0,
+                "category": "empty_target",
+                "match": "no non-empty supported source files were found",
+            }
+        )
     return {
         "version": "john.ui_leak_scan.v1",
         "success": not violations,
+        "source_heuristic": True,
+        "rendered_browser_verification_required": True,
+        "files_scanned": len(files),
+        "bytes_scanned": bytes_scanned,
         "violations": violations,
     }
 

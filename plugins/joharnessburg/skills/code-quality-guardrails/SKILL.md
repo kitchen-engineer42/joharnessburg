@@ -68,7 +68,7 @@ Before phase-done or ship, scan the **produced app's user-facing output** (built
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/app_first_contracts.py" scan-ui-leaks <produced-app-dir> [--language zh]
 ```
 
-It returns `{success, violations}` — flagging raw JSON, internal identifiers (`schema_version` / `chapter_id` / `chunk_id` / skill names), `.john/` or filesystem paths, and — for a non-English app (`--language zh`) — bare English machine-words (`chapter`, `schema`, `chunk`, `json`) showing up as user-facing labels. Treat violations as ship-blockers unless one is provably inside non-user-facing code. (The same tool can help you *design* the public surface up front — the display-first lens in [[app-design-thinking]].)
+It returns `{success, check: "source_heuristic", violations}` — flagging raw JSON, internal identifiers (`schema_version` / `chapter_id` / `chunk_id` / skill names), `.john/` or filesystem paths, and — for a non-English app (`--language zh`) — bare English machine-words (`chapter`, `schema`, `chunk`, `json`) showing up as user-facing labels. A missing, invalid, or empty target fails. Treat violations as ship-blockers unless one is provably inside non-user-facing code. This is only a source heuristic: before shipping, also open the built app in a real browser, exercise its main states, and inspect the rendered user-facing surface for leaks. (The same tool can help you *design* the public surface up front — the display-first lens in [[app-design-thinking]].)
 
 ## What "deterministic" means here
 

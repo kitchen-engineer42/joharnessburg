@@ -142,6 +142,54 @@ class TestPpxParse(unittest.TestCase):
                 self.assertTrue(out["success"])
                 self.assertEqual(out["doc_md"], "/y/doc.md")
                 self.assertEqual(out["elapsed_seconds"], 1.5)
+                self.assertFalse(out_dir.exists(), "caller must not pre-create PPX output")
+
+    def test_loopback_bypasses_hostile_proxy_environment(self):
+        body = json.dumps({
+            "success": True,
+            "doc_md": "/y/doc.md",
+            "doc_json": "/y/doc.json",
+            "metadata_json": "/y/metadata.json",
+        }).encode()
+        with _ServerCtx(status=200, body=body) as srv:
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                source = root / "fake.pdf"
+                source.write_bytes(b"%PDF")
+                rc, out, err = run_script(
+                    "ppx_parse.py",
+                    str(source),
+                    str(root / "out"),
+                    "--client-url",
+                    f"http://127.0.0.1:{srv.port}",
+                    env_override={
+                        "HTTP_PROXY": "http://127.0.0.1:1",
+                        "HTTPS_PROXY": "http://127.0.0.1:1",
+                        "ALL_PROXY": "http://127.0.0.1:1",
+                        "NO_PROXY": "",
+                    },
+                )
+                self.assertEqual(rc, 0, err)
+                self.assertTrue(out["success"])
+
+    def test_missing_promised_artifact_fails(self):
+        body = json.dumps({
+            "success": True,
+            "doc_md": "/y/doc.md",
+            "doc_json": None,
+            "metadata_json": "/y/metadata.json",
+        }).encode()
+        with _ServerCtx(status=200, body=body) as srv:
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                source = root / "fake.pdf"
+                source.write_bytes(b"%PDF")
+                rc, out, _ = run_script(
+                    "ppx_parse.py", str(source), str(root / "out"),
+                    "--client-url", f"http://127.0.0.1:{srv.port}",
+                )
+                self.assertEqual(rc, 1)
+                self.assertIn("doc_json", out["error"])
 
 
 if __name__ == "__main__":

@@ -84,6 +84,27 @@ class TestReduceEvents(unittest.TestCase):
                 "events should be sorted by timestamp",
             )
 
+    def test_timestamp_offsets_are_sorted_as_instants(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            run_script("init_workspace.py", cwd=root)
+            phase = root / ".john/events/extract"
+            phase.mkdir()
+            (phase / "later-spelling.json").write_text(json.dumps({
+                "event_type": "x",
+                "timestamp": "2026-01-01T01:30:00+01:00",
+            }))
+            (phase / "earlier-spelling.json").write_text(json.dumps({
+                "event_type": "y",
+                "timestamp": "2026-01-01T00:45:00Z",
+            }))
+            rc, _, err = run_script("reduce_events.py", "extract", cwd=root)
+            self.assertEqual(rc, 0, err)
+            state = json.loads(
+                (root / ".john/checkpoints/extract/state.json").read_text()
+            )
+            self.assertEqual([e["event_type"] for e in state["events"]], ["x", "y"])
+
     def test_reduce_works_from_project_subdirectory(self):
         # v0.2.3: the reduce walks up to the nearest .john/ — running from a
         # subdirectory folds the root event log and writes the root checkpoint.
@@ -601,6 +622,144 @@ class TestPhaseGateAndVerify(unittest.TestCase):
             )
             self.assertTrue((phase_dir / "bad.json").is_file())
             self.assertFalse((phase_dir / "_quarantine").exists())
+
+
+class TestExtractionAuditGate(unittest.TestCase):
+    def _phase(self, root: Path) -> Path:
+        run_script("init_workspace.py", cwd=root)
+        phase = root / ".john/events/extract"
+        phase.mkdir()
+        return phase
+
+    @staticmethod
+    def _write(phase: Path, name: str, event: dict) -> None:
+        (phase / name).write_text(json.dumps(event))
+
+    def _healthy_chunk(self, phase: Path, chunk: str = "chunk-1", base: int = 0):
+        events = [
+            ("entry-a", {"event_type": "entry_extracted", "chunk_id": chunk,
+                         "entry_id": f"{chunk}-a", "timestamp": f"2026-01-01T00:00:{base:02d}Z"}),
+            ("entry-b", {"event_type": "entry_extracted", "chunk_id": chunk,
+                         "entry_id": f"{chunk}-b", "timestamp": f"2026-01-01T00:00:{base + 1:02d}Z"}),
+            ("complete", {"event_type": "chunk_complete", "chunk_id": chunk,
+                           "entries_count": 2, "timestamp": f"2026-01-01T00:00:{base + 2:02d}Z"}),
+            ("coverage", {"event_type": "coverage_audit_complete", "chunk_id": chunk,
+                           "entries_reviewed": 2, "gaps_found": 0, "verdict": "complete",
+                           "timestamp": f"2026-01-01T00:00:{base + 3:02d}Z"}),
+            ("grounding", {"event_type": "grounding_check_complete", "chunk_id": chunk,
+                            "entries_checked": 2, "grounded": 2, "weak": 0,
+                            "ungrounded": 0,
+                            "timestamp": f"2026-01-01T00:00:{base + 4:02d}Z"}),
+        ]
+        for suffix, event in events:
+            self._write(phase, f"{chunk}-{suffix}.json", event)
+
+    def test_clean_audits_pass_and_gate_counts_only_accepted_entries(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            phase = self._phase(root)
+            self._healthy_chunk(phase)
+            # An audit flag mentions a third ID; it must never inflate the count.
+            self._write(phase, "old-flag.json", {
+                "event_type": "grounding_flag", "chunk_id": "chunk-1",
+                "entry_id": "not-a-candidate", "verdict": "weak",
+                "timestamp": "2026-01-01T00:00:02Z",
+            })
+            rc, out, err = run_script(
+                "reduce_events.py", "extract", "--require-extraction-audits",
+                "--expect-entries", "2", cwd=root,
+            )
+            self.assertEqual(rc, 0, err)
+            self.assertEqual(out["entries_claimed"], 2)
+            self.assertEqual(out["quality_gate"]["status"], "pass")
+            self.assertEqual(
+                out["quality_gate"]["accepted_entry_ids"],
+                ["chunk-1-a", "chunk-1-b"],
+            )
+
+    def test_missing_failed_and_count_mismatched_audits_exit_four(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            phase = self._phase(root)
+            self._healthy_chunk(phase)
+            (phase / "chunk-1-grounding.json").unlink()
+            coverage = json.loads((phase / "chunk-1-coverage.json").read_text())
+            coverage["gaps_found"] = 1
+            coverage["verdict"] = "incomplete"
+            coverage["entries_reviewed"] = 1
+            (phase / "chunk-1-coverage.json").write_text(json.dumps(coverage))
+            rc, out, _ = run_script(
+                "reduce_events.py", "extract", "--require-extraction-audits", cwd=root
+            )
+            self.assertEqual(rc, 4)
+            self.assertEqual(out["quality_gate"]["status"], "fail")
+            self.assertEqual(out["quality_gate"]["accepted_entry_ids"], [])
+            state = json.loads(
+                (root / ".john/checkpoints/extract/state.json").read_text()
+            )
+            self.assertEqual(state["quality_gate"]["status"], "fail")
+
+    def test_stale_audits_fail_then_clean_rerun_supersedes_them(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            phase = self._phase(root)
+            self._healthy_chunk(phase)
+            self._write(phase, "retry.json", {
+                "event_type": "entry_extracted", "chunk_id": "chunk-1",
+                "entry_id": "chunk-1-a", "timestamp": "2026-01-01T00:00:10Z",
+            })
+            rc, out, _ = run_script(
+                "reduce_events.py", "extract", "--require-extraction-audits", cwd=root
+            )
+            self.assertEqual(rc, 4)
+            self.assertTrue(any("stale" in reason for reason in out["quality_gate"]["reasons"]))
+
+            for kind, event in (
+                ("coverage-rerun", {"event_type": "coverage_audit_complete",
+                                    "entries_reviewed": 2, "gaps_found": 0,
+                                    "verdict": "complete"}),
+                ("grounding-rerun", {"event_type": "grounding_check_complete",
+                                     "entries_checked": 2, "grounded": 2,
+                                     "weak": 0, "ungrounded": 0}),
+            ):
+                event.update({"chunk_id": "chunk-1", "timestamp": "2026-01-01T00:00:11Z"})
+                self._write(phase, f"{kind}.json", event)
+            rc, out, err = run_script(
+                "reduce_events.py", "extract", "--require-extraction-audits", cwd=root
+            )
+            self.assertEqual(rc, 0, err)
+            self.assertEqual(out["quality_gate"]["status"], "pass")
+
+    def test_failing_chunk_is_excluded_whole(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            phase = self._phase(root)
+            self._healthy_chunk(phase, "chunk-1", 0)
+            self._healthy_chunk(phase, "chunk-2", 10)
+            grounding_path = phase / "chunk-2-grounding.json"
+            grounding = json.loads(grounding_path.read_text())
+            grounding.update({"grounded": 1, "weak": 1})
+            grounding_path.write_text(json.dumps(grounding))
+            rc, out, _ = run_script(
+                "reduce_events.py", "extract", "--require-extraction-audits", cwd=root
+            )
+            self.assertEqual(rc, 4)
+            self.assertEqual(
+                out["quality_gate"]["accepted_entry_ids"],
+                ["chunk-1-a", "chunk-1-b"],
+            )
+
+    def test_phase_traversal_is_rejected_without_writes(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            run_script("init_workspace.py", cwd=root)
+            outside = root / "outside"
+            outside.mkdir()
+            (outside / "event.json").write_text("{}")
+            rc, out, _ = run_script("reduce_events.py", "../outside", cwd=root)
+            self.assertEqual(rc, 1)
+            self.assertFalse(out["success"])
+            self.assertFalse((root / ".john/outside").exists())
 
 
 if __name__ == "__main__":

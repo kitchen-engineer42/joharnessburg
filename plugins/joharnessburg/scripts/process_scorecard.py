@@ -218,6 +218,16 @@ def _skill_invocations(john_dir: Path) -> dict:
             per_phase[phase] = per_phase.get(phase, 0) + 1
     return {
         "recording_available": available,
+        "provider_capabilities": {
+            "claude": {
+                "status": "supported",
+                "recording_available": available,
+            },
+            "codex": {
+                "status": "unsupported",
+                "reason": "Codex does not emit Claude's PostToolUse Skill event",
+            },
+        },
         "total": total,
         "unparseable": unparseable,
         "per_skill": dict(sorted(per_skill.items())),
@@ -296,12 +306,32 @@ def main():
     phases = {name: _phase_report(john_dir, name) for name in sorted(phase_names)}
     zero_event_phases = sorted(n for n, p in phases.items() if p["events"] == 0)
 
-    produced_skills_dir = root / ".claude" / "skills"
-    produced_skills = (
-        len([d for d in produced_skills_dir.iterdir() if d.is_dir()])
-        if produced_skills_dir.is_dir()
-        else 0
+    provider_dirs = {
+        "claude": root / ".claude" / "skills",
+        "codex": root / ".agents" / "skills",
+    }
+    skill_names_by_provider = {
+        provider: {d.name for d in directory.iterdir() if d.is_dir()}
+        if directory.is_dir()
+        else set()
+        for provider, directory in provider_dirs.items()
+    }
+    produced_skills_by_provider = {
+        provider: len(names) for provider, names in skill_names_by_provider.items()
+    }
+    produced_skill_names = set().union(*skill_names_by_provider.values())
+    produced_skills = len(produced_skill_names)
+    claude_only = sorted(
+        skill_names_by_provider["claude"] - skill_names_by_provider["codex"]
     )
+    codex_only = sorted(
+        skill_names_by_provider["codex"] - skill_names_by_provider["claude"]
+    )
+    produced_skills_parity = {
+        "status": "pass" if not claude_only and not codex_only else "drift",
+        "claude_only": claude_only,
+        "codex_only": codex_only,
+    }
 
     manifest = _manifest(john_dir, applied_metadata)
     skill_invocations = _skill_invocations(john_dir)
@@ -333,6 +363,8 @@ def main():
         "lessons": _lessons(john_dir),
         "interventions": "n/a (requires transcript analysis)",
         "produced_skills": produced_skills,
+        "produced_skills_by_provider": produced_skills_by_provider,
+        "produced_skills_parity": produced_skills_parity,
     }
 
     if not args.quiet:
@@ -388,6 +420,9 @@ def _human_summary(sc: dict) -> str:
     lines += [
         f"Lessons: {sc['lessons']['total']} ({json.dumps(sc['lessons']['by_scope']) if sc['lessons']['by_scope'] else 'none'})",
         f"Produced skills: {sc['produced_skills']}",
+        "Produced skills by provider: "
+        + json.dumps(sc["produced_skills_by_provider"], sort_keys=True),
+        f"Produced-skill parity: {sc['produced_skills_parity']['status']}",
         f"Interventions: {sc['interventions']}",
         "",
     ]

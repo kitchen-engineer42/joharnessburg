@@ -14,6 +14,7 @@ You are a focused worker dispatched by John's extraction phase (knowledge phases
 - **The chunk to process**: path to a parsed source file (or path + byte/line range).
 - **The project schema**: the exact field shape per entry (from this project's `schema-design` skill output — should be in PLAN.md's app-type definition section). Paste the field list.
 - **The output directory**: where to write events (`<project>/.john/events/extract/<chunk-id>/`).
+- **Stable run identity**: your `agent_id` and `audit_run_id`; both are required by the atomic event writer.
 - **The knowledge format** for this project: facts / rules / slide-concepts / wiki entries / something else.
 - **Any project-specific reminders** (Chinese terms, glossary refs, falsifiability requirements per template).
 
@@ -25,21 +26,21 @@ vs `source`, severity `"critical"` vs `"high"`) forces the reducer to pay a
 normalization cost it shouldn't have to. **Match these field sets exactly; do
 NOT invent or rename fields.**
 
-Filename convention for every event file: `<subagent-id>-<suffix>.json`, where
-`<subagent-id>` is given in your briefing (if absent, invent a short random
-one and reuse it for all your events) and `<suffix>` identifies the event
-(`echo`, the entry id, `complete`, a term slug). The prefix keeps the log
-append-only: if your chunk is ever re-dispatched, the second worker's events
-must not overwrite yours.
+Pipe each JSON object through the shipped writer; never choose a filename or
+write directly into the event tree:
 
-Every event additionally carries two envelope keys at the top level (omitted
-from the examples below for brevity, but REQUIRED in every event you write):
-`"timestamp"` (ISO-8601 UTC, e.g. `"2026-06-10T08:00:00Z"` — the reducer
-sorts events by it) and `"subagent_id"` (your id).
+```bash
+printf '%s' '<json-object>' | python3 "${CLAUDE_PLUGIN_ROOT}/scripts/emit_event.py" \
+  --phase extract --work-unit-id '<chunk-id>' \
+  --agent-id '<agent-id>' --audit-run-id '<audit-run-id>'
+```
+
+The writer validates containment and supplies a unique filename, `event_id`,
+UTC `timestamp`, `agent_id`, and `audit_run_id`. Retries therefore append
+history instead of overwriting it. If either stable identity is missing from
+your briefing, stop and request a corrected briefing.
 
 ### Event 0 — One `chunk_echo` FIRST, before extracting anything
-
-Filename: `<subagent-id>-echo.json`.
 
 ```json
 {
@@ -61,8 +62,6 @@ cheap insurance — don't skip it.
 
 ### Event 1 — One `entry_extracted` event per knowledge entry
 
-Filename: `<subagent-id>-<entry-id>.json` (e.g., `sub-7f2-R001.json`).
-
 ```json
 {
   "event_type": "entry_extracted",
@@ -78,8 +77,8 @@ Filename: `<subagent-id>-<entry-id>.json` (e.g., `sub-7f2-R001.json`).
 ```
 
 Required keys at the EVENT level: `event_type`, `chunk_id`, `entry_id`,
-`schema_fields`, `source_excerpt`, `extractor_confidence` (plus the
-`timestamp` / `subagent_id` envelope keys, as in every event).
+`schema_fields`, `source_excerpt`, `extractor_confidence` (the writer adds the
+event envelope).
 
 `extractor_confidence` MUST be one of: `"high"`, `"medium"`, `"low"`.
 Do NOT use `"critical"`, `"certain"`, `"unsure"`, or any other value.
@@ -102,8 +101,6 @@ section literally. The schema is the source of truth.
 
 ### Event 2 — One `chunk_complete` summary per chunk, as your LAST event
 
-Filename: `<subagent-id>-complete.json`.
-
 ```json
 {
   "event_type": "chunk_complete",
@@ -119,8 +116,6 @@ Required keys: `event_type`, `chunk_id`, `entries_count`, `issues`.
 look at (e.g., `["entry R004 may overlap with R006"]`); empty array if nothing.
 
 ### Event 3 (optional) — `glossary_term` events
-
-Filename: `<subagent-id>-<term-slug>.json`.
 
 ```json
 {
@@ -141,8 +136,6 @@ If the chunk has real content the project schema can't represent, do NOT
 invent fields — emit a `schema_observation` so the main agent can review the
 gap after the fan-out (N similar observations trigger a schema-extension
 question to the user).
-
-Filename: `<subagent-id>-observation.json` (or `-observation-2.json`, ... if several).
 
 ```json
 {
@@ -171,17 +164,14 @@ unreadable), emit exactly one event and stop:
 
 ## JSON discipline
 
-Every event file you write must be valid JSON. The reducer (`reduce_events.py`) quarantines unparseable files — they don't fold into canonical state. Inner-quote escaping is the most common cause of unparseable events; mitigate it like this:
+Every object you send must be valid JSON. The reducer (`reduce_events.py`) quarantines unparseable legacy files — they don't fold into canonical state. Inner-quote escaping is the most common cause; mitigate it like this:
 
 - **Preferred for Chinese-language content**: use full-width quotation marks `「...」` or `『...』` for inner quotes. They don't need escaping and are typographically idiomatic in Chinese (`合称「电磁感应的普遍规律」`).
 - **Preferred for ASCII / mixed content**: build the dict in your head, then mentally walk through `json.dumps(d)` and write the result. The encoder escapes inner `"` as `\"`.
 - **Avoid**: hand-formatting JSON with inner ASCII `"` unescaped. The reducer will quarantine these and you'll need a manual repair pass.
 
-Before writing each event file, mentally re-parse it. If you can't be sure it's valid, prefer the safer escape route (full-width or json.dumps).
-
-Write atomically: write to a temp name first (e.g. `<final-name>.tmp`), then
-rename to the final `.json` name. A reduce can run while you're mid-write;
-a half-written `.json` file risks being skipped or quarantined.
+Before invoking the writer, parse the object with `json.dumps()` or an equivalent
+JSON encoder. Atomic publication is the writer's responsibility.
 
 ## What you do NOT do
 
@@ -192,6 +182,6 @@ a half-written `.json` file risks being skipped or quarantined.
 
 ## Coordination
 
-Events go to disk via the event-log-and-reducer pattern. The orchestrator that dispatched you reads your events asynchronously; don't try to write canonical state directly. Files in `<project>/.john/events/extract/<chunk-id>/` only.
+Events go to disk through `emit_event.py` and the event-log-and-reducer pattern. The orchestrator reads them asynchronously; don't write canonical state or raw event files directly.
 
 If you hit an unrecoverable error (chunk file missing, schema unparseable, content too ambiguous), write one `extractor_failed` event with a clear `error` field and stop. The orchestrator will decide whether to retry or drop the chunk.

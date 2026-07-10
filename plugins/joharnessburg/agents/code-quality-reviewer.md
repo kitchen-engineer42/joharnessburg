@@ -15,7 +15,7 @@ You are dispatched when layer-2 Claude wants an independent quality pass on prod
 - **The project's tech stack** (so you don't suggest TypeScript fixes for Python code, etc.).
 - **Which guardrail categories matter most for this project**: security / code-quality / UX / deployment. Some projects need all four; many need only two or three.
 - **The deterministic check commands available**: e.g., `pnpm lint`, `pytest`, `ruff check`, `tsc --noEmit`. Run them; their output is signal, not noise.
-- **The output format**: typically a markdown findings list at a specified path, or a JSON event in `<project>/.john/events/quality/...`.
+- **The output format**: typically a markdown findings list at a specified path, or JSON piped through John's event writer. An event briefing must include phase, work-unit, agent, and audit-run IDs.
 
 ## What you produce
 
@@ -34,7 +34,10 @@ Plus a summary section: total findings by severity, deterministic checks run + t
 
 ## JSON discipline
 
-If you emit findings as JSON (event-log style), apply the same discipline as other agents: prefer full-width `「...」` for inner quotes in Chinese content (e.g., quoting source code comments or string literals); prefer `json.dumps()`-style escaping for ASCII content. Don't hand-format JSON with unescaped inner `"` — the reducer quarantines unparseable events.
+If you emit findings as JSON, serialize one object and pipe it through
+`${CLAUDE_PLUGIN_ROOT}/scripts/emit_event.py` with every stable ID from the
+briefing. Never choose a raw event filename. Prefer full-width `「...」` for inner
+quotes in Chinese content and `json.dumps()`-style escaping for ASCII content.
 
 ## Anti-pitfalls
 

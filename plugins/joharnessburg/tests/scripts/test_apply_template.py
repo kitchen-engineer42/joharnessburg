@@ -85,6 +85,68 @@ def run_apply(*args, output_parent_override: Path = None, env_extra: dict = None
 
 
 class TestApplyTemplate(unittest.TestCase):
+    def test_rejects_traversal_names_and_template_symlinks(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            john = root / "john"
+            template = root / "template"
+            applied = root / "applied"
+            _build_fake_john(john)
+            _build_fake_template(template)
+
+            (template / "template.json").write_text(json.dumps({"name": "../victim"}))
+            rc, out, _ = run_apply(
+                "--template-root", str(template), "--john-install", str(john),
+                output_parent_override=applied,
+            )
+            self.assertEqual(rc, 1)
+            self.assertFalse(out["success"])
+            self.assertFalse((root / "victim").exists())
+
+            (template / "template.json").write_text(json.dumps({"name": "safe-template"}))
+            (template / "skills/_delete").write_text("../../victim\n")
+            rc, out, _ = run_apply(
+                "--template-root", str(template), "--john-install", str(john),
+                output_parent_override=applied,
+            )
+            self.assertEqual(rc, 1)
+            self.assertFalse((root / "victim").exists())
+
+            (template / "skills/_delete").write_text("to-be-deleted\n")
+            external = root / "external.txt"
+            external.write_text("secret")
+            os.symlink(external, template / "linked.txt")
+            rc, out, _ = run_apply(
+                "--template-root", str(template), "--john-install", str(john),
+                output_parent_override=applied,
+            )
+            self.assertEqual(rc, 1)
+            self.assertIn("symlink", out["error"])
+
+    def test_failed_force_reapply_preserves_prior_output(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            john = root / "john"
+            template = root / "template"
+            applied = root / "applied"
+            _build_fake_john(john)
+            _build_fake_template(template, name="safe-template")
+            rc, _, _ = run_apply(
+                "--template-root", str(template), "--john-install", str(john),
+                output_parent_override=applied,
+            )
+            self.assertEqual(rc, 0)
+            sentinel = applied / "safe-template/sentinel.txt"
+            sentinel.write_text("prior state")
+            # Validation fails before any backup/swap.
+            (template / "skills/_delete").write_text("../escape\n")
+            rc, _, _ = run_apply(
+                "--template-root", str(template), "--john-install", str(john),
+                "--force", output_parent_override=applied,
+            )
+            self.assertEqual(rc, 1)
+            self.assertEqual(sentinel.read_text(), "prior state")
+
     def test_apply_builds_merged_dir_with_overrides_additive_delete(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)

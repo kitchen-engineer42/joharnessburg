@@ -79,6 +79,10 @@ class TestEmitManifests(unittest.TestCase):
             se = _load(john, "SELF_EVAL_MANIFEST.json")
             self.assertEqual(se["process_scorecard_script"], "scripts/process_scorecard.py")
             self.assertIn("process_scorecard.py", se["process_scorecard_command"])
+            self.assertEqual(se["schema_version"], 2)
+            self.assertIsInstance(se["process_scorecard_argv"], list)
+            self.assertEqual(se["process_scorecard_argv"][0], "python3")
+            self.assertTrue(se["process_scorecard_command_deprecated"])
             self.assertEqual(se["run_report_location"], ".john/reports/")
             self.assertEqual(se["workspace_metadata"], ".john/workspace.json")
 
@@ -147,6 +151,24 @@ class TestEmitManifests(unittest.TestCase):
             self.assertIsNone(prov["run_completed_at"])
             self.assertEqual(prov["phases_observed"], [])
             self.assertEqual(prov["corpus"]["inputs"], [])
+
+    def test_event_time_bounds_compare_offsets_as_datetimes(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            john = _build_fixture(root)
+            events = john / "events/extract"
+            for existing in (john / "events").rglob("*.json"):
+                existing.unlink()
+            (events / "a.json").write_text(json.dumps({
+                "timestamp": "2026-01-01T01:30:00+01:00"
+            }))
+            (events / "b.json").write_text(json.dumps({
+                "timestamp": "2026-01-01T00:45:00Z"
+            }))
+            run_script("emit_manifests.py", "--quiet", cwd=root)
+            prov = _load(john, "PROVENANCE.json")
+            self.assertEqual(prov["run_started_at"], "2026-01-01T01:30:00+01:00")
+            self.assertEqual(prov["run_completed_at"], "2026-01-01T00:45:00Z")
 
     def test_errors_when_no_workspace(self):
         with tempfile.TemporaryDirectory() as td:

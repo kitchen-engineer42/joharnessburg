@@ -1,6 +1,5 @@
 """Tests for scripts/parse_govcn_html.py."""
 
-import json
 import tempfile
 import unittest
 from pathlib import Path

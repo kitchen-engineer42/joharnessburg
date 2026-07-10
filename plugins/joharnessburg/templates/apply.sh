@@ -1,7 +1,7 @@
 #!/bin/bash
 # Universal apply wrapper for John templates.
 #
-# Each template ships its own apply.sh which is a symlink (or copy) of this file.
+# Each template ships an executable regular-file copy of this canonical script.
 # Running ./apply.sh from inside a template directory builds the merged plugin
 # at ~/.claude/plugins/joharnessburg-applied/<template-name>/.
 #

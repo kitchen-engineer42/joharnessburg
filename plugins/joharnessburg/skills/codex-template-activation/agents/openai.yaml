@@ -1,0 +1,4 @@
+interface:
+  display_name: "Activate John Template for Codex"
+  short_description: "Activate a merged John template locally"
+  default_prompt: "Activate this applied John template for the current Codex project."

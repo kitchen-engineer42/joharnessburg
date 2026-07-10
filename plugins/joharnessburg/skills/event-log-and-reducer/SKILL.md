@@ -24,7 +24,7 @@ Subagent C ── events/extract/chunks/C-003.json                              
 Subagent N ── events/extract/chunks/N-200.json                             ─┘
 ```
 
-- Each subagent writes only to its own event file. Zero contention.
+- Each subagent invokes `emit_event.py`; the writer assigns a unique filename and atomic envelope. Zero contention and retries never overwrite history.
 - The reducer reads all event files for a phase, in deterministic order, and produces canonical state.
 - Running the reducer twice yields the same output (idempotent).
 - Canonical state is the read source for the next phase.
@@ -37,9 +37,18 @@ In the user's project, under `<project>/.john/`:
 - `<project>/.john/checkpoints/<phase-name>/state.json` — canonical reduced state. Written by reducer.
 
 Conventions:
-- Subagent-id is a short identifier (e.g., `chunk-042` for "the subagent that processed chunk 042").
-- Sequence is an integer or timestamp, in case one subagent emits multiple events.
+- Phase, work-unit, agent, and audit-run IDs use letters, digits, `_`, and `-`, beginning with a letter or digit.
 - Event files are JSON; canonical state is JSON. Markdown if the canonical state is human-facing.
+- Producers do not choose filenames. Pipe one JSON object through the shipped atomic writer:
+
+```bash
+printf '%s\n' '{"event_type":"chunk_complete","chunk_id":"chunk-042"}' | \
+  python3 "${CLAUDE_PLUGIN_ROOT}/scripts/emit_event.py" \
+    --phase extract --work-unit-id chunk-042 \
+    --agent-id extractor-7 --audit-run-id run-20260709
+```
+
+The writer injects a UUID `event_id`, UTC `timestamp`, `agent_id`, and `audit_run_id`. Raw events are append-only.
 
 ## Event shape — one valid approach
 
@@ -92,6 +101,8 @@ Why a deterministic floor when [[vertical-workflows]] already has LLM cross-chec
 
 Every gated (non-dry-run) reduce also **persists its verdict** to `<project>/.john/checkpoints/<phase>/gates/<ts>.json` (append-only history: gate status, counts, verify results, exit code). This makes phase-boundary outcomes readable from the workspace itself — the process scorecard (`${CLAUDE_PLUGIN_ROOT}/scripts/process_scorecard.py`) reads them when assessing how a run actually went.
 
+Extraction has an additional opt-in CLI gate that shipped extraction guidance always enables: `--require-extraction-audits`. For each completed chunk it selects the latest coverage and grounding summaries newer than the latest candidate mutation, requires zero coverage gaps, zero weak/ungrounded entries, and matching checked-entry counts. Failure exits 4 and excludes the entire chunk from `quality_gate.accepted_entry_ids`; the additive `quality_gate` object and reasons remain in checkpoint state. Omitting the flag preserves generic legacy reduction.
+
 ## Failure handling
 
 A subagent crashed mid-write? Its event file is partial or absent. Options for the reducer:
@@ -99,7 +110,7 @@ A subagent crashed mid-write? Its event file is partial or absent. Options for t
 - **Strict**: refuse to fold if any expected event is missing. The phase isn't done; the user must re-dispatch the missing work units.
 - **Lenient**: fold what's there, mark the missing work units in canonical state, and surface them in the phase's "Open decisions" or Log. Reducer's choice; document which.
 
-John defaults to **lenient with explicit flagging** — the phase advances on best-effort, but PLAN.md gets a Log entry listing the missing units so they can be re-dispatched.
+John defaults to **lenient with explicit flagging** for generic reduction. Shipped extraction guidance is stricter: its required audit gate must pass before the phase advances.
 
 ## Validation + quarantine
 
@@ -112,7 +123,7 @@ Subagents writing JSON events sometimes produce unparseable files — most commo
 
 This is a **lenient + surfaced** policy: the phase doesn't fail outright (one bad event shouldn't kill 199 good ones), but the user knows immediately how many events were lost and where to inspect them.
 
-**For agents emitting events**: see the JSON-discipline section in your agent role. Prefer full-width `「」` quotes or `json.dumps()` to avoid the quarantine path entirely. And write atomically — temp name first, then rename to the final `.json` — so a reduce racing your write never sees a half-written event.
+**For agents emitting events**: see the JSON-discipline section in your agent role. Prefer `json.dumps()` and pipe the resulting object through `emit_event.py`; do not handcraft a shared or retry-prone filename.
 
 ## Why this beats file locks
 

@@ -87,6 +87,51 @@ class TestArchiveWorkspace(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertTrue(out["success"])
 
+    def test_archive_uses_nearest_root_and_rejects_self_inclusion(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            run_script("init_workspace.py", cwd=root)
+            nested = root / "app/src"
+            nested.mkdir(parents=True)
+            rc, out, err = run_script("archive_workspace.py", "nested", cwd=nested)
+            self.assertEqual(rc, 0, err)
+            self.assertEqual(Path(out["project_root"]), root.resolve())
+
+            inside = root / ".john/archive.zip"
+            rc, out, _ = run_script(
+                "archive_workspace.py", "--output", str(inside), cwd=nested
+            )
+            self.assertEqual(rc, 1)
+            self.assertFalse(out["success"])
+            self.assertFalse(inside.exists())
+
+            absent_tree = root / ".claude/skills/archive.zip"
+            rc, out, _ = run_script(
+                "archive_workspace.py", "--output", str(absent_tree), cwd=nested
+            )
+            self.assertEqual(rc, 1)
+            self.assertFalse(out["success"])
+            self.assertFalse(absent_tree.exists())
+
+    def test_archive_rejects_symlinks_without_replacing_existing_output(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            run_script("init_workspace.py", cwd=root)
+            external = root.parent / f"{root.name}-external.txt"
+            external.write_text("private")
+            try:
+                (root / ".john/input/link.txt").symlink_to(external)
+                output = root / "safe.zip"
+                output.write_text("prior")
+                rc, out, _ = run_script(
+                    "archive_workspace.py", "--output", str(output), "--force", cwd=root
+                )
+                self.assertEqual(rc, 1)
+                self.assertIn("symlink", out["error"])
+                self.assertEqual(output.read_text(), "prior")
+            finally:
+                external.unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     unittest.main()

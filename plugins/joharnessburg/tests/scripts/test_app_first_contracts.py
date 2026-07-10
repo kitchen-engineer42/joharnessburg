@@ -86,6 +86,36 @@ class TestIntentContracts(unittest.TestCase):
         self.assertTrue(any("max_questions" in err for err in errors))
         self.assertTrue(any("questions length" in err for err in errors))
 
+    def test_validate_questions_reports_malformed_metadata_without_crashing(self):
+        payload = {
+            "version": "john.intent_questions.v1",
+            "question_batch_id": "",
+            "max_questions": "four",
+            "reason": 7,
+            "questions": [
+                {
+                    "id": "same",
+                    "prompt": " ",
+                    "free_text_allowed": True,
+                    "options": [
+                        {"id": "x", "label": "A", "recommended": "yes"},
+                        {"id": "x", "label": ""},
+                    ],
+                },
+                {
+                    "id": "same",
+                    "prompt": "Question",
+                    "free_text_allowed": True,
+                    "options": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}],
+                },
+            ],
+        }
+        errors = contracts.validate_intent_questions(payload)
+        self.assertTrue(any("max_questions" in error for error in errors))
+        self.assertTrue(any("question_batch_id" in error for error in errors))
+        self.assertTrue(any("must be unique" in error for error in errors))
+        self.assertTrue(any("recommended must be boolean" in error for error in errors))
+
     def test_build_contracts_cli_writes_blueprint_and_extraction_plan(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
@@ -137,6 +167,21 @@ class TestIntentContracts(unittest.TestCase):
 
 
 class TestUiLeakScan(unittest.TestCase):
+    def test_scan_ui_leaks_fails_closed_for_missing_and_empty_targets(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            missing = contracts.scan_ui_leaks(root / "missing")
+            self.assertFalse(missing["success"])
+            self.assertEqual(missing["violations"][0]["category"], "invalid_target")
+            empty = contracts.scan_ui_leaks(root)
+            self.assertFalse(empty["success"])
+            self.assertEqual(empty["violations"][0]["category"], "empty_target")
+            (root / "empty.html").write_text("")
+            empty_file = contracts.scan_ui_leaks(root / "empty.html")
+            self.assertFalse(empty_file["success"])
+            self.assertTrue(empty_file["source_heuristic"])
+            self.assertTrue(empty_file["rendered_browser_verification_required"])
+
     def test_scan_ui_leaks_flags_internal_terms_for_chinese_ui(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
@@ -169,6 +214,8 @@ class TestUiLeakScan(unittest.TestCase):
 
             self.assertTrue(result["success"])
             self.assertEqual(result["violations"], [])
+            self.assertEqual(result["files_scanned"], 1)
+            self.assertTrue(result["source_heuristic"])
 
 
 if __name__ == "__main__":

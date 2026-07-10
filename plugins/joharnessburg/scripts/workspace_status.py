@@ -23,6 +23,7 @@ import traceback
 from pathlib import Path
 
 from john_paths import find_john_root
+from knowledge_inventory import disk_entry_ids
 
 
 def _detect_template_from_env() -> str | None:
@@ -153,7 +154,7 @@ def main():
         "input_files": count_files(john_dir / "input"),
         "parsed_dirs": len(list_dirs(john_dir / "parsed")),
         "chunks_files": count_files(john_dir / "chunks"),
-        "knowledge_entries": len(list_dirs(john_dir / "knowledge")),
+        "knowledge_entries": len(disk_entry_ids(john_dir / "knowledge")),
         "events_phases": phases_with_events,
         "checkpoints_phases": phases_with_checkpoints,
         "trace_files": count_files(john_dir / "trace"),

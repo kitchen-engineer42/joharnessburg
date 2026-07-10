@@ -77,9 +77,10 @@ class TestSessionStartHook(unittest.TestCase):
             self.assertIn("slides-from-textbook", ctx)
             self.assertIn("extract", ctx)
             self.assertIn("PLAN.md", ctx)
-            # v0.2.0: workflow expectation + endurance assumption line
-            self.assertIn("dynamic workflows", ctx)
-            self.assertIn("assume it's on", ctx)
+            # Provider-neutral hook points each runtime at its own adapter.
+            self.assertIn("active provider's adapter", ctx)
+            self.assertIn("Codex uses native subagents", ctx)
+            self.assertNotIn("You are in a Claude Code session", ctx)
             # v0.2.3: invoke-the-phase-skill nudge
             self.assertIn("Invoke skills", ctx)
             self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "SessionStart")
@@ -108,6 +109,24 @@ class TestSessionStartHook(unittest.TestCase):
             ctx = out["hookSpecificOutput"]["additionalContext"]
             self.assertIn("ship the RPG", ctx)
             self.assertIn("subdir test", ctx)
+
+    def test_codex_uses_nested_supported_context_only(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / ".john").mkdir()
+            (root / ".john/workspace.json").write_text(
+                json.dumps({"current_phase": "extract", "session_metadata": {}})
+            )
+            (root / "PLAN.md").write_text("# Codex plan\n")
+            rc, out, err = run_hook(
+                {"cwd": str(root), "turn_id": "turn-codex-1", "source": "startup"},
+                cwd=root,
+            )
+            self.assertEqual(rc, 0, err)
+            self.assertEqual(set(out), {"hookSpecificOutput"})
+            self.assertIn(
+                "Codex plan", out["hookSpecificOutput"]["additionalContext"]
+            )
 
     def test_handles_missing_endurance_goal(self):
         with tempfile.TemporaryDirectory() as td:

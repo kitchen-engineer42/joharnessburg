@@ -125,7 +125,7 @@ def main():
     # Compose the additionalContext string
     additional_context = (
         f"# John (joharnessburg) — Active Session\n\n"
-        f"You are in a Claude Code session where the John plugin is active and this project's "
+        f"You are in an AI coding session where the John plugin is active and this project's "
         f"workspace has been initialized.\n\n"
         f"**Endurance goal**: {endurance_goal}\n\n"
         f"**Active template applied**: {active_template_label}\n"
@@ -146,9 +146,9 @@ def main():
         f"**Invoke skills, don't recall them**: at each phase start, invoke the phase's named "
         f"skill (PLAN.md lists them per phase) before doing the phase's work — the methodology "
         f"lives in the skill bodies, not in this banner.\n\n"
-        f"**Fan-out phases expect dynamic workflows** (`/effort ultracode`). Check availability "
-        f"before the first fan-out; if an endurance goal is set, assume it's on and proceed "
-        f"without pausing to confirm config (see the `vertical-workflows` skill).\n\n"
+        f"**Fan-out phases use the active provider's adapter**: Claude Code uses dynamic "
+        f"workflows when available; Codex uses native subagents and the durable John run "
+        f"ledger. Read the provider-specific vertical-workflow skill before dispatch.\n\n"
         f"## PLAN.md preview\n\n"
         f"```\n{plan_preview}\n```\n"
     )
@@ -156,13 +156,17 @@ def main():
     # Per the documented SessionStart output schema
     # (code.claude.com/docs/en/hooks), additionalContext must live inside
     # hookSpecificOutput; a top-level copy is kept for older harness versions.
-    emit({
-        "additionalContext": additional_context,
+    payload = {
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",
             "additionalContext": additional_context,
         },
-    })
+    }
+    # Claude's older hook contract accepted the top-level compatibility copy;
+    # Codex's documented shape is the nested hookSpecificOutput only.
+    if "turn_id" not in data:
+        payload["additionalContext"] = additional_context
+    emit(payload)
 
 
 if __name__ == "__main__":

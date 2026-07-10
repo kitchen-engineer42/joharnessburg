@@ -83,6 +83,25 @@ class TestPostToolUseHook(unittest.TestCase):
             self.assertTrue(offload.name.startswith("Read-"))
             self.assertTrue(offload.name.endswith(".txt"))
 
+    def test_codex_receives_additional_context_pointing_to_same_trace(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / ".john").mkdir()
+            rc, out, err = run_hook(
+                {
+                    "cwd": str(root),
+                    "turn_id": "turn-codex-1",
+                    "tool_name": "Read",
+                    "tool_output_text": "C" * 5000,
+                },
+                cwd=root,
+            )
+            self.assertEqual(rc, 0, err)
+            self.assertIn(
+                ".john/trace/", out["hookSpecificOutput"]["additionalContext"]
+            )
+            self.assertNotIn("updatedToolOutput", out["hookSpecificOutput"])
+
     def test_tool_output_field_accepted(self):
         """`tool_output` (string) is honored when `tool_output_text` is absent."""
         with tempfile.TemporaryDirectory() as td:

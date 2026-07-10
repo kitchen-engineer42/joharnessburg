@@ -22,6 +22,8 @@ import sys
 import traceback
 from pathlib import Path
 
+from path_safety import ensure_contained, reject_tree_symlinks
+
 
 def resolve_applied_parent(override: str = None) -> Path:
     """Where applied-template merged dirs live.
@@ -73,13 +75,24 @@ def main(argv: list[str] | None = None):
     )
     args = parser.parse_args(argv)
 
-    applied_parent = resolve_applied_parent(args.applied_parent)
+    raw_parent = Path(
+        args.applied_parent
+        or os.environ.get("JOHN_APPLIED_PARENT")
+        or Path.home() / ".claude/plugins/joharnessburg-applied"
+    ).expanduser()
+    if raw_parent.is_symlink():
+        err(f"Applied-template parent may not be a symlink: {raw_parent}")
+        return
+    applied_parent = raw_parent.resolve()
 
     if not applied_parent.is_dir():
         emit({"applied_dirs": [], "deleted": [], "message": "Nothing to reset (no applied dir)."})
         return
 
-    applied = sorted([d for d in applied_parent.iterdir() if d.is_dir()], key=lambda p: p.name)
+    applied = sorted(
+        [d for d in applied_parent.iterdir() if d.is_dir() and not d.is_symlink()],
+        key=lambda p: p.name,
+    )
 
     if args.list:
         emit({"applied_dirs": [str(d) for d in applied]})
@@ -110,6 +123,13 @@ def main(argv: list[str] | None = None):
             sys.stderr.write(
                 f"WARN: skipping {d} (no .applied-metadata.json; not a recognized applied template)\n"
             )
+            continue
+        try:
+            ensure_contained(applied_parent, d, label="applied template")
+            reject_tree_symlinks(d, label="applied template")
+        except ValueError as exc:
+            skipped.append(str(d))
+            sys.stderr.write(f"WARN: skipping {d} ({exc})\n")
             continue
         shutil.rmtree(d)
         deleted.append(str(d))

@@ -94,6 +94,24 @@ class TestPrecompactHook(unittest.TestCase):
             snapshots = list((tdp / ".john" / "checkpoints").glob("precompact-*.json"))
             self.assertEqual(len(snapshots), 1)
 
+    def test_codex_uses_supported_common_output_shape(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / ".john").mkdir()
+            rc, out, err = run_hook(
+                {"cwd": str(root), "turn_id": "turn-1", "trigger": "auto"},
+                cwd=root,
+            )
+            self.assertEqual(rc, 0, err)
+            self.assertEqual(set(out), {"systemMessage"})
+            self.assertIn("precompaction snapshot", out["systemMessage"])
+            self.assertEqual(
+                len(list((root / ".john/checkpoints").glob("precompact-*.json"))),
+                1,
+            )
+            snapshot = next((root / ".john/checkpoints").glob("precompact-*.json"))
+            self.assertEqual(json.loads(snapshot.read_text())["compaction_reason"], "auto")
+
     def test_handles_missing_workspace_json(self):
         # .john/ exists but no workspace.json
         with tempfile.TemporaryDirectory() as td:

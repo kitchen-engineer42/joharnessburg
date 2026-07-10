@@ -9,6 +9,46 @@ from tests._helpers import run_script
 
 
 class TestInitWorkspace(unittest.TestCase):
+    def test_init_installs_codex_agents_and_skips_user_files_even_with_force(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            existing = root / ".codex/agents/coverage-auditor.toml"
+            existing.parent.mkdir(parents=True)
+            existing.write_text("# user-owned\n")
+            rc, out, err = run_script("init_workspace.py", cwd=root)
+            self.assertEqual(rc, 0, err)
+            self.assertIn("coverage-auditor.toml", out["codex_agents_skipped"])
+            self.assertIn("grounding-checker.toml", out["codex_agents_installed"])
+            self.assertEqual(existing.read_text(), "# user-owned\n")
+
+            rc, out, err = run_script("init_workspace.py", "--force", cwd=root)
+            self.assertEqual(rc, 0, err)
+            self.assertIn("coverage-auditor.toml", out["codex_agents_skipped"])
+            self.assertEqual(existing.read_text(), "# user-owned\n")
+
+    def test_init_applies_shared_and_provider_specific_addons(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            active = root / "active"
+            active.mkdir()
+            (active / "project_addon.md").write_text("SHARED-DOMAIN-GUIDANCE\n")
+            (active / "claude_addon.md").write_text("CLAUDE-ONLY-GUIDANCE\n")
+            (active / "agents_addon.md").write_text("CODEX-ONLY-GUIDANCE\n")
+            rc, out, err = run_script(
+                "init_workspace.py",
+                cwd=root,
+                env_override={"JOHN_TEMPLATES_ACTIVE": str(active)},
+            )
+            self.assertEqual(rc, 0, err)
+            claude = (root / "CLAUDE.md").read_text()
+            agents = (root / "AGENTS.md").read_text()
+            self.assertIn("SHARED-DOMAIN-GUIDANCE", claude)
+            self.assertIn("SHARED-DOMAIN-GUIDANCE", agents)
+            self.assertIn("CLAUDE-ONLY-GUIDANCE", claude)
+            self.assertNotIn("CLAUDE-ONLY-GUIDANCE", agents)
+            self.assertIn("CODEX-ONLY-GUIDANCE", agents)
+            self.assertNotIn("CODEX-ONLY-GUIDANCE", claude)
+            self.assertTrue(out["project_addon_applied"])
     def test_init_creates_john_dir_and_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
             tdp = Path(td)
